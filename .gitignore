@@ -1,0 +1,10 @@
+/CMake
+/CMakeFiles
+/CMakeCache.txt
+/cmake_install.cmake
+/Makefile
+/Urho3D.log
+/cmake_generic.sh
+/.bash_helpers.sh
+/bin/OSP
+/bin/Urho3D.log
