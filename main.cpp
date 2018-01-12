@@ -33,160 +33,56 @@
 
 using namespace Urho3D;
 
-class PlanWren
-{
-
-};
-
-class SubTriangle
-{
-
-
-};
-
-/**
-* Using the convenient Application API we don't have
-* to worry about initializing the engine or writing a main.
-* You can probably mess around with initializing the engine
-* and running a main manually, but this is convenient and portable.
-*/
-class MyApp : public Application
-{
+class SubTriangle {
 public:
-    int framecount_;
-    float time_;
-    SharedPtr<Text> text_;
-    SharedPtr<Scene> scene_;
-    SharedPtr<Node> boxNode_;
-    SharedPtr<Node> cameraNode_;
-    SharedPtr<IndexBuffer> sindBuf_;
+    unsigned char inuseBitmask_; // only first 4 bits are used
 
-    /**
-    * This happens before the engine has been initialized
-    * so it's usually minimal code setting defaults for
-    * whatever instance variables you have.
-    * You can also do this in the Setup method.
-    */
-    MyApp(Context * context) : Application(context),framecount_(0),time_(0)
-    {
+    SubTriangle* children_;
+    Vector3 normal_;
+};
+
+class PlanWren {
+    ushort maxLOD_;
+    float size_;
+
+    Model* model_;
+    SharedPtr<IndexBuffer> indBuf_;
+    SharedPtr<VertexBuffer> vrtBuf_;
+    Geometry* geometry_;
+
+    Vector<float> vertData_;
+    Vector<uint> indData_;
+
+    SubTriangle name[20];
+
+public:
+
+    PlanWren() {
+      
     }
 
-    /**
-    * This method is called before the engine has been initialized.
-    * Thusly, we can setup the engine parameters before anything else
-    * of engine importance happens (such as windows, search paths,
-    * resolution and other things that might be user configurable).
-    */
-    virtual void Setup()
-    {
-        // These parameters should be self-explanatory.
-        // See http://urho3d.github.io/documentation/1.5/_main_loop.html
-        // for a more complete list.
-        engineParameters_["FullScreen"]=false;
-        engineParameters_["WindowWidth"]=1280;
-        engineParameters_["WindowHeight"]=720;
-        engineParameters_["WindowResizable"]=true;
-    }
+    void Initialize(Context* context, float size) {
 
-    /**
-    * This method is called after the engine has been initialized.
-    * This is where you set up your actual content, such as scenes,
-    * models, controls and what not. Basically, anything that needs
-    * the engine initialized and ready goes in here.
-    */
-    virtual void Start()
-    {
-        // We will be needing to load resources.
-        // All the resources used in this example comes with Urho3D.
-        // If the engine can't find them, check the ResourcePrefixPath (see http://urho3d.github.io/documentation/1.5/_main_loop.html).
-        ResourceCache* cache=GetSubsystem<ResourceCache>();
+        size_ = size;
 
-        // Let's use the default style that comes with Urho3D.
-        GetSubsystem<UI>()->GetRoot()->SetDefaultStyle(cache->GetResource<XMLFile>("UI/DefaultStyle.xml"));
-        // Let's create some text to display.
-        text_=new Text(context_);
-        // Text will be updated later in the E_UPDATE handler. Keep readin'.
-        text_->SetText("Keys: tab = toggle mouse, AWSD = move camera, Shift = fast mode, Esc = quit.\nWait a bit to see FPS.");
-        // If the engine cannot find the font, it comes with Urho3D.
-        // Set the environment variables URHO3D_HOME, URHO3D_PREFIX_PATH or
-        // change the engine parameter "ResourcePrefixPath" in the Setup method.
-        text_->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"),20);
-        text_->SetColor(Color(.3,0,.3));
-        text_->SetHorizontalAlignment(HA_CENTER);
-        text_->SetVerticalAlignment(VA_TOP);
-        GetSubsystem<UI>()->GetRoot()->AddChild(text_);
-        // Add a button, just as an interactive UI sample.
-        Button* button=new Button(context_);
-        // Note, must be part of the UI system before SetSize calls!
-        GetSubsystem<UI>()->GetRoot()->AddChild(button);
-        button->SetName("Button Quit");
-        button->SetStyle("Button");
-        button->SetSize(32,32);
-        button->SetPosition(16,116);
-        // Subscribe to button release (following a 'press') events
-        SubscribeToEvent(button,E_RELEASED,URHO3D_HANDLER(MyApp,HandleClosePressed));
+        model_ = new Model(context);
 
-        // Let's setup a scene to render.
-        scene_=new Scene(context_);
-        // Let the scene have an Octree component!
-        scene_->CreateComponent<Octree>();
-        // Let's add an additional scene component for fun.
-        scene_->CreateComponent<DebugRenderer>();
-
-        // Let's put some sky in there.
-        // Again, if the engine can't find these resources you need to check
-        // the "ResourcePrefixPath". These files come with Urho3D.
-        Node* skyNode=scene_->CreateChild("Sky");
-        skyNode->SetScale(500.0f); // The scale actually does not matter
-        Skybox* skybox=skyNode->CreateComponent<Skybox>();
-        skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-        skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
-
-        // Let's put a box in there.
-        boxNode_=scene_->CreateChild("Box");
-        boxNode_->SetPosition(Vector3(0,2,15));
-        boxNode_->SetScale(Vector3(3,3,3));
-        StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
-        boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-        boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
-        boxObject->SetCastShadows(true);
-
-        // Create 400 boxes in a grid.
-        /*for(int x=-30;x<30;x+=3)
-            for(int z=0;z<60;z+=3)
-            {
-                Node* boxNode_=scene_->CreateChild("Box");
-                boxNode_->SetPosition(Vector3(x,-3,z));
-                boxNode_->SetScale(Vector3(2,2,2));
-                StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
-                boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-                boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
-                boxObject->SetCastShadows(true);
-            }*/
-
-        Model* model = new Model(context_);
-        //float size = 256.0f;
-        float h = 114.486680448 / 256.0f;//0.44721359549996f
+        float s = size / 256.0f;
+        float h = 114.486680448 * s;
 
         // Pentagon stuff, from wolfram alpha
         // "X pointing" pentagon goes on the top
 
-        float ca = 79.108350559987f / 256.0f;
-        float cb = 207.10835055999f / 256.0f;
-        float sa = 243.47046817156f / 256.0f;
-        float sb = 150.47302458687f / 256.0f;
+        float ca = 79.108350559987f * s;
+        float cb = 207.10835055999f * s;
+        float sa = 243.47046817156f * s;
+        float sb = 150.47302458687f * s;
 
         Vector<float> vertData;
         Vector<uint> indData;
-        IndexBuffer* indBuf = new IndexBuffer(context_);
-        VertexBuffer* vrtBuf = new VertexBuffer(context_);
-        Geometry* geometry = new Geometry(context_);
-
-        sindBuf_ = SharedPtr<IndexBuffer>(indBuf);
-        vertData.Reserve(12 * 3);
-
-        // Vertex Buffer:
-        // [12 fundementals, (x) shared lines, (x)*20 face indicies]
+        indBuf_ = new IndexBuffer(context);
+        vrtBuf_ = new VertexBuffer(context);
+        geometry_ = new Geometry(context);
 
         vertData.Push(0); // Top vertex 0
         vertData.Push(1);
@@ -348,35 +244,169 @@ public:
         elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
         elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
 
-        vrtBuf->SetSize(vertData.Size() / 2, elements);
-        vrtBuf->SetData(vertData.Buffer());
-        vrtBuf->SetShadowed(true);
+        vrtBuf_->SetSize(vertData.Size() / 2, elements);
+        vrtBuf_->SetData(vertData.Buffer());
+        vrtBuf_->SetShadowed(true);
 
-        indBuf->SetSize(indData.Size(), true, true);
-        indBuf->SetData(indData.Buffer());
-        indBuf->SetShadowed(true);
+        indBuf_->SetSize(indData.Size(), true, true);
+        indBuf_->SetData(indData.Buffer());
+        indBuf_->SetShadowed(true);
 
-        geometry->SetNumVertexBuffers(1);
-        geometry->SetVertexBuffer(0, vrtBuf);
-        geometry->SetIndexBuffer(indBuf);
-        geometry->SetDrawRange(TRIANGLE_LIST, 0, indData.Size());
+        geometry_->SetNumVertexBuffers(1);
+        geometry_->SetVertexBuffer(0, vrtBuf_);
+        geometry_->SetIndexBuffer(indBuf_);
+        geometry_->SetDrawRange(TRIANGLE_LIST, 0, indData.Size());
 
-        model->SetNumGeometries(1);
-        model->SetGeometry(0, 0, geometry);
-        model->SetBoundingBox(BoundingBox(0.0f, 1.0f));
+        model_->SetNumGeometries(1);
+        model_->SetGeometry(0, 0, geometry_);
+        model_->SetBoundingBox(BoundingBox(0.0f, 1.0f));
         Vector<SharedPtr<VertexBuffer> > vrtBufs;
         Vector<SharedPtr<IndexBuffer> > indBufs;
-        vrtBufs.Push(SharedPtr<VertexBuffer>(vrtBuf));
-        indBufs.Push(SharedPtr<IndexBuffer>(indBuf));
+        vrtBufs.Push(SharedPtr<VertexBuffer>(vrtBuf_));
+        indBufs.Push(SharedPtr<IndexBuffer>(indBuf_));
         PODVector<unsigned> morphRangeStarts;
         PODVector<unsigned> morphRangeCounts;
         morphRangeStarts.Push(0);
         morphRangeCounts.Push(0);
-        model->SetVertexBuffers(vrtBufs, morphRangeStarts, morphRangeCounts);
-        model->SetIndexBuffers(indBufs);
+        model_->SetVertexBuffers(vrtBufs, morphRangeStarts, morphRangeCounts);
+        model_->SetIndexBuffers(indBufs);
 
-        for(int i=0;i<vertData.Size();i+=6)
-        {
+
+    }
+    
+    Model* GetModel() {
+        return model_;
+    }
+};
+
+/**
+* Using the convenient Application API we don't have
+* to worry about initializing the engine or writing a main.
+* You can probably mess around with initializing the engine
+* and running a main manually, but this is convenient and portable.
+*/
+class MyApp : public Application {
+public:
+    int framecount_;
+    float time_;
+    SharedPtr<Text> text_;
+    SharedPtr<Scene> scene_;
+    SharedPtr<Node> boxNode_;
+    SharedPtr<Node> cameraNode_;
+    SharedPtr<IndexBuffer> sindBuf_;
+
+    /**
+    * This happens before the engine has been initialized
+    * so it's usually minimal code setting defaults for
+    * whatever instance variables you have.
+    * You can also do this in the Setup method.
+    */
+    MyApp(Context * context) : Application(context),framecount_(0),time_(0) {
+    }
+
+    /**
+    * This method is called before the engine has been initialized.
+    * Thusly, we can setup the engine parameters before anything else
+    * of engine importance happens (such as windows, search paths,
+    * resolution and other things that might be user configurable).
+    */
+    virtual void Setup() {
+        // These parameters should be self-explanatory.
+        // See http://urho3d.github.io/documentation/1.5/_main_loop.html
+        // for a more complete list.
+        engineParameters_["FullScreen"]=false;
+        engineParameters_["WindowWidth"]=1280;
+        engineParameters_["WindowHeight"]=720;
+        engineParameters_["WindowResizable"]=true;
+    }
+
+    /**
+    * This method is called after the engine has been initialized.
+    * This is where you set up your actual content, such as scenes,
+    * models, controls and what not. Basically, anything that needs
+    * the engine initialized and ready goes in here.
+    */
+    virtual void Start() {
+        // We will be needing to load resources.
+        // All the resources used in this example comes with Urho3D.
+        // If the engine can't find them, check the ResourcePrefixPath (see http://urho3d.github.io/documentation/1.5/_main_loop.html).
+        ResourceCache* cache=GetSubsystem<ResourceCache>();
+
+        // Let's use the default style that comes with Urho3D.
+        GetSubsystem<UI>()->GetRoot()->SetDefaultStyle(cache->GetResource<XMLFile>("UI/DefaultStyle.xml"));
+        // Let's create some text to display.
+        text_=new Text(context_);
+        // Text will be updated later in the E_UPDATE handler. Keep readin'.
+        text_->SetText("Keys: tab = toggle mouse, AWSD = move camera, Shift = fast mode, Esc = quit.\nWait a bit to see FPS.");
+        // If the engine cannot find the font, it comes with Urho3D.
+        // Set the environment variables URHO3D_HOME, URHO3D_PREFIX_PATH or
+        // change the engine parameter "ResourcePrefixPath" in the Setup method.
+        text_->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"),20);
+        text_->SetColor(Color(.3,0,.3));
+        text_->SetHorizontalAlignment(HA_CENTER);
+        text_->SetVerticalAlignment(VA_TOP);
+        GetSubsystem<UI>()->GetRoot()->AddChild(text_);
+        // Add a button, just as an interactive UI sample.
+        Button* button=new Button(context_);
+        // Note, must be part of the UI system before SetSize calls!
+        GetSubsystem<UI>()->GetRoot()->AddChild(button);
+        button->SetName("Button Quit");
+        button->SetStyle("Button");
+        button->SetSize(32,32);
+        button->SetPosition(16,116);
+        // Subscribe to button release (following a 'press') events
+        SubscribeToEvent(button,E_RELEASED,URHO3D_HANDLER(MyApp,HandleClosePressed));
+
+        // Let's setup a scene to render.
+        scene_=new Scene(context_);
+        // Let the scene have an Octree component!
+        scene_->CreateComponent<Octree>();
+        // Let's add an additional scene component for fun.
+        scene_->CreateComponent<DebugRenderer>();
+
+        // Let's put some sky in there.
+        // Again, if the engine can't find these resources you need to check
+        // the "ResourcePrefixPath". These files come with Urho3D.
+        Node* skyNode=scene_->CreateChild("Sky");
+        skyNode->SetScale(500.0f); // The scale actually does not matter
+        Skybox* skybox=skyNode->CreateComponent<Skybox>();
+        skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+        skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
+
+        // Let's put a box in there.
+        boxNode_=scene_->CreateChild("Box");
+        boxNode_->SetPosition(Vector3(0,2,15));
+        boxNode_->SetScale(Vector3(3,3,3));
+        StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
+        boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+        boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+        boxObject->SetCastShadows(true);
+
+        // Create 400 boxes in a grid.
+        /*for(int x=-30;x<30;x+=3)
+            for(int z=0;z<60;z+=3)
+            {
+                Node* boxNode_=scene_->CreateChild("Box");
+                boxNode_->SetPosition(Vector3(x,-3,z));
+                boxNode_->SetScale(Vector3(2,2,2));
+                StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
+                boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+                boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+                boxObject->SetCastShadows(true);
+            }*/
+
+        PlanWren* planet = new PlanWren();
+        planet->Initialize(context_, 1.0f);
+
+        //sindBuf_ = SharedPtr<IndexBuffer>(indBuf);
+        //vertData.Reserve(12 * 3);
+
+        // Vertex Buffer:
+        // [12 fundementals, (x) shared lines, (x)*20 face indicies]
+
+        
+
+        /*for(int i=0;i<vertData.Size();i+=6) {
             //std::cout << vertData[i] << " " << vertData[i + 1] << " " << vertData[i + 2] << "\n";
             Node* boxNode_=scene_->CreateChild("Box");
             boxNode_->SetPosition(Vector3(vertData[i],6 + vertData[i + 1],vertData[i + 2]));
@@ -386,13 +416,13 @@ public:
             //boxObject->SetModel(model);
             boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
             boxObject->SetCastShadows(true);
-        }
+        }*/
 
         Node* boxNode_=scene_->CreateChild("Box");
         boxNode_->SetPosition(Vector3(0,6,0));
         boxNode_->SetScale(Vector3(1.0f,1.0f,1.0f));
         StaticModel* boxObjectB=boxNode_->CreateComponent<StaticModel>();
-        boxObjectB->SetModel(model);
+        boxObjectB->SetModel(planet->GetModel());
         boxObjectB->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
         boxObjectB->SetCastShadows(true);
 
@@ -463,15 +493,13 @@ public:
     * but there's no need, this method will get called when the engine stops,
     * for whatever reason (short of a segfault).
     */
-    virtual void Stop()
-    {
+    virtual void Stop() {
     }
 
     /**
     * Every frame's life must begin somewhere. Here it is.
     */
-    void HandleBeginFrame(StringHash eventType,VariantMap& eventData)
-    {
+    void HandleBeginFrame(StringHash eventType,VariantMap& eventData) {
         // We really don't have anything useful to do here for this example.
         // Probably shouldn't be subscribing to events we don't care about.
     }
@@ -480,15 +508,14 @@ public:
     * Input from keyboard is handled here. I'm assuming that Input, if
     * available, will be handled before E_UPDATE.
     */
-    void HandleKeyDown(StringHash eventType,VariantMap& eventData)
-    {
+    void HandleKeyDown(StringHash eventType,VariantMap& eventData) {
         using namespace KeyDown;
         int key=eventData[P_KEY].GetInt();
         if(key==KEY_ESCAPE)
             engine_->Exit();
 
-        if(key==KEY_TAB)    // toggle mouse cursor when pressing tab
-        {
+        if(key==KEY_TAB) {
+            // toggle mouse cursor when pressing tab
             GetSubsystem<Input>()->SetMouseVisible(!GetSubsystem<Input>()->IsMouseVisible());
             GetSubsystem<Input>()->SetMouseGrabbed(!GetSubsystem<Input>()->IsMouseGrabbed());
         }
@@ -497,16 +524,14 @@ public:
     /**
     * You can get these events from when ever the user interacts with the UI.
     */
-    void HandleClosePressed(StringHash eventType,VariantMap& eventData)
-    {
+    void HandleClosePressed(StringHash eventType,VariantMap& eventData) {
         engine_->Exit();
     }
     /**
     * Your non-rendering logic should be handled here.
     * This could be moving objects, checking collisions and reaction, etc.
     */
-    void HandleUpdate(StringHash eventType,VariantMap& eventData)
-    {
+    void HandleUpdate(StringHash eventType,VariantMap& eventData) {
         float timeStep=eventData[Update::P_TIMESTEP].GetFloat();
         framecount_++;
         time_+=timeStep;
@@ -515,8 +540,7 @@ public:
         // Mouse sensitivity as degrees per pixel
         const float MOUSE_SENSITIVITY=0.1f;
 
-        if(time_ >=1)
-        {
+        if(time_ >=1) {
 
             std::string str;
             str.append("Keys: tab = toggle mouse, AWSD = move camera, Shift = fast mode, Esc = quit.\n");
@@ -572,8 +596,7 @@ public:
             sindBuf_->SetDataRange(xz, 6, 9);
         }
 
-        if(!GetSubsystem<Input>()->IsMouseVisible())
-        {
+        if(!GetSubsystem<Input>()->IsMouseVisible()) {
             // Use this frame's mouse motion to adjust camera node yaw and pitch. Clamp the pitch between -90 and 90 degrees
             IntVector2 mouseMove=input->GetMouseMove();
             static float yaw_=0;
@@ -591,8 +614,7 @@ public:
     * Anything in the non-rendering logic that requires a second pass,
     * it might be well suited to be handled here.
     */
-    void HandlePostUpdate(StringHash eventType,VariantMap& eventData)
-    {
+    void HandlePostUpdate(StringHash eventType,VariantMap& eventData) {
         // We really don't have anything useful to do here for this example.
         // Probably shouldn't be subscribing to events we don't care about.
     }
@@ -602,8 +624,7 @@ public:
     * See http://urho3d.github.io/documentation/1.32/_rendering.html
     * for details on how the rendering pipeline is setup.
     */
-    void HandleRenderUpdate(StringHash eventType, VariantMap & eventData)
-    {
+    void HandleRenderUpdate(StringHash eventType, VariantMap & eventData) {
         // We really don't have anything useful to do here for this example.
         // Probably shouldn't be subscribing to events we don't care about.
     }
@@ -613,16 +634,14 @@ public:
     * only post rendering is allowed. Good for adding things like debug
     * artifacts on screen or brush up lighting, etc.
     */
-    void HandlePostRenderUpdate(StringHash eventType, VariantMap & eventData)
-    {
+    void HandlePostRenderUpdate(StringHash eventType, VariantMap & eventData) {
         // We could draw some debuggy looking thing for the octree.
         // scene_->GetComponent<Octree>()->DrawDebugGeometry(true);
     }
     /**
     * All good things must come to an end.
     */
-    void HandleEndFrame(StringHash eventType,VariantMap& eventData)
-    {
+    void HandleEndFrame(StringHash eventType,VariantMap& eventData) {
         // We really don't have anything useful to do here for this example.
         // Probably shouldn't be subscribing to events we don't care about.
     }
