@@ -30,6 +30,7 @@
 #include <Urho3D/Graphics/Material.h>
 #include <Urho3D/Graphics/Skybox.h>
 #include <Urho3D/Graphics/VertexBuffer.h>
+#include <Urho3D/Math/MathDefs.h>
 
 using namespace Urho3D;
 
@@ -43,15 +44,17 @@ public:
 
 class PlanWren {
     ushort maxLOD_;
+    uint shared_;
+    uint owns_;
+    //uint fundemental_ = 12;
     float size_;
 
     Model* model_;
     SharedPtr<IndexBuffer> indBuf_;
     SharedPtr<VertexBuffer> vrtBuf_;
-    Geometry* geometry_;
-
     Vector<float> vertData_;
     Vector<uint> indData_;
+    Geometry* geometry_;
 
     SubTriangle name[20];
 
@@ -61,9 +64,10 @@ public:
       
     }
 
-    void Initialize(Context* context, float size) {
+    void Initialize(Context* context, float size, Scene* scene, ResourceCache* cache) {
 
         size_ = size;
+        maxLOD_ = 3; // subdivide 3 times
 
         model_ = new Model(context);
 
@@ -78,192 +82,230 @@ public:
         float sa = 243.47046817156f * s;
         float sb = 150.47302458687f * s;
 
-        Vector<float> vertData;
-        Vector<uint> indData;
+        //vertData_ = Vector<float>;
+        //indData_ = new Vector<uint>;
         indBuf_ = new IndexBuffer(context);
         vrtBuf_ = new VertexBuffer(context);
         geometry_ = new Geometry(context);
 
-        vertData.Push(0); // Top vertex 0
-        vertData.Push(1);
-        vertData.Push(0);
+        //maxLOD_ = i;
+        int explode = Pow(ushort(2), maxLOD_);
+        // Verticies on the lines, not including 12 fundamental icosahedron verts
+        shared_ = explode - 1;
+        // Verticies in the middle of each face, not used
+        owns_ = (explode - 2) * (explode - 1) / 2;
+        printf("Size: %u\n", 12 + shared_ * 30 + owns_ * 20);
+        vertData_.Reserve((12 + shared_ * 30 + owns_ * 20) * 3); 
+        // Do this later
+        //{
+        //  float[] vertData = {
+        //    0, 1, 0, 0, 1, 0,
+        //    
+        //  }
+        //}
 
-        vertData.Push(0); // Normal repeat
-        vertData.Push(1);
-        vertData.Push(0);
+        vertData_.Push(0); // Top vertex 0
+        vertData_.Push(1);
+        vertData_.Push(0);
 
-        vertData.Push(1); // Pentagon top aligned point 1
-        vertData.Push(h);
-        vertData.Push(0);
+        vertData_.Push(0); // Normal repeat
+        vertData_.Push(1);
+        vertData_.Push(0);
 
-        vertData.Push(1);
-        vertData.Push(h);
-        vertData.Push(0);
+        vertData_.Push(1); // Pentagon top aligned point 1
+        vertData_.Push(h);
+        vertData_.Push(0);
 
-        vertData.Push(ca); // going clockwise from top 2
-        vertData.Push(h);
-        vertData.Push(-sa);
+        vertData_.Push(1);
+        vertData_.Push(h);
+        vertData_.Push(0);
 
-        vertData.Push(ca);
-        vertData.Push(h);
-        vertData.Push(-sa);
+        vertData_.Push(ca); // going clockwise from top 2
+        vertData_.Push(h);
+        vertData_.Push(-sa);
 
-        vertData.Push(-cb); // 3
-        vertData.Push(h);
-        vertData.Push(-sb);
+        vertData_.Push(ca);
+        vertData_.Push(h);
+        vertData_.Push(-sa);
 
-        vertData.Push(-cb);
-        vertData.Push(h);
-        vertData.Push(-sb);
+        vertData_.Push(-cb); // 3
+        vertData_.Push(h);
+        vertData_.Push(-sb);
 
-        vertData.Push(-cb); // 4
-        vertData.Push(h);
-        vertData.Push(sb);
+        vertData_.Push(-cb);
+        vertData_.Push(h);
+        vertData_.Push(-sb);
 
-        vertData.Push(-cb);
-        vertData.Push(h);
-        vertData.Push(sb);
+        vertData_.Push(-cb); // 4
+        vertData_.Push(h);
+        vertData_.Push(sb);
 
-        vertData.Push(ca); // 5
-        vertData.Push(h);
-        vertData.Push(sa);
+        vertData_.Push(-cb);
+        vertData_.Push(h);
+        vertData_.Push(sb);
 
-        vertData.Push(ca);
-        vertData.Push(h);
-        vertData.Push(sa);
+        vertData_.Push(ca); // 5
+        vertData_.Push(h);
+        vertData_.Push(sa);
 
-        vertData.Push(-1); // Pentagon bottom aligned 6
-        vertData.Push(-h);
-        vertData.Push(0);
+        vertData_.Push(ca);
+        vertData_.Push(h);
+        vertData_.Push(sa);
 
-        vertData.Push(-1);
-        vertData.Push(-h);
-        vertData.Push(0);
+        vertData_.Push(-1); // Pentagon bottom aligned 6
+        vertData_.Push(-h);
+        vertData_.Push(0);
 
-        vertData.Push(-ca); // 7
-        vertData.Push(-h);
-        vertData.Push(-sa);
+        vertData_.Push(-1);
+        vertData_.Push(-h);
+        vertData_.Push(0);
 
-        vertData.Push(-ca);
-        vertData.Push(-h);
-        vertData.Push(-sa);
+        vertData_.Push(-ca); // 7
+        vertData_.Push(-h);
+        vertData_.Push(-sa);
 
-        vertData.Push(cb); // 8
-        vertData.Push(-h);
-        vertData.Push(-sb);
+        vertData_.Push(-ca);
+        vertData_.Push(-h);
+        vertData_.Push(-sa);
 
-        vertData.Push(cb);
-        vertData.Push(-h);
-        vertData.Push(-sb);
+        vertData_.Push(cb); // 8
+        vertData_.Push(-h);
+        vertData_.Push(-sb);
 
-        vertData.Push(cb); // 9
-        vertData.Push(-h);
-        vertData.Push(sb);
+        vertData_.Push(cb);
+        vertData_.Push(-h);
+        vertData_.Push(-sb);
 
-        vertData.Push(cb);
-        vertData.Push(-h);
-        vertData.Push(sb);
+        vertData_.Push(cb); // 9
+        vertData_.Push(-h);
+        vertData_.Push(sb);
 
-        vertData.Push(-ca); // 10
-        vertData.Push(-h);
-        vertData.Push(sa);
+        vertData_.Push(cb);
+        vertData_.Push(-h);
+        vertData_.Push(sb);
 
-        vertData.Push(-ca);
-        vertData.Push(-h);
-        vertData.Push(sa);
+        vertData_.Push(-ca); // 10
+        vertData_.Push(-h);
+        vertData_.Push(sa);
 
-        vertData.Push(0); // Bottom vertex 11
-        vertData.Push(-1);
-        vertData.Push(0);
+        vertData_.Push(-ca);
+        vertData_.Push(-h);
+        vertData_.Push(sa);
 
-        vertData.Push(0);
-        vertData.Push(-1);
-        vertData.Push(0);
+        
 
-        indData.Push(0); // top
-        indData.Push(1);
-        indData.Push(2);
+        vertData_.Push(0); // Bottom vertex 11
+        vertData_.Push(-1);
+        vertData_.Push(0);
 
-        indData.Push(0);
-        indData.Push(2);
-        indData.Push(3);
+        vertData_.Push(0);
+        vertData_.Push(-1);
+        vertData_.Push(0);
 
-        indData.Push(0);
-        indData.Push(3);
-        indData.Push(4);
+        indData_.Push(0); // top
+        indData_.Push(1);
+        indData_.Push(2);
 
-        indData.Push(0);
-        indData.Push(4);
-        indData.Push(5);
+        indData_.Push(0);
+        indData_.Push(2);
+        indData_.Push(3);
 
-        indData.Push(0);
-        indData.Push(5);
-        indData.Push(1);
+        indData_.Push(0);
+        indData_.Push(3);
+        indData_.Push(4);
 
-        indData.Push(1);
-        indData.Push(9);
-        indData.Push(8); // center stuff, 8 is left, 9 is right
+        indData_.Push(0);
+        indData_.Push(4);
+        indData_.Push(5);
 
-        indData.Push(1);
-        indData.Push(8);
-        indData.Push(2);
+        indData_.Push(0);
+        indData_.Push(5);
+        indData_.Push(1);
 
-        indData.Push(2);
-        indData.Push(8);
-        indData.Push(7);
+        indData_.Push(1);
+        indData_.Push(9);
+        indData_.Push(8); // center stuff, 8 is left, 9 is right
 
-        indData.Push(7);
-        indData.Push(3);
-        indData.Push(2);
+        indData_.Push(1);
+        indData_.Push(8);
+        indData_.Push(2);
 
-        indData.Push(3);
-        indData.Push(7);
-        indData.Push(6);
+        indData_.Push(2);
+        indData_.Push(8);
+        indData_.Push(7);
 
-        indData.Push(4);
-        indData.Push(3);
-        indData.Push(6);
+        indData_.Push(7);
+        indData_.Push(3);
+        indData_.Push(2);
 
-        indData.Push(4);
-        indData.Push(6);
-        indData.Push(10);
+        indData_.Push(3);
+        indData_.Push(7);
+        indData_.Push(6);
 
-        indData.Push(5);
-        indData.Push(4);
-        indData.Push(10);
+        indData_.Push(4);
+        indData_.Push(3);
+        indData_.Push(6);
 
-        indData.Push(5);
-        indData.Push(10);
-        indData.Push(9);
+        indData_.Push(4);
+        indData_.Push(6);
+        indData_.Push(10);
 
-        indData.Push(9);
-        indData.Push(1);
-        indData.Push(5);
+        indData_.Push(5);
+        indData_.Push(4);
+        indData_.Push(10);
+
+        indData_.Push(5);
+        indData_.Push(10);
+        indData_.Push(9);
+
+        indData_.Push(9);
+        indData_.Push(1);
+        indData_.Push(5);
+
+        indData_.Push(11); // bottom
+        indData_.Push(6);
+        indData_.Push(7);
+
+        indData_.Push(11);
+        indData_.Push(7);
+        indData_.Push(8);
+
+        indData_.Push(11);
+        indData_.Push(8);
+        indData_.Push(9);
+
+        indData_.Push(11);
+        indData_.Push(9);
+        indData_.Push(10);
+
+        indData_.Push(11);
+        indData_.Push(10);
+        indData_.Push(6);
 
         PODVector<VertexElement> elements;
         elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
         elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
 
-        vrtBuf_->SetSize(vertData.Size() / 2, elements);
-        vrtBuf_->SetData(vertData.Buffer());
+        vrtBuf_->SetSize(vertData_.Size() / 2, elements);
+        vrtBuf_->SetData(vertData_.Buffer());
         vrtBuf_->SetShadowed(true);
 
-        indBuf_->SetSize(indData.Size(), true, true);
-        indBuf_->SetData(indData.Buffer());
+        indBuf_->SetSize(indData_.Size(), true, true);
+        indBuf_->SetData(indData_.Buffer());
         indBuf_->SetShadowed(true);
 
         geometry_->SetNumVertexBuffers(1);
         geometry_->SetVertexBuffer(0, vrtBuf_);
         geometry_->SetIndexBuffer(indBuf_);
-        geometry_->SetDrawRange(TRIANGLE_LIST, 0, indData.Size());
+        geometry_->SetDrawRange(TRIANGLE_LIST, 0, indData_.Size());
 
         model_->SetNumGeometries(1);
         model_->SetGeometry(0, 0, geometry_);
-        model_->SetBoundingBox(BoundingBox(0.0f, 1.0f));
+        model_->SetBoundingBox(BoundingBox(Sphere(Vector3(0, 0, 0), 1.0f)));
         Vector<SharedPtr<VertexBuffer> > vrtBufs;
         Vector<SharedPtr<IndexBuffer> > indBufs;
-        vrtBufs.Push(SharedPtr<VertexBuffer>(vrtBuf_));
-        indBufs.Push(SharedPtr<IndexBuffer>(indBuf_));
+        vrtBufs.Push(vrtBuf_);
+        indBufs.Push(indBuf_);
         PODVector<unsigned> morphRangeStarts;
         PODVector<unsigned> morphRangeCounts;
         morphRangeStarts.Push(0);
@@ -271,6 +313,17 @@ public:
         model_->SetVertexBuffers(vrtBufs, morphRangeStarts, morphRangeCounts);
         model_->SetIndexBuffers(indBufs);
 
+        for(int i=0;i<vertData_.Size();i+=6) {
+            //std::cout << vertData[i] << " " << vertData[i + 1] << " " << vertData[i + 2] << "\n";
+            Node* boxNode_=scene->CreateChild("Box");
+            boxNode_->SetPosition(Vector3(vertData_[i],6 + vertData_[i + 1],vertData_[i + 2]));
+            boxNode_->SetScale(Vector3(0.1f,0.1f,0.1f));
+            StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
+            boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+            //boxObject->SetModel(model);
+            boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+            boxObject->SetCastShadows(true);
+        }
 
     }
     
@@ -396,27 +449,13 @@ public:
             }*/
 
         PlanWren* planet = new PlanWren();
-        planet->Initialize(context_, 1.0f);
+        planet->Initialize(context_, 1.0f, scene_, cache);
 
         //sindBuf_ = SharedPtr<IndexBuffer>(indBuf);
         //vertData.Reserve(12 * 3);
 
         // Vertex Buffer:
         // [12 fundementals, (x) shared lines, (x)*20 face indicies]
-
-        
-
-        /*for(int i=0;i<vertData.Size();i+=6) {
-            //std::cout << vertData[i] << " " << vertData[i + 1] << " " << vertData[i + 2] << "\n";
-            Node* boxNode_=scene_->CreateChild("Box");
-            boxNode_->SetPosition(Vector3(vertData[i],6 + vertData[i + 1],vertData[i + 2]));
-            boxNode_->SetScale(Vector3(0.1f,0.1f,0.1f));
-            StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
-            boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-            //boxObject->SetModel(model);
-            boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
-            boxObject->SetCastShadows(true);
-        }*/
 
         Node* boxNode_=scene_->CreateChild("Box");
         boxNode_->SetPosition(Vector3(0,6,0));
