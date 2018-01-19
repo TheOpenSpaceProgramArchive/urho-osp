@@ -43,16 +43,21 @@ public:
 };
 
 class PlanWren {
+
     ushort maxLOD_;
     uint shared_;
     uint owns_;
+    uint verticies_;
     //uint fundemental_ = 12;
     float size_;
+
+    unsigned char* lines;
+    signed char* triangleSets;
+    float* vertData_;
 
     Model* model_;
     SharedPtr<IndexBuffer> indBuf_;
     SharedPtr<VertexBuffer> vrtBuf_;
-    Vector<float> vertData_;
     Vector<uint> indData_;
     Geometry* geometry_;
 
@@ -61,8 +66,29 @@ class PlanWren {
 public:
 
     PlanWren() {
-      
+         
+        lines = new unsigned char[60] {
+            //       #        #        #        #
+            0, 1,    0, 2,    0, 3,    0, 4,    0, 5,
+            1, 2,    2, 3,    3, 4,    4, 5,    5, 1,
+            1, 8,    8, 2,    2, 7,    7, 3,    3, 6,
+            6, 4,    4, 10,   10, 5,   5, 9,    9, 1,
+            6, 7,    7, 8,    8, 9,    9, 10,   10, 6,
+            11, 6,   11, 7,   11, 8,   11, 9,   11, 10
+            //       #        #        #        #
+        };
+        // Make triangles out of the lines above
+        triangleSets = new signed char[60] {
+            //            #             #             #             #
+            -6, 2, -1,    -7, 3, -2,    -8, 4, -3,    -9, 5, -4,    -10, 1, 5,
+            6, -11, -12,  22, 13, 12,   7, -13, -14,  21, 15, 14,   8, -15, -16,
+            25, 17, 16,   9, -17, -18,  24, 19, 18,   10, -19, -20, 23, 11, 20,
+            -21, 27, -26, -22, 28, -27, -23, 29, -28, -24, 30, -29, -25, 26, -30
+            //            #             #             #             #
+        };
     }
+
+    // actually, don't delete these, just reuse them somehow
 
     void Initialize(Context* context, float size, Scene* scene, ResourceCache* cache) {
 
@@ -72,15 +98,15 @@ public:
         model_ = new Model(context);
 
         float s = size / 256.0f;
-        float h = 114.486680448 * s;
+        float h = 114.486680448;
 
         // Pentagon stuff, from wolfram alpha
         // "X pointing" pentagon goes on the top
 
-        float ca = 79.108350559987f * s;
-        float cb = 207.10835055999f * s;
-        float sa = 243.47046817156f * s;
-        float sb = 150.47302458687f * s;
+        float ca = 79.108350559987f;
+        float cb = 207.10835055999f;
+        float sa = 243.47046817156f;
+        float sb = 150.47302458687f;
 
         //vertData_ = Vector<float>;
         //indData_ = new Vector<uint>;
@@ -94,113 +120,57 @@ public:
         shared_ = explode - 1;
         // Verticies in the middle of each face, not used
         owns_ = (explode - 2) * (explode - 1) / 2;
-        printf("Size: %u\n", 12 + shared_ * 30 + owns_ * 20);
-        vertData_.Reserve((12 + shared_ * 30 + owns_ * 20) * 3); 
-        // Do this later
-        //{
-        //  float[] vertData = {
-        //    0, 1, 0, 0, 1, 0,
-        //    
-        //  }
-        //}
+        verticies_ = 12 + shared_ * 30 + owns_ * 20;
+        printf("Size: %u EEE: %u\n", verticies_, lines[5]);
 
-        vertData_.Push(0); // Top vertex 0
-        vertData_.Push(1);
-        vertData_.Push(0);
+        vertData_ = new float[verticies_ * 3];
 
-        vertData_.Push(0); // Normal repeat
-        vertData_.Push(1);
-        vertData_.Push(0);
+        // There should be a better way to do this
+        vertData_[0] = 0; // Top vertex 0
+        vertData_[1] = 256;
+        vertData_[2] = 0;
+        vertData_[6] = 256; // Pentagon top aligned point 1
+        vertData_[7] = h;
+        vertData_[8] = 0;
+        vertData_[12] = ca; // going clockwise from top 2
+        vertData_[13] = h;
+        vertData_[14] = -sa;
+        vertData_[18] = -cb; // 3
+        vertData_[19] = h;
+        vertData_[20] = -sb;
+        vertData_[24] = -cb; // 4
+        vertData_[25] = h;
+        vertData_[26] = sb;
+        vertData_[30] = ca; // 5
+        vertData_[31] = h;
+        vertData_[32] = sa;
+        vertData_[36] = -256; // Pentagon bottom aligned 6
+        vertData_[37] = -h;
+        vertData_[38] = 0;
+        vertData_[42] = -ca; // 7
+        vertData_[43] = -h;
+        vertData_[44] = -sa;
+        vertData_[48] = cb; // 8
+        vertData_[49] = -h;
+        vertData_[50] = -sb;
+        vertData_[54] = cb; // 9
+        vertData_[55] = -h;
+        vertData_[56] = sb;
+        vertData_[60] = -ca; // 10
+        vertData_[61] = -h;
+        vertData_[62] = sa;
+        vertData_[66] = 0; // Bottom vertex 11
+        vertData_[67] = -256;
+        vertData_[68] = 0;
 
-        vertData_.Push(1); // Pentagon top aligned point 1
-        vertData_.Push(h);
-        vertData_.Push(0);
-
-        vertData_.Push(1);
-        vertData_.Push(h);
-        vertData_.Push(0);
-
-        vertData_.Push(ca); // going clockwise from top 2
-        vertData_.Push(h);
-        vertData_.Push(-sa);
-
-        vertData_.Push(ca);
-        vertData_.Push(h);
-        vertData_.Push(-sa);
-
-        vertData_.Push(-cb); // 3
-        vertData_.Push(h);
-        vertData_.Push(-sb);
-
-        vertData_.Push(-cb);
-        vertData_.Push(h);
-        vertData_.Push(-sb);
-
-        vertData_.Push(-cb); // 4
-        vertData_.Push(h);
-        vertData_.Push(sb);
-
-        vertData_.Push(-cb);
-        vertData_.Push(h);
-        vertData_.Push(sb);
-
-        vertData_.Push(ca); // 5
-        vertData_.Push(h);
-        vertData_.Push(sa);
-
-        vertData_.Push(ca);
-        vertData_.Push(h);
-        vertData_.Push(sa);
-
-        vertData_.Push(-1); // Pentagon bottom aligned 6
-        vertData_.Push(-h);
-        vertData_.Push(0);
-
-        vertData_.Push(-1);
-        vertData_.Push(-h);
-        vertData_.Push(0);
-
-        vertData_.Push(-ca); // 7
-        vertData_.Push(-h);
-        vertData_.Push(-sa);
-
-        vertData_.Push(-ca);
-        vertData_.Push(-h);
-        vertData_.Push(-sa);
-
-        vertData_.Push(cb); // 8
-        vertData_.Push(-h);
-        vertData_.Push(-sb);
-
-        vertData_.Push(cb);
-        vertData_.Push(-h);
-        vertData_.Push(-sb);
-
-        vertData_.Push(cb); // 9
-        vertData_.Push(-h);
-        vertData_.Push(sb);
-
-        vertData_.Push(cb);
-        vertData_.Push(-h);
-        vertData_.Push(sb);
-
-        vertData_.Push(-ca); // 10
-        vertData_.Push(-h);
-        vertData_.Push(sa);
-
-        vertData_.Push(-ca);
-        vertData_.Push(-h);
-        vertData_.Push(sa);
-
-        
-
-        vertData_.Push(0); // Bottom vertex 11
-        vertData_.Push(-1);
-        vertData_.Push(0);
-
-        vertData_.Push(0);
-        vertData_.Push(-1);
-        vertData_.Push(0);
+        for (int i = 0; i < 72; i += 6) {
+            vertData_[i + 3] = vertData_[i + 0] / 256.0f;
+            vertData_[i + 4] = vertData_[i + 1] / 256.0f;
+            vertData_[i + 5] = vertData_[i + 2] / 256.0f;
+            vertData_[i + 0] *= s;
+            vertData_[i + 1] *= s;
+            vertData_[i + 2] *= s;
+        }
 
         indData_.Push(0); // top
         indData_.Push(1);
@@ -286,8 +256,8 @@ public:
         elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
         elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
 
-        vrtBuf_->SetSize(vertData_.Size() / 2, elements);
-        vrtBuf_->SetData(vertData_.Buffer());
+        vrtBuf_->SetSize(verticies_ / 2, elements);
+        vrtBuf_->SetData(vertData_);
         vrtBuf_->SetShadowed(true);
 
         indBuf_->SetSize(indData_.Size(), true, true);
@@ -301,7 +271,7 @@ public:
 
         model_->SetNumGeometries(1);
         model_->SetGeometry(0, 0, geometry_);
-        model_->SetBoundingBox(BoundingBox(Sphere(Vector3(0, 0, 0), 1.0f)));
+        model_->SetBoundingBox(BoundingBox(Sphere(Vector3(0, 0, 0), size_)));
         Vector<SharedPtr<VertexBuffer> > vrtBufs;
         Vector<SharedPtr<IndexBuffer> > indBufs;
         vrtBufs.Push(vrtBuf_);
@@ -313,7 +283,7 @@ public:
         model_->SetVertexBuffers(vrtBufs, morphRangeStarts, morphRangeCounts);
         model_->SetIndexBuffers(indBufs);
 
-        for(int i=0;i<vertData_.Size();i+=6) {
+        for(int i=0;i<12 * 6;i+=6) {
             //std::cout << vertData[i] << " " << vertData[i + 1] << " " << vertData[i + 2] << "\n";
             Node* boxNode_=scene->CreateChild("Box");
             boxNode_->SetPosition(Vector3(vertData_[i],6 + vertData_[i + 1],vertData_[i + 2]));
@@ -449,7 +419,7 @@ public:
             }*/
 
         PlanWren* planet = new PlanWren();
-        planet->Initialize(context_, 1.0f, scene_, cache);
+        planet->Initialize(context_, 2.0f, scene_, cache);
 
         //sindBuf_ = SharedPtr<IndexBuffer>(indBuf);
         //vertData.Reserve(12 * 3);
