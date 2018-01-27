@@ -51,9 +51,10 @@ class PlanWren {
     //uint fundemental_ = 12;
     float size_;
 
-    unsigned char* lines;
-    signed char* triangleSets;
+    unsigned char* lines_;
+    signed char* triangleSets_;
     float* vertData_;
+    uint* triangleMap_;
 
     Model* model_;
     SharedPtr<IndexBuffer> indBuf_;
@@ -66,8 +67,10 @@ class PlanWren {
 public:
 
     PlanWren() {
-         
-        lines = new unsigned char[60] {
+        // these lines are point to point indexed to 12 verticies of the
+        // icosahedron. All of these make up a complete wireframe. These buffers
+        // is not modified / reallocated in any way.
+        lines_ = new unsigned char[60] { 
             //       #        #        #        #
             0, 1,    0, 2,    0, 3,    0, 4,    0, 5,
             1, 2,    2, 3,    3, 4,    4, 5,    5, 1,
@@ -77,8 +80,11 @@ public:
             11, 6,   11, 7,   11, 8,   11, 9,   11, 10
             //       #        #        #        #
         };
-        // Make triangles out of the lines above
-        triangleSets = new signed char[60] {
+        // Make triangles out of the lines above. [bottom, left, right]
+        // Lines have direction. Triangle sets always go clockwise.
+        // Since some lines may go the wrong way, negative means reversed.
+        // Index starts at 1, not zero, because there is no negative zero.
+        triangleSets_ = new signed char[60] {
             //            #             #             #             #
             -6, 2, -1,    -7, 3, -2,    -8, 4, -3,    -9, 5, -4,    -10, 1, 5,
             6, -11, -12,  22, 13, 12,   7, -13, -14,  21, 15, 14,   8, -15, -16,
@@ -86,9 +92,80 @@ public:
             -21, 27, -26, -22, 28, -27, -23, 29, -28, -24, 30, -29, -25, 26, -30
             //            #             #             #             #
         };
+
+        // Each face is indexed like this. verticies on the edges are shared
+        // with other triangles. The triangular numbers formula is used often
+        // in this program.
+
+        // LOD value is the number of subdivisions, divided in a very similar
+        // way to the sierpinski triangle
+
+        // # of verticies = (LOD^2 - 1) * LOD^2 / 2, separated into parts
+        // in code.
+
+        // Examples:
+
+        // LOD: 0
+        //         1
+        //        2 3
+
+        // LOD: 1
+        //         1
+        //        2 3
+        //       4 5 6
+
+        // LOD: 2
+        //         1
+        //       2   3
+        //      4  5  6
+        //    7  8  9  10
+        //   11 12 13 14 15
+
+        // Indicies in this space are referred to as a "Local triangle index"
+        // Through different algorithms, can be converted to and from "buffer
+        // index" which is the actual xyz vertex data in the buffer.
     }
 
-    // actually, don't delete these, just reuse them somehow
+    // Get buffer index from a set's local triangle index
+    // Returns index in buffer
+    uint GetIndex(unsigned char set, uint input) {
+      // if top of triangle, easiest to check
+      if (input == 0) {
+          printf("OWWO 0 TOP\n"); // should be using urho logs but i'm lazy
+          return 0;
+      } else {
+        // Find out which edge of the triangle it
+        // inverse of right edge equation (1, 3, 6, 10, ...)
+        // returns index starting at 1
+        uint a = (Sqrt(8 * (input + 1) + 1) - 1) / 2;
+        // After it was inversed, put it back into the original function
+        // Since ints are being used, there are no fractions, and automatic
+        // flooring is used. This can be used to determine which side the
+        // vertex is on, (left or right)
+        uint b = a * (a + 1) / 2;
+        printf("OWWO %u, a:%u, b:%u", input, a, b);
+        if (input + 1 == b) {
+            // is on right edge
+            printf("RIGHT\n");
+            // Triangle sets lists definitions of triangles. 3 numbers point to
+            //  [0 bottom, 1 left, 2 right]
+            // +2 refers to the right side
+            b = triangleSets_[set * 3 + 2];
+            return 12 * 3 + (Abs(b) - 1) * shared_ + a - 2;
+        } else if (input == b) {
+            // is on left edge
+            printf("LEFT\n");
+            // variable reuse
+            // Same as above 
+            b = triangleSets_[set * 3 + 1];
+            return 12 * 3 + (Abs(b) - 1) * shared_ + a - 2;
+        } else {
+            printf("CENTER\n");
+            return (12 + shared_ * 30 + owns_ * set + triangleMap_[input]);
+        }
+      }
+      return 0;
+    }
 
     void Initialize(Context* context, float size, Scene* scene, ResourceCache* cache) {
 
@@ -121,7 +198,18 @@ public:
         // Verticies in the middle of each face, not used
         owns_ = (explode - 2) * (explode - 1) / 2;
         verticies_ = 12 + shared_ * 30 + owns_ * 20;
-        printf("Size: %u EEE: %u\n", verticies_, lines[5]);
+        printf("Size: %u EEE: %u\n", verticies_, lines_[5]);
+
+        triangleMap_ = new uint[owns_];
+
+        uint j = 0;
+        for (int i = 0; i < owns_; i ++) {
+            uint a = (Sqrt(8 * (i + 1) + 1) - 1) / 2;
+            uint b = a * (a + 1) / 2;
+            if (i + 1 != b && i != b)
+                printf("center: %u %u\n", i, j);
+            triangleMap_[i] = (i + 1 != b && i != b) ? j++ : 0;
+        }
 
         vertData_ = new float[verticies_ * 3];
 
@@ -164,6 +252,7 @@ public:
         vertData_[68] = 0;
 
         for (int i = 0; i < 72; i += 6) {
+            GetIndex(0, uint(i / 6));
             vertData_[i + 3] = vertData_[i + 0] / 256.0f;
             vertData_[i + 4] = vertData_[i + 1] / 256.0f;
             vertData_[i + 5] = vertData_[i + 2] / 256.0f;
