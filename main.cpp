@@ -47,6 +47,7 @@ class PlanWren {
     ushort maxLOD_;
     uint shared_;
     uint owns_;
+    uint setCount_;
     uint verticies_;
     //uint fundemental_ = 12;
     float size_;
@@ -129,40 +130,57 @@ public:
     // Get buffer index from a set's local triangle index
     // Returns index in buffer
     uint GetIndex(unsigned char set, uint input) {
-      // if top of triangle, easiest to check
+      // should be using urho logs but i'm lazy
+      printf("T: %u, ", input);
+      
+      // This is set by some of the if statements. Used at the end if input is
+      // one of the sides (bottom, left, right)
+      uint bufferLocation = 0;
+      bool reversed = false;
+      
+      // Test for different sides of the triangle
+      // no, test for 3 corners first
       if (input == 0) {
-          printf("OWWO 0 TOP\n"); // should be using urho logs but i'm lazy
+          printf("TOP\n"); 
           return 0;
+      } else if (input == setCount_ - 1) {
+          printf("BOTTOM RIGHT\n");
+          return 0;
+      } else if (input == setCount_ - maxLOD_ * maxLOD_ - 1) {
+          printf("BOTTOM LEFT\n");
+          return 0;
+      } else if (input > setCount_ - maxLOD_ * maxLOD_ - 1) {
+          printf("BOTTOM %u\n", input - (setCount_ - (maxLOD_ * maxLOD_)) );
       } else {
-        // Find out which edge of the triangle it
-        // inverse of right edge equation (1, 3, 6, 10, ...)
-        // returns index starting at 1
-        uint a = (Sqrt(8 * (input + 1) + 1) - 1) / 2;
-        // After it was inversed, put it back into the original function
-        // Since ints are being used, there are no fractions, and automatic
-        // flooring is used. This can be used to determine which side the
-        // vertex is on, (left or right)
-        uint b = a * (a + 1) / 2;
-        printf("OWWO %u, a:%u, b:%u", input, a, b);
-        if (input + 1 == b) {
-            // is on right edge
-            printf("RIGHT\n");
-            // Triangle sets lists definitions of triangles. 3 numbers point to
-            //  [0 bottom, 1 left, 2 right]
-            // +2 refers to the right side
-            b = triangleSets_[set * 3 + 2];
-            return 12 * 3 + (Abs(b) - 1) * shared_ + a - 2;
-        } else if (input == b) {
-            // is on left edge
-            printf("LEFT\n");
-            // variable reuse
-            // Same as above 
-            b = triangleSets_[set * 3 + 1];
-            return 12 * 3 + (Abs(b) - 1) * shared_ + a - 2;
-        } else {
-            printf("CENTER\n");
-            return (12 + shared_ * 30 + owns_ * set + triangleMap_[input]);
-        }
+          // Find out which edge of the triangle it
+          // inverse of right edge equation (1, 3, 6, 10, ...)
+          // returns index starting at 1
+          uint a = (Sqrt(8 * (input + 1) + 1) - 1) / 2;
+          // After it was inversed, put it back into the original function
+          // Since ints are being used, there are no fractions, and automatic
+          // flooring is used. This can be used to determine which side the
+          // vertex is on, (left or right)
+          uint b = a * (a + 1) / 2;
+          if (input + 1 == b) {
+              // is on right edge
+              printf("RIGHT %u\n", a - 2);
+              // Triangle sets lists definitions of triangles. 3 numbers point to
+              //  [0 bottom, 1 left, 2 right]
+              // +2 refers to the right side
+              b = triangleSets_[set * 3 + 2];
+              return 12 * 3 + (Abs(b) - 1) * shared_ + a - 2;
+          } else if (input == b) {
+              // is on left edge
+              printf("LEFT %u\n", shared_ - a);
+              // variable reuse
+              // Same as above 
+              b = triangleSets_[set * 3 + 1];
+              return 12 * 3 + (Abs(b) - 1) * shared_ + a - 2;
+          } else {
+              b = (a - 2) * (a - 1) / 2 + (input - b) - 1;
+              printf("CENTER %u\n", b);
+              //return (12 + shared_ * 30 + owns_ * set + triangleMap_[input]);
+          }
       }
       return 0;
     }
@@ -192,13 +210,16 @@ public:
         geometry_ = new Geometry(context);
 
         //maxLOD_ = i;
-        int explode = Pow(ushort(2), maxLOD_);
+        int explode = maxLOD_ * maxLOD_;
         // Verticies on the lines, not including 12 fundamental icosahedron verts
         shared_ = explode - 1;
-        // Verticies in the middle of each face, not used
+        // Verticies per triangle. (3, 6, 15, ...)
+        setCount_ = (explode + 1) * (explode + 2) / 2;
+        printf("SET COUNT: %u\n", setCount_);
+        // Verticies in the middle of each face
         owns_ = (explode - 2) * (explode - 1) / 2;
         verticies_ = 12 + shared_ * 30 + owns_ * 20;
-        printf("Size: %u EEE: %u\n", verticies_, lines_[5]);
+        printf("Size: %u EEE: %u O: %u\n", verticies_, lines_[5], owns_);
 
         triangleMap_ = new uint[owns_];
 
@@ -211,7 +232,11 @@ public:
             triangleMap_[i] = (i + 1 != b && i != b) ? j++ : 0;
         }
 
-        vertData_ = new float[verticies_ * 3];
+        for (int i = 0; i < setCount_; i++) {
+            GetIndex(0, uint(i));
+        }
+
+        vertData_ = new float[verticies_ * 6];
 
         // There should be a better way to do this
         vertData_[0] = 0; // Top vertex 0
@@ -252,7 +277,6 @@ public:
         vertData_[68] = 0;
 
         for (int i = 0; i < 72; i += 6) {
-            GetIndex(0, uint(i / 6));
             vertData_[i + 3] = vertData_[i + 0] / 256.0f;
             vertData_[i + 4] = vertData_[i + 1] / 256.0f;
             vertData_[i + 5] = vertData_[i + 2] / 256.0f;
@@ -389,6 +413,13 @@ public:
     Model* GetModel() {
         return model_;
     }
+
+protected:
+
+    void recursiveSubdivide() {
+        // Fucnction would only stack up to the maxLOD, so overflow is unlikely
+    }
+
 };
 
 /**
