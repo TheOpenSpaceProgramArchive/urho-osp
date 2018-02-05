@@ -83,7 +83,7 @@ public:
         };
         // Make triangles out of the lines above. [bottom, left, right]
         // Lines have direction. Triangle sets always go clockwise.
-        // Since some lines may go the wrong way, negative means reversed.
+        // Since some lines may go the wrong way, negative means not reversed.
         // Index starts at 1, not zero, because there is no negative zero.
         triangleSets_ = new signed char[60] {
             //            #             #             #             #
@@ -136,6 +136,7 @@ public:
       // This is set by some of the if statements. Used at the end if input is
       // one of the sides (bottom, left, right)
       uint bufferLocation = 0;
+      //uint offset = Abs(triangleSets_[set * 3] - 1);
       bool reversed = false;
       
       // Test for different sides of the triangle
@@ -144,13 +145,20 @@ public:
           printf("TOP\n"); 
           return 0;
       } else if (input == setCount_ - 1) {
-          printf("BOTTOM RIGHT\n");
-          return 0;
+          printf("BOTTOM RIGHT %i\n", lines_[(Abs(triangleSets_[set * 3]) - 1) * 2 + (triangleSets_[set * 3] > 0)]);
+          //      get set's bottom line index 0,                 add 1 if reversed
+          return (lines_[(Abs(triangleSets_[set * 3]) - 1) * 2 + (triangleSets_[set * 3] > 0)]) * 6;
       } else if (input == setCount_ - maxLOD_ * maxLOD_ - 1) {
-          printf("BOTTOM LEFT\n");
-          return 0;
+          printf("BOTTOM LEFT %i\n", lines_[(Abs(triangleSets_[set * 3]) - 1) * 2 + (triangleSets_[set * 3] < 0)]);
+          // Exactly the same as the one above, but reversed
+          //      get set's bottom line index 0,                 don't add 1 if reversed
+          return (lines_[(Abs(triangleSets_[set * 3]) - 1) * 2 + (triangleSets_[set * 3] < 0)]) * 6;
       } else if (input > setCount_ - maxLOD_ * maxLOD_ - 1) {
-          printf("BOTTOM %u\n", input - (setCount_ - (maxLOD_ * maxLOD_)) );
+          uint b = input - (setCount_ - (maxLOD_ * maxLOD_));
+          printf("BOTTOM %u %u\n", b, (12 + shared_ * (Abs(triangleSets_[set * 3]) - 1) +
+              ((triangleSets_[set * 3] < 0) ? b : (shared_ - 1 - b))));
+          return (12 + shared_ * (Abs(triangleSets_[set * 3]) - 1) +
+              ((triangleSets_[set * 3] < 0) ? b : (shared_ - 1 - b))) * 6;
       } else {
           // Find out which edge of the triangle it
           // inverse of right edge equation (1, 3, 6, 10, ...)
@@ -188,7 +196,7 @@ public:
     void Initialize(Context* context, float size, Scene* scene, ResourceCache* cache) {
 
         size_ = size;
-        maxLOD_ = 3; // subdivide 3 times
+        maxLOD_ = 2; // subdivide 3 times
 
         model_ = new Model(context);
 
@@ -210,15 +218,15 @@ public:
         geometry_ = new Geometry(context);
 
         //maxLOD_ = i;
-        int explode = maxLOD_ * maxLOD_;
+        int explode = Pow(ushort(2), maxLOD_);
         // Verticies on the lines, not including 12 fundamental icosahedron verts
         shared_ = explode - 1;
         // Verticies per triangle. (3, 6, 15, ...)
         setCount_ = (explode + 1) * (explode + 2) / 2;
-        printf("SET COUNT: %u\n", setCount_);
         // Verticies in the middle of each face
         owns_ = (explode - 2) * (explode - 1) / 2;
         verticies_ = 12 + shared_ * 30 + owns_ * 20;
+        printf("SET COUNT: %u PER SHARED: %u OWNS: %u\n", setCount_, shared_, owns_) ;
         printf("Size: %u EEE: %u O: %u\n", verticies_, lines_[5], owns_);
 
         triangleMap_ = new uint[owns_];
@@ -232,11 +240,11 @@ public:
             triangleMap_[i] = (i + 1 != b && i != b) ? j++ : 0;
         }
 
-        for (int i = 0; i < setCount_; i++) {
-            GetIndex(0, uint(i));
-        }
-
         vertData_ = new float[verticies_ * 6];
+
+        for(int i = 0; i < verticies_ * 6; i ++) {
+            vertData_[i] = 0;
+        }
 
         // There should be a better way to do this
         vertData_[0] = 0; // Top vertex 0
@@ -283,6 +291,11 @@ public:
             vertData_[i + 0] *= s;
             vertData_[i + 1] *= s;
             vertData_[i + 2] *= s;
+        }
+
+        for (int i = 0; i < 20; i++) {
+            //GetIndex(0, uint(i));
+            RecursiveSubdivide(i, setCount_ - explode - 1, explode, false);
         }
 
         indData_.Push(0); // top
@@ -396,16 +409,18 @@ public:
         model_->SetVertexBuffers(vrtBufs, morphRangeStarts, morphRangeCounts);
         model_->SetIndexBuffers(indBufs);
 
-        for(int i=0;i<12 * 6;i+=6) {
-            //std::cout << vertData[i] << " " << vertData[i + 1] << " " << vertData[i + 2] << "\n";
-            Node* boxNode_=scene->CreateChild("Box");
-            boxNode_->SetPosition(Vector3(vertData_[i],6 + vertData_[i + 1],vertData_[i + 2]));
-            boxNode_->SetScale(Vector3(0.1f,0.1f,0.1f));
-            StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
-            boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-            //boxObject->SetModel(model);
-            boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
-            boxObject->SetCastShadows(true);
+        for(int i=0;i<verticies_ * 6;i+=6) {
+            if (vertData_[i] + vertData_[i + 1] != 0) {
+                //std::cout << vertData[i] << " " << vertData[i + 1] << " " << vertData[i + 2] << "\n";
+                Node* boxNode_=scene->CreateChild("Box");
+                boxNode_->SetPosition(Vector3(vertData_[i],6 + vertData_[i + 1],vertData_[i + 2]));
+                boxNode_->SetScale(Vector3(0.1f,0.1f,0.1f));
+                StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
+                boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+                //boxObject->SetModel(model);
+                boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+                boxObject->SetCastShadows(true);
+            }
         }
 
     }
@@ -415,9 +430,29 @@ public:
     }
 
 protected:
-
-    void recursiveSubdivide() {
+    // triangle set index, left side of triangle, length of each side, is pointing down
+    void RecursiveSubdivide(unsigned char set, uint base, uint size, bool down) {
         // Fucnction would only stack up to the maxLOD, so overflow is unlikely
+
+        // C is between of A and B. all in buffer index
+        uint index = 0,
+             vertA = GetIndex(set, base),
+             vertB = GetIndex(set, base + size),
+             vertC = GetIndex(set, base + size / 2);
+        // Loop for all 3 sides
+        for (unsigned char i = 0; i < 3; i ++) {
+            switch (i) {
+                case 1:
+                    // left
+                    //vertA = 
+                    break;
+            }
+            // Set vertex C to the average of A and B
+            vertData_[vertC + 0] = (vertData_[vertA + 0] + vertData_[vertB + 0]) / 2.0f;
+            vertData_[vertC + 1] = (vertData_[vertA + 1] + vertData_[vertB + 1]) / 2.0f;
+            vertData_[vertC + 2] = (vertData_[vertA + 2] + vertData_[vertB + 2]) / 2.0f;
+        }
+        
     }
 
 };
