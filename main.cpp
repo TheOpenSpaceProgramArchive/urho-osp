@@ -135,15 +135,15 @@ public:
       
       // This is set by some of the if statements. Used at the end if input is
       // one of the sides (bottom, left, right)
-      uint bufferLocation = 0;
+      //uint bufferLocation = 0;
       //uint offset = Abs(triangleSets_[set * 3] - 1);
-      bool reversed = false;
+      //bool reversed = false;
       
       // Test for different sides of the triangle
       // no, test for 3 corners first
       if (input == 0) {
           printf("TOP\n"); 
-          return 0;
+          return (lines_[(Abs(triangleSets_[set * 3 + 1]) - 1) * 2 + (triangleSets_[set * 3 + 1] < 0)]) * 6;
       } else if (input == setCount_ - 1) {
           printf("BOTTOM RIGHT %i\n", lines_[(Abs(triangleSets_[set * 3]) - 1) * 2 + (triangleSets_[set * 3] > 0)]);
           //      get set's bottom line index 0,                 add 1 if reversed
@@ -171,24 +171,29 @@ public:
           uint b = a * (a + 1) / 2;
           if (input + 1 == b) {
               // is on right edge
-              printf("RIGHT %u\n", a - 2);
               // Triangle sets lists definitions of triangles. 3 numbers point to
               //  [0 bottom, 1 left, 2 right]
               // +2 refers to the right side
-              b = triangleSets_[set * 3 + 2];
-              return 12 * 3 + (Abs(b) - 1) * shared_ + a - 2;
+              b = a - 2;
+              printf("RIGHT %u %u\n", a - 2, ((triangleSets_[set * 3 + 2] < 0) ? b : (shared_ - 1 - b)));
+              return (12 + shared_ * (Abs(triangleSets_[set * 3 + 2]) - 1) +
+                      ((triangleSets_[set * 3 + 2] < 0) ? b : (shared_ - 1 - b))) * 6;
           } else if (input == b) {
               // is on left edge
               printf("LEFT %u\n", shared_ - a);
               // variable reuse
               // Same as above 
-              b = triangleSets_[set * 3 + 1];
-              return 12 * 3 + (Abs(b) - 1) * shared_ + a - 2;
+              b = shared_ - a;
+              printf("LEFT %u %u\n", a - 2, (12 + shared_ * (Abs(triangleSets_[set * 3 + 1]) - 1) +
+                      ((triangleSets_[set * 3 + 1] < 0) ? b : (shared_ - 1 - b))) * 6);
+              return (12 + shared_ * (Abs(triangleSets_[set * 3 + 1]) - 1) +
+                      ((triangleSets_[set * 3 + 1] < 0) ? b : (shared_ - 1 - b))) * 6;
           } else {
               b = (a - 2) * (a - 1) / 2 + (input - b) - 1;
               printf("CENTER %u\n", b);
               //return (12 + shared_ * 30 + owns_ * set + triangleMap_[input]);
           }
+          
       }
       return 0;
     }
@@ -295,7 +300,7 @@ public:
 
         for (int i = 0; i < 20; i++) {
             //GetIndex(0, uint(i));
-            RecursiveSubdivide(i, setCount_ - explode - 1, explode, false);
+            RecursiveSubdivide(i, setCount_ - explode - 1, explode, 0, false);
         }
 
         indData_.Push(0); // top
@@ -431,20 +436,29 @@ public:
 
 protected:
     // triangle set index, left side of triangle, length of each side, is pointing down
-    void RecursiveSubdivide(unsigned char set, uint base, uint size, bool down) {
+    void RecursiveSubdivide(unsigned char set, uint base, uint size, uint top, bool down) {
         // Fucnction would only stack up to the maxLOD, so overflow is unlikely
 
         // C is between of A and B. all in buffer index
+        uint a = (Sqrt(8 * (base + 1) + 1) - 1) / 4;
         uint index = 0,
+             halfe = a * (a + 1) / 2,
              vertA = GetIndex(set, base),
              vertB = GetIndex(set, base + size),
-             vertC = GetIndex(set, base + size / 2);
+             vertC = GetIndex(set, base + size / 4);
+        printf("BAASE: %u %u\n", base, halfe);
         // Loop for all 3 sides
         for (unsigned char i = 0; i < 3; i ++) {
             switch (i) {
                 case 1:
                     // left
-                    //vertA = 
+                    vertB = GetIndex(set, top);
+                    vertC = GetIndex(set, halfe);
+                    break;
+                case 2:
+                    // left
+                    vertA = GetIndex(set, base + size);
+                    vertC = GetIndex(set, halfe + size / 2);
                     break;
             }
             // Set vertex C to the average of A and B
