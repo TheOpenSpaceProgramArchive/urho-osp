@@ -154,7 +154,7 @@ public:
           //      get set's bottom line index 0,                 don't add 1 if reversed
           return (lines_[(Abs(triangleSets_[set * 3]) - 1) * 2 + (triangleSets_[set * 3] < 0)]) * 6;
       } else if (input > setCount_ - shared_ - 3) {
-          uint b = input - (setCount_ - shared_ - 2);
+          uint b = input - (setCount_ - shared_ - 1);
           printf("BOTTOM %u %u\n", b, (12 + shared_ * (Abs(triangleSets_[set * 3]) - 1) +
               ((triangleSets_[set * 3] < 0) ? b : (shared_ - 1 - b))));
           return (12 + shared_ * (Abs(triangleSets_[set * 3]) - 1) +
@@ -297,7 +297,7 @@ public:
             vertData_[i + 2] *= s;
         }
 
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 20; i++) {
             //GetIndex(0, uint(i));
             printf("WOOOT: %u\n", setCount_ - shared_ - 2);
             RecursiveSubdivide(i, setCount_ - shared_ - 2, shared_ + 2, 0, false);
@@ -454,19 +454,19 @@ protected:
         // Loop for all 3 sides
         for (unsigned char i = 0; i < 3; i ++) {
             switch (i) {
-                case 0:
+                case 1:
                     // left
-                    vertA = GetIndex(set, base),
+                    //vertA = GetIndex(set, base),
                     vertB = GetIndex(set, top);
-                    vertC = GetIndex(set, 1);
-                    //vertC = GetIndex(set, halfe);
+                    //vertC = GetIndex(set, 1);
+                    vertC = GetIndex(set, halfe);
                     //vertC = GetIndex(set, halfe + (size - 1) / 2 - 1);
                     break;
                 case 2:
                     // right
                     //vertB = GetIndex(set, top);
-                    //vertA = GetIndex(set, base + size - 1);
-                    //vertC = GetIndex(set, halfe + (size - 1) / 2 - 1);
+                    vertA = GetIndex(set, base + size - 1);
+                    vertC = GetIndex(set, halfe + (size - 1) / 2);
                     //vertC = GetIndex(set, 2);
                     break;
             }
