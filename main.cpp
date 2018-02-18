@@ -87,7 +87,7 @@ public:
         // Index starts at 1, not zero, because there is no negative zero.
         triangleSets_ = new signed char[60] {
             //            #             #             #             #
-            -6, 2, -1,    -7, 3, -2,    -8, 4, -3,    -9, 5, -4,    -10, 1, 5,
+            -6, 2, -1,    -7, 3, -2,    -8, 4, -3,    -9, 5, -4,    -10, 1, -5,
             6, -11, -12,  22, 13, 12,   7, -13, -14,  21, 15, 14,   8, -15, -16,
             25, 17, 16,   9, -17, -18,  24, 19, 18,   10, -19, -20, 23, 11, 20,
             -21, 27, -26, -22, 28, -27, -23, 29, -28, -24, 30, -29, -25, 26, -30
@@ -148,13 +148,13 @@ public:
           printf("BOTTOM RIGHT %i\n", lines_[(Abs(triangleSets_[set * 3]) - 1) * 2 + (triangleSets_[set * 3] > 0)]);
           //      get set's bottom line index 0,                 add 1 if reversed
           return (lines_[(Abs(triangleSets_[set * 3]) - 1) * 2 + (triangleSets_[set * 3] > 0)]) * 6;
-      } else if (input == setCount_ - maxLOD_ * maxLOD_ - 1) {
+      } else if (input == setCount_ - 2 - shared_) {
           printf("BOTTOM LEFT %i\n", lines_[(Abs(triangleSets_[set * 3]) - 1) * 2 + (triangleSets_[set * 3] < 0)]);
           // Exactly the same as the one above, but reversed
           //      get set's bottom line index 0,                 don't add 1 if reversed
           return (lines_[(Abs(triangleSets_[set * 3]) - 1) * 2 + (triangleSets_[set * 3] < 0)]) * 6;
-      } else if (input > setCount_ - maxLOD_ * maxLOD_ - 1) {
-          uint b = input - (setCount_ - (maxLOD_ * maxLOD_));
+      } else if (input > setCount_ - shared_ - 3) {
+          uint b = input - (setCount_ - shared_ - 2);
           printf("BOTTOM %u %u\n", b, (12 + shared_ * (Abs(triangleSets_[set * 3]) - 1) +
               ((triangleSets_[set * 3] < 0) ? b : (shared_ - 1 - b))));
           return (12 + shared_ * (Abs(triangleSets_[set * 3]) - 1) +
@@ -175,7 +175,7 @@ public:
               //  [0 bottom, 1 left, 2 right]
               // +2 refers to the right side
               b = a - 2;
-              printf("RIGHT %u %u\n", a - 2, ((triangleSets_[set * 3 + 2] < 0) ? b : (shared_ - 1 - b)));
+              printf("RIGHT %u %u\n", b, (shared_ - 1 - b));
               return (12 + shared_ * (Abs(triangleSets_[set * 3 + 2]) - 1) +
                       ((triangleSets_[set * 3 + 2] < 0) ? b : (shared_ - 1 - b))) * 6;
           } else if (input == b) {
@@ -184,10 +184,9 @@ public:
               // variable reuse
               // Same as above 
               b = shared_ - a;
-              printf("LEFT %u %u\n", a - 2, (12 + shared_ * (Abs(triangleSets_[set * 3 + 1]) - 1) +
-                      ((triangleSets_[set * 3 + 1] < 0) ? b : (shared_ - 1 - b))) * 6);
+              printf("LEFT %u %u\n", b, (shared_ - 1 - b));
               return (12 + shared_ * (Abs(triangleSets_[set * 3 + 1]) - 1) +
-                      ((triangleSets_[set * 3 + 1] < 0) ? b : (shared_ - 1 - b))) * 6;
+                      ((triangleSets_[set * 3 + 1] > 0) ? b : (shared_ - 1 - b))) * 6;
           } else {
               b = (a - 2) * (a - 1) / 2 + (input - b) - 1;
               printf("CENTER %u\n", b);
@@ -201,7 +200,7 @@ public:
     void Initialize(Context* context, float size, Scene* scene, ResourceCache* cache) {
 
         size_ = size;
-        maxLOD_ = 2; // subdivide 3 times
+        maxLOD_ = 1;
 
         model_ = new Model(context);
 
@@ -231,7 +230,7 @@ public:
         // Verticies in the middle of each face
         owns_ = (explode - 2) * (explode - 1) / 2;
         verticies_ = 12 + shared_ * 30 + owns_ * 20;
-        printf("SET COUNT: %u PER SHARED: %u OWNS: %u\n", setCount_, shared_, owns_) ;
+        printf("SET COUNT: %u PER SHARED: %u OWNS: %u EXPLODE: %u\n", setCount_, shared_, owns_, explode) ;
         printf("Size: %u EEE: %u O: %u\n", verticies_, lines_[5], owns_);
 
         triangleMap_ = new uint[owns_];
@@ -298,12 +297,16 @@ public:
             vertData_[i + 2] *= s;
         }
 
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 6; i++) {
             //GetIndex(0, uint(i));
-            RecursiveSubdivide(i, setCount_ - explode - 1, explode, 0, false);
+            printf("WOOOT: %u\n", setCount_ - shared_ - 2);
+            RecursiveSubdivide(i, setCount_ - shared_ - 2, shared_ + 2, 0, false);
+            indData_.Push((lines_[(Abs(triangleSets_[i * 3]) - 1) * 2 + (triangleSets_[i * 3] > 0)]));
+            indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 1]) - 1) * 2 + (triangleSets_[i * 3 + 1] > 0)]));
+            indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 2]) - 1) * 2 + (triangleSets_[i * 3 + 2] > 0)]));
         }
 
-        indData_.Push(0); // top
+        /*indData_.Push(0); // top
         indData_.Push(1);
         indData_.Push(2);
 
@@ -381,7 +384,7 @@ public:
 
         indData_.Push(11);
         indData_.Push(10);
-        indData_.Push(6);
+        indData_.Push(6);*/
 
         PODVector<VertexElement> elements;
         elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
@@ -415,7 +418,8 @@ public:
         model_->SetIndexBuffers(indBufs);
 
         for(int i=0;i<verticies_ * 6;i+=6) {
-            if (vertData_[i] + vertData_[i + 1] != 0) {
+            printf("xyz: %.3f %.3f %.3f\n", vertData_[i], vertData_[i + 1], vertData_[i + 2]);
+            //if (vertData_[i] + vertData_[i + 1] + vertData_[i + 2] != 0) {
                 //std::cout << vertData[i] << " " << vertData[i + 1] << " " << vertData[i + 2] << "\n";
                 Node* boxNode_=scene->CreateChild("Box");
                 boxNode_->SetPosition(Vector3(vertData_[i],6 + vertData_[i + 1],vertData_[i + 2]));
@@ -425,7 +429,7 @@ public:
                 //boxObject->SetModel(model);
                 boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
                 boxObject->SetCastShadows(true);
-            }
+            //}
         }
 
     }
@@ -444,21 +448,26 @@ protected:
         uint index = 0,
              halfe = a * (a + 1) / 2,
              vertA = GetIndex(set, base),
-             vertB = GetIndex(set, base + size),
-             vertC = GetIndex(set, base + size / 4);
+             vertB = GetIndex(set, base + size - 1),
+             vertC = GetIndex(set, base + (size - 1) / 2);
         printf("BAASE: %u %u\n", base, halfe);
         // Loop for all 3 sides
         for (unsigned char i = 0; i < 3; i ++) {
             switch (i) {
-                case 1:
+                case 0:
                     // left
+                    vertA = GetIndex(set, base),
                     vertB = GetIndex(set, top);
-                    vertC = GetIndex(set, halfe);
+                    vertC = GetIndex(set, 1);
+                    //vertC = GetIndex(set, halfe);
+                    //vertC = GetIndex(set, halfe + (size - 1) / 2 - 1);
                     break;
                 case 2:
-                    // left
-                    vertA = GetIndex(set, base + size);
-                    vertC = GetIndex(set, halfe + size / 2);
+                    // right
+                    //vertB = GetIndex(set, top);
+                    //vertA = GetIndex(set, base + size - 1);
+                    //vertC = GetIndex(set, halfe + (size - 1) / 2 - 1);
+                    //vertC = GetIndex(set, 2);
                     break;
             }
             // Set vertex C to the average of A and B
