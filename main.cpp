@@ -188,9 +188,10 @@ public:
               return (12 + shared_ * (Abs(triangleSets_[set * 3 + 1]) - 1) +
                       ((triangleSets_[set * 3 + 1] > 0) ? b : (shared_ - 1 - b))) * 6;
           } else {
-              b = (a - 2) * (a - 1) / 2 + (input - b) - 1;
-              printf("CENTER %u\n", b);
-              //return (12 + shared_ * 30 + owns_ * set + triangleMap_[input]);
+              printf("CENTER %u %u\n", b, (input - b));
+              b = (a - 2) * (a - 1) / 2;
+              printf("C2 %u\n", (12 + shared_ * 30 + owns_ * uint(set) + b));
+              return (12 + shared_ * 30 + owns_ * uint(set) + b) * 6;
           }
           
       }
@@ -200,7 +201,7 @@ public:
     void Initialize(Context* context, float size, Scene* scene, ResourceCache* cache) {
 
         size_ = size;
-        maxLOD_ = 1;
+        maxLOD_ = 3;
 
         model_ = new Model(context);
 
@@ -439,14 +440,15 @@ public:
     }
 
 protected:
-    // triangle set index, left side of triangle, length of each side, is pointing down
+    // triangle set index, left side of triangle, length of each side, top of the triangle, is pointing down
     void RecursiveSubdivide(unsigned char set, uint base, uint size, uint top, bool down) {
         // Fucnction would only stack up to the maxLOD, so overflow is unlikely
 
         // C is between of A and B. all in buffer index
-        uint a = (Sqrt(8 * (base + 1) + 1) - 1) / 4;
+        uint a = (Sqrt(8 * (base + 1) + 1) - 1) / 2;
+        uint b = (Sqrt(8 * (top + 1) + 1) - 1) / 2;
         uint index = 0,
-             halfe = a * (a + 1) / 2,
+             halfe = base - a * ((size - 1) / 2 + 1) + b + LogBaseTwo(size - 1) + 1,
              vertA = GetIndex(set, base),
              vertB = GetIndex(set, base + size - 1),
              vertC = GetIndex(set, base + (size - 1) / 2);
@@ -461,6 +463,7 @@ protected:
                     //vertC = GetIndex(set, 1);
                     vertC = GetIndex(set, halfe);
                     //vertC = GetIndex(set, halfe + (size - 1) / 2 - 1);
+                    
                     break;
                 case 2:
                     // right
@@ -475,7 +478,12 @@ protected:
             vertData_[vertC + 1] = (vertData_[vertA + 1] + vertData_[vertB + 1]) / 2.0f;
             vertData_[vertC + 2] = (vertData_[vertA + 2] + vertData_[vertB + 2]) / 2.0f;
         }
-        
+        if (size != 3) {
+            // 0, 3, 5
+            printf("EEE %u\n", Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1);
+            RecursiveSubdivide(set, base + (size - 1) / 2, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, halfe + (size - 1) / 2, false);
+            //RecursiveSubdivide(set, 3, 3, 0, false);
+        }
     }
 
 };
