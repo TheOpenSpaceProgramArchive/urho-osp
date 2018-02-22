@@ -50,7 +50,7 @@ class PlanWren {
     uint setCount_;
     uint verticies_;
     //uint fundemental_ = 12;
-    float size_;
+    double size_;
 
     unsigned char* lines_;
     signed char* triangleSets_;
@@ -58,7 +58,6 @@ class PlanWren {
     uint* triangleMap_;
 
     Model* model_;
-    SharedPtr<IndexBuffer> indBuf_;
     SharedPtr<VertexBuffer> vrtBuf_;
     Vector<uint> indData_;
     Geometry* geometry_;
@@ -66,6 +65,9 @@ class PlanWren {
     SubTriangle name[20];
 
 public:
+
+    // here to test if things work
+    SharedPtr<IndexBuffer> indBuf_;
 
     PlanWren() {
         // these lines are point to point indexed to 12 verticies of the
@@ -198,14 +200,14 @@ public:
       return 0;
     }
 
-    void Initialize(Context* context, float size, Scene* scene, ResourceCache* cache) {
+    void Initialize(Context* context, double size, Scene* scene, ResourceCache* cache) {
 
         size_ = size;
-        maxLOD_ = 5;
+        maxLOD_ = 4;
 
         model_ = new Model(context);
 
-        float s = size / 256.0f;
+        float s = size / 280.43394944265;
         float h = 114.486680448;
 
         // Pentagon stuff, from wolfram alpha
@@ -253,9 +255,9 @@ public:
 
         // There should be a better way to do this
         vertData_[0] = 0; // Top vertex 0
-        vertData_[1] = 256;
+        vertData_[1] = 280.43394944265;
         vertData_[2] = 0;
-        vertData_[6] = 256; // Pentagon top aligned point 1
+        vertData_[6] = 280.43394944265; // Pentagon top aligned point 1
         vertData_[7] = h;
         vertData_[8] = 0;
         vertData_[12] = ca; // going clockwise from top 2
@@ -302,10 +304,12 @@ public:
             //GetIndex(0, uint(i));
             printf("WOOOT: %u\n", setCount_ - shared_ - 2);
             RecursiveSubdivide(i, setCount_ - shared_ - 2, shared_ + 2, 0, false);
-            //indData_.Push((lines_[(Abs(triangleSets_[i * 3]) - 1) * 2 + (triangleSets_[i * 3] > 0)]));
-            //indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 1]) - 1) * 2 + (triangleSets_[i * 3 + 1] > 0)]));
-            //indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 2]) - 1) * 2 + (triangleSets_[i * 3 + 2] > 0)]));
+            indData_.Push((lines_[(Abs(triangleSets_[i * 3]) - 1) * 2 + (triangleSets_[i * 3] > 0)]));
+            indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 1]) - 1) * 2 + (triangleSets_[i * 3 + 1] > 0)]));
+            indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 2]) - 1) * 2 + (triangleSets_[i * 3 + 2] > 0)]));
         }
+
+        // Start pushing index data
 
         /*indData_.Push(0); // top
         indData_.Push(1);
@@ -448,54 +452,87 @@ protected:
         uint a = (Sqrt(8 * (base) + 1) - 1) / 2;
         uint b = (Sqrt(8 * (top) + 1) - 1) / 2;
         uint index = 0;
-        uint halfe = a - (size - 1) / 2;
 
-        uint vertA = GetIndex(set, base),
-             vertB = GetIndex(set, base + size - 1),
-             vertC = GetIndex(set, base + (size - 1) / 2);
-        halfe = halfe * (halfe + 1) / 2 + (base - a * (a + 1) / 2);
+        uint halfe, vBotRit, vBotLft, vTop, vBtm, vLft, vRit;
+        if (down) {
+            // If triangle is upside down, MIRROR VERTICALLY
+            halfe = a + (size - 1) / 2;
+            halfe = halfe * (halfe + 1) / 2 + (base - a * (a + 1) / 2) + (b - halfe);
+
+            vBotRit = GetIndex(set, base + size - 1);
+            vBotLft = GetIndex(set, base);
+            vTop = GetIndex(set, top);
+            vBtm = GetIndex(set, base + (size - 1) / 2);
+            vLft = GetIndex(set, halfe);
+            vRit = GetIndex(set, halfe + (size - 1) / 2);
+        } else {
+            // Normal pointing up triangle
+            halfe = a - (size - 1) / 2;
+            halfe = halfe * (halfe + 1) / 2 + (base - a * (a + 1) / 2);
+
+            vBotRit = GetIndex(set, base + size - 1);
+            vBotLft = GetIndex(set, base);
+            vTop = GetIndex(set, top);
+            vBtm = GetIndex(set, base + (size - 1) / 2);
+            vLft = GetIndex(set, halfe);
+            vRit = GetIndex(set, halfe + (size - 1) / 2);
+        }
+
+        // Start with bottom side
+        uint vertA = vBotLft,
+             vertB = vBotRit,
+             vertC = vBtm;
         printf("AAAA: SIZE: %u BASE: %u %u TOP: %u %u HALF: %uL%u\n", size, base, a, top, b, halfe, a - (size - 1) / 2);
+        
         // Loop for all 3 sides
         for (unsigned char i = 0; i < 3; i ++) {
             switch (i) {
                 case 1:
                     // left
-                    //vertA = GetIndex(set, base),
-                    vertB = GetIndex(set, top);
-                    //vertC = GetIndex(set, 1);
-                    vertC = GetIndex(set, halfe);
-                    //vertC = GetIndex(set, halfe + (size - 1) / 2 - 1);
-                    
+                    vertB = vTop;
+                    vertC = vLft;
                     break;
                 case 2:
                     // right
-                    //vertB = GetIndex(set, top);
-                    vertA = GetIndex(set, base + size - 1);
-                    vertC = GetIndex(set, halfe + (size - 1) / 2);
-                    //vertC = GetIndex(set, 2);
+                    vertA = vBotRit;
+                    vertC = vRit;
                     break;
             }
             // Set vertex C to the average of A and B
-            vertData_[vertC + 0] = (vertData_[vertA + 0] + vertData_[vertB + 0]) / 2.0f;
-            vertData_[vertC + 1] = (vertData_[vertA + 1] + vertData_[vertB + 1]) / 2.0f;
-            vertData_[vertC + 2] = (vertData_[vertA + 2] + vertData_[vertB + 2]) / 2.0f;
-            //float mag = Sqrt(vertData_[vertC + 0] * vertData_[vertC + 0]
-            //                  + vertData_[vertC + 1] * vertData_[vertC + 1]
-            //                  + vertData_[vertC + 2] * vertData_[vertC + 2]);
-            //vertData_[vertC + 0] = vertData_[vertC + 0] / mag * float(size_);
-            //vertData_[vertC + 1] = vertData_[vertC + 1] / mag * float(size_);
-            //vertData_[vertC + 2] = vertData_[vertC + 2] / mag * float(size_);
+            double vx, vy, vz;
+            vx = (vertData_[vertA + 0] + vertData_[vertB + 0]) / 2.0f;
+            vy = (vertData_[vertA + 1] + vertData_[vertB + 1]) / 2.0f;
+            vz = (vertData_[vertA + 2] + vertData_[vertB + 2]) / 2.0f;
+            double mag = Sqrt(vx * vx
+                              + vy * vy
+                              + vz * vz);
+            vertData_[vertC + 0] = float(vx / mag * double(size_));
+            vertData_[vertC + 1] = float(vy / mag * double(size_));
+            vertData_[vertC + 2] = float(vz / mag * double(size_));
         }
         if (size != 3) {
             // 0, 3, 5
             printf("EEE %u\n", (size + 1) / 2);
             // Bottom right
-            RecursiveSubdivide(set, base + (size - 1) / 2, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, halfe + (size - 1) / 2, false);
+            //RecursiveSubdivide(set, base + (size - 1) / 2, (size + 1) / 2 - 1,
+            //                    halfe + (size - 1) / 2, false);
             // Bottom left
-            RecursiveSubdivide(set, base, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, halfe, false);
+            //RecursiveSubdivide(set, base, (size + 1) / 2 - 1, halfe, false);
             // Top
-            RecursiveSubdivide(set, halfe, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, top, false);
+            //RecursiveSubdivide(set, halfe, (size + 1) / 2 - 1, top, false);
             //RecursiveSubdivide(set, 3, 3, 0, false);
+            // Center
+            //RecursiveSubdivide(set, halfe, (size + 1) / 2 - 1,
+            //                    base + (size - 1) / 2, !down);
+            
+            RecursiveSubdivide(set, base + (size - 1) / 2, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, halfe + (size - 1) / 2, down);
+            // Bottom left
+            RecursiveSubdivide(set, base, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, halfe, down);
+            // Top
+            RecursiveSubdivide(set, halfe, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, top, down);
+
+            RecursiveSubdivide(set, halfe, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1,
+                                base + (size - 1) / 2, !down);  
         }
     }
 
@@ -515,7 +552,7 @@ public:
     SharedPtr<Scene> scene_;
     SharedPtr<Node> boxNode_;
     SharedPtr<Node> cameraNode_;
-    SharedPtr<IndexBuffer> sindBuf_;
+    PlanWren* planet_; // maybe make this work some time
 
     /**
     * This happens before the engine has been initialized
@@ -617,8 +654,8 @@ public:
                 boxObject->SetCastShadows(true);
             }*/
 
-        PlanWren* planet = new PlanWren();
-        planet->Initialize(context_, 2.0f, scene_, cache);
+        planet_ = new PlanWren();
+        planet_->Initialize(context_, 2.0f, scene_, cache);
 
         //sindBuf_ = SharedPtr<IndexBuffer>(indBuf);
         //vertData.Reserve(12 * 3);
@@ -630,7 +667,7 @@ public:
         boxNode_->SetPosition(Vector3(0,6,0));
         boxNode_->SetScale(Vector3(1.0f,1.0f,1.0f));
         StaticModel* boxObjectB=boxNode_->CreateComponent<StaticModel>();
-        boxObjectB->SetModel(planet->GetModel());
+        boxObjectB->SetModel(planet_->GetModel());
         boxObjectB->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
         boxObjectB->SetCastShadows(true);
 
@@ -800,8 +837,10 @@ public:
             cameraNode_->Translate(Vector3( 1,0,0)*MOVE_SPEED*timeStep);
 
         if(input->GetKeyDown('E')) {
-            ushort* xz = new ushort[0, 0, 0, 0, 0, 0, 0, 0, 0];
-            sindBuf_->SetDataRange(xz, 6, 9);
+            static uint e = 0;
+            ushort* xz = new ushort[0, 0, 0];
+            planet_->indBuf_->SetDataRange(xz, (e ++) * 3, 3);
+            delete xz;
         }
 
         if(!GetSubsystem<Input>()->IsMouseVisible()) {
