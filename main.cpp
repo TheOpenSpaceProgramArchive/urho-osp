@@ -203,7 +203,7 @@ public:
     void Initialize(Context* context, double size, Scene* scene, ResourceCache* cache) {
 
         size_ = size;
-        maxLOD_ = 2;
+        maxLOD_ = 7;
 
         model_ = new Model(context);
 
@@ -233,8 +233,9 @@ public:
         // Verticies in the middle of each face
         owns_ = (explode - 2) * (explode - 1) / 2;
         verticies_ = 12 + shared_ * 30 + owns_ * 20;
+        printf("PLAN WREN INITIALIZATION\n");
         printf("SET COUNT: %u PER SHARED: %u OWNS: %u EXPLODE: %u\n", setCount_, shared_, owns_, explode) ;
-        printf("Size: %u EEE: %u O: %u\n", verticies_, lines_[5], owns_);
+        printf("SIZE: %u EEE: %u O: %u\n", verticies_, lines_[5], owns_);
 
         triangleMap_ = new uint[setCount_];
 
@@ -242,8 +243,8 @@ public:
         for (int i = 0; i < setCount_; i ++) {
             uint a = (Sqrt(8 * (i + 1) + 1) - 1) / 2;
             uint b = a * (a + 1) / 2;
-            if (i + 1 != b && i != b)
-                printf("center: %u %u\n", i, j);
+            //if (i + 1 != b && i != b)
+            //    printf("center: %u %u\n", i, j);
             triangleMap_[i] = (i + 1 != b && i != b) ? j++ : 0;
         }
 
@@ -302,7 +303,7 @@ public:
 
         for (int i = 0; i < 20; i++) {
             //GetIndex(0, uint(i));
-            printf("WOOOT: %u\n", setCount_ - shared_ - 2);
+            //printf("WOOOT: %u\n", setCount_ - shared_ - 2);
             RecursiveSubdivide(i, setCount_ - shared_ - 2, shared_ + 2, 0, false);
             //indData_.Push((lines_[(Abs(triangleSets_[i * 3]) - 1) * 2 + (triangleSets_[i * 3] > 0)]));
             //indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 1]) - 1) * 2 + (triangleSets_[i * 3 + 1] > 0)]));
@@ -377,17 +378,17 @@ public:
         model_->SetIndexBuffers(indBufs);
 
         for(int i=0;i<verticies_ * 6;i+=6) {
-            printf("xyz: %.3f %.3f %.3f\n", vertData_[i], vertData_[i + 1], vertData_[i + 2]);
+            //printf("xyz: %.3f %.3f %.3f\n", vertData_[i], vertData_[i + 1], vertData_[i + 2]);
             //if (vertData_[i] + vertData_[i + 1] + vertData_[i + 2] != 0) {
                 //std::cout << vertData[i] << " " << vertData[i + 1] << " " << vertData[i + 2] << "\n";
-                Node* boxNode_=scene->CreateChild("Box");
-                boxNode_->SetPosition(Vector3(vertData_[i],6 + vertData_[i + 1],vertData_[i + 2]));
-                boxNode_->SetScale(Vector3(0.04f,0.04f,0.04f));
-                StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
-                boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+                //Node* boxNode_=scene->CreateChild("Box");
+                //boxNode_->SetPosition(Vector3(vertData_[i],6 + vertData_[i + 1],vertData_[i + 2]));
+                //boxNode_->SetScale(Vector3(0.04f,0.04f,0.04f));
+                //StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
+                //boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
                 //boxObject->SetModel(model);
-                boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
-                boxObject->SetCastShadows(true);
+                //boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+                //boxObject->SetCastShadows(true);
             //}
         }
 
@@ -436,7 +437,7 @@ protected:
         uint vertA = vBotLft,
              vertB = vBotRit,
              vertC = vBtm;
-        printf("AAAA: SIZE: %u BASE: %u %u TOP: %u %u HALF: %uL%u\n", size, base, a, top, b, halfe, a - (size - 1) / 2);
+        //printf("AAAA: SIZE: %u BASE: %u %u TOP: %u %u HALF: %uL%u\n", size, base, a, top, b, halfe, a - (size - 1) / 2);
         
         // Loop for all 3 sides
         for (unsigned char i = 0; i < 3; i ++) {
@@ -466,7 +467,7 @@ protected:
         }
         if (size != 3) {
             // 0, 3, 5
-            printf("EEE %u\n", (size + 1) / 2);
+            //printf("EEE %u\n", (size + 1) / 2);
             // Bottom right
             //RecursiveSubdivide(set, base + (size - 1) / 2, (size + 1) / 2 - 1,
             //                    halfe + (size - 1) / 2, false);
@@ -609,7 +610,7 @@ public:
             }*/
 
         planet_ = new PlanWren();
-        planet_->Initialize(context_, 2.0f, scene_, cache);
+        planet_->Initialize(context_, 60000000.0f, scene_, cache);
 
         //sindBuf_ = SharedPtr<IndexBuffer>(indBuf);
         //vertData.Reserve(12 * 3);
@@ -618,11 +619,11 @@ public:
         // [12 fundementals, (x) shared lines, (x)*20 face indicies]
 
         Node* boxNode_=scene_->CreateChild("Box");
-        boxNode_->SetPosition(Vector3(0,6,0));
+        boxNode_->SetPosition(Vector3(0,-60000000,0));
         boxNode_->SetScale(Vector3(1.0f,1.0f,1.0f));
         StaticModel* boxObjectB=boxNode_->CreateComponent<StaticModel>();
         boxObjectB->SetModel(planet_->GetModel());
-        boxObjectB->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+        boxObjectB->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
         boxObjectB->SetCastShadows(true);
 
         // We need a camera from which the viewport can render.
@@ -780,7 +781,7 @@ public:
 
         Input* input=GetSubsystem<Input>();
         if(input->GetQualifierDown(1))  // 1 is shift, 2 is ctrl, 4 is alt
-            MOVE_SPEED*=10;
+            MOVE_SPEED*=10000;
         if(input->GetKeyDown('W'))
             cameraNode_->Translate(Vector3(0,0, 1)*MOVE_SPEED*timeStep);
         if(input->GetKeyDown('S'))
@@ -792,9 +793,11 @@ public:
 
         if(input->GetKeyDown('E')) {
             static uint e = 0;
-            ushort* xz = new ushort[0, 0, 0];
-            planet_->indBuf_->SetDataRange(xz, (e ++) * 3, 3);
-            delete xz;
+            ushort xz[3];
+            xz[0] = 0;
+            xz[1] = 0;
+            xz[2] = 0;
+            planet_->indBuf_->SetDataRange(&xz, (e ++) * 3, 3);
         }
 
         if(!GetSubsystem<Input>()->IsMouseVisible()) {
