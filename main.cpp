@@ -37,6 +37,10 @@ using namespace Urho3D;
 class SubTriangle {
 public:
     unsigned char inuseBitmask_; // only first 4 bits are used
+    unsigned char set_;
+
+    // Indicies in set, Indicies in buffer, Index in gpu buffer
+    uint setIndex_[3], bufferIndex_[3], glIndex_;
 
     SubTriangle* children_;
     Vector3 normal_;
@@ -62,7 +66,8 @@ class PlanWren {
     Vector<uint> indData_;
     Geometry* geometry_;
 
-    SubTriangle name[20];
+    uint maxTriangles_;
+    SubTriangle* triangles_;
 
 public:
 
@@ -331,7 +336,7 @@ public:
             }
         }
 
-
+        // Normalizing, making it into a sphere, and adding normals
         double vx, vy, vz;
         for (int i = 0; i < verticies_ * 6; i += 6) {
             
@@ -344,6 +349,10 @@ public:
             vertData_[i + 0] = float(vx / mag * size_);
             vertData_[i + 1] = float(vy / mag * size_);
             vertData_[i + 2] = float(vz / mag * size_);
+            vertData_[i + 3] = float(vx / mag);
+            vertData_[i + 4] = float(vy / mag);
+            vertData_[i + 5] = float(vz / mag);
+            
         }
 
         PODVector<VertexElement> elements;
@@ -392,13 +401,32 @@ public:
             //}
         }
 
+
+        maxTriangles_ = 30;
+        triangles_ = new SubTriangle[maxTriangles_];
+
     }
-    
+
+    // Dir is outwards from the center, and is normalized
+    void Update(float distance, Vector3& dir) {
+        for (uint i = 0; i < 12; i ++) {
+            RecursiveSightTest(distance, dir, i);
+        }
+    }
+
     Model* GetModel() {
         return model_;
     }
 
 protected:
+
+    void RecursiveSightTest(float distance, Vector3& dir, uint triIndex) {
+        SubTriangle* tri = triangles_ + triIndex;
+        float thing = size_ / distance;
+        //float dot = dir.DotProduct(Vector3(tri->normal_, 0, 0));
+        
+    }
+
     // triangle set index, left side of triangle, length of each side, top of the triangle, is pointing down
     void RecursiveSubdivide(unsigned char set, uint base, uint size, uint top, bool down) {
         // Fucnction would only stack only up to the maxLOD, so overflow is unlikely
@@ -610,7 +638,7 @@ public:
             }*/
 
         planet_ = new PlanWren();
-        planet_->Initialize(context_, 60000000.0f, scene_, cache);
+        planet_->Initialize(context_, 60000.0f, scene_, cache);
 
         //sindBuf_ = SharedPtr<IndexBuffer>(indBuf);
         //vertData.Reserve(12 * 3);
@@ -619,7 +647,7 @@ public:
         // [12 fundementals, (x) shared lines, (x)*20 face indicies]
 
         Node* boxNode_=scene_->CreateChild("Box");
-        boxNode_->SetPosition(Vector3(0,-60000000,0));
+        boxNode_->SetPosition(Vector3(0,-60000,0));
         boxNode_->SetScale(Vector3(1.0f,1.0f,1.0f));
         StaticModel* boxObjectB=boxNode_->CreateComponent<StaticModel>();
         boxObjectB->SetModel(planet_->GetModel());
