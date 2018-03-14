@@ -136,6 +136,7 @@ public:
 
     // Get buffer index from a set's local triangle index
     // Returns index in buffer
+    // Should be deprecated
     uint GetIndex(unsigned char set, uint input) {
       // should be using urho logs but i'm lazy
       //printf("T: %u, ", input);
@@ -205,10 +206,49 @@ public:
       return 0;
     }
 
+    // Same, and simpler than above. inputs x y coordinates instead
+    uint GetIndex(unsigned char set, uint x, uint y) {
+        printf("XY: %u, (%u, %u) ", set, x, y);
+        if (y == 0) {
+            printf("TOP %u\n", (Abs(triangleSets_[set * 3 + 1]) - 1)); 
+            //set = 0;
+            return (lines_[(Abs(triangleSets_[set * 3 + 1]) - 1) * 2 + (triangleSets_[set * 3 + 1] < 0)]) * 6;
+        } else if (y == shared_ + 1) {
+            if (x == 0) {
+                printf("BOTTOM LEFT\n");
+                return (lines_[(Abs(triangleSets_[set * 3]) - 1) * 2
+                          + (triangleSets_[set * 3] < 0)]) * 6;
+            } else if (x == shared_ + 1) {
+                printf("BOTTOM RIGHT\n");
+                return (lines_[(Abs(triangleSets_[set * 3]) - 1) * 2
+                          + (triangleSets_[set * 3] > 0)]) * 6;
+            } else {
+                printf("BOTTOM\n");
+                return (12 + shared_ * (Abs(triangleSets_[set * 3]) - 1) +
+                          ((triangleSets_[set * 3] < 0) ? x - 1 : (shared_ - x))) * 6;
+            }
+        } else if (y < shared_ + 1) {
+            if (x == 0) {
+                printf("LEFT\n");
+                return (12 + shared_ * (Abs(triangleSets_[set * 3 + 1]) - 1) +
+                      ((triangleSets_[set * 3 + 1] > 0) ? y - 1 : (shared_ - y))) * 6;
+            } else if (x == y) {
+                printf("RIGHT\n");
+                return (12 + shared_ * (Abs(triangleSets_[set * 3 + 2]) - 1) +
+                      ((triangleSets_[set * 3 + 2] < 0) ? y - 1 : (shared_ - y))) * 6;
+            } else {
+                printf("CENTER\n");
+                return (12 + shared_ * 30 + owns_ * uint(set) + (y - 2) * (y - 1) / 2 - 1 + x) * 6;
+            }
+        } else {
+            printf("error\n");
+        }
+    }
+
     void Initialize(Context* context, double size, Scene* scene, ResourceCache* cache) {
 
         size_ = size;
-        maxLOD_ = 7;
+        maxLOD_ = 2;
 
         model_ = new Model(context);
 
@@ -309,13 +349,11 @@ public:
         for (int i = 0; i < 20; i++) {
             //GetIndex(0, uint(i));
             //printf("WOOOT: %u\n", setCount_ - shared_ - 2);
-            RecursiveSubdivide(i, setCount_ - shared_ - 2, shared_ + 2, 0, false);
+            RecursiveSubdivide(i, 0, shared_ + 1, shared_ + 2, false);
             //indData_.Push((lines_[(Abs(triangleSets_[i * 3]) - 1) * 2 + (triangleSets_[i * 3] > 0)]));
             //indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 1]) - 1) * 2 + (triangleSets_[i * 3 + 1] > 0)]));
             //indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 2]) - 1) * 2 + (triangleSets_[i * 3 + 2] > 0)]));
         }
-
-        
 
         for (uint i = 0; i < 20; i++) {
             uint coA = 0, coB = 1, coC = 1, coD = 0;
@@ -333,6 +371,16 @@ public:
                 }
                 
                 //printf("EE: %u:  %u  %u  %u\n", i, GetIndex(i, coB) / 6, GetIndex(i, coA) / 6, GetIndex(i, coB + 1) / 6);
+            }
+        }
+
+        for (uint k = 0; k < 20; k++) {
+            uint tc = 0;
+            for (uint i = 0; i < shared_ + 2; i++) {
+                for (uint j = 0; j < i + 1; j++) {
+                    printf("T: %u (%u == %u)\n", tc, GetIndex(k, j, i), GetIndex(k, tc));
+                    tc ++;
+                }
             }
         }
 
@@ -386,12 +434,12 @@ public:
         model_->SetVertexBuffers(vrtBufs, morphRangeStarts, morphRangeCounts);
         model_->SetIndexBuffers(indBufs);
 
-        for(int i=0;i<verticies_ * 6;i+=6) {
+        //for(int i=0;i<verticies_ * 6;i+=6) {
             //printf("xyz: %.3f %.3f %.3f\n", vertData_[i], vertData_[i + 1], vertData_[i + 2]);
             //if (vertData_[i] + vertData_[i + 1] + vertData_[i + 2] != 0) {
                 //std::cout << vertData[i] << " " << vertData[i + 1] << " " << vertData[i + 2] << "\n";
                 //Node* boxNode_=scene->CreateChild("Box");
-                //boxNode_->SetPosition(Vector3(vertData_[i],6 + vertData_[i + 1],vertData_[i + 2]));
+                //boxNode_->SetPosition(Vector3(vertData_[i], vertData_[i + 1],vertData_[i + 2]));
                 //boxNode_->SetScale(Vector3(0.04f,0.04f,0.04f));
                 //StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
                 //boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
@@ -399,7 +447,7 @@ public:
                 //boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
                 //boxObject->SetCastShadows(true);
             //}
-        }
+        //}
 
 
         maxTriangles_ = 30;
@@ -428,37 +476,43 @@ protected:
     }
 
     // triangle set index, left side of triangle, length of each side, top of the triangle, is pointing down
-    void RecursiveSubdivide(unsigned char set, uint base, uint size, uint top, bool down) {
+    void RecursiveSubdivide(unsigned char set, uint basex, uint basey, uint size, bool down) {
         // Fucnction would only stack only up to the maxLOD, so overflow is unlikely
 
         // C is between of A and B. all in buffer index
-        uint a = (Sqrt(8 * (base) + 1) - 1) / 2;
-        uint b = (Sqrt(8 * (top) + 1) - 1) / 2;
+        //uint a = (Sqrt(8 * (base) + 1) - 1) / 2;
+        //uint b = (Sqrt(8 * (top) + 1) - 1) / 2;
         uint index = 0;
 
         uint halfe, vBotRit, vBotLft, vTop, vBtm, vLft, vRit;
-        if (down) {
-            // If triangle is upside down, MIRROR VERTICALLY
-            halfe = a + (size - 1) / 2;
-            halfe = halfe * (halfe + 1) / 2 + (base - a * (a + 1) / 2) + (b - halfe);
 
-            vBotRit = GetIndex(set, base + size - 1);
-            vBotLft = GetIndex(set, base);
-            vTop = GetIndex(set, top);
-            vBtm = GetIndex(set, base + (size - 1) / 2);
-            vLft = GetIndex(set, halfe);
-            vRit = GetIndex(set, halfe + (size - 1) / 2);
+        // TODO do boolean multiplication stuff
+        if (down) {
+            // If triangle is pointing down, MIRROR VERTICALLY
+            //halfe = a + (size - 1) / 2;
+            //halfe = halfe * (halfe + 1) / 2 + (base - a * (a + 1) / 2) + (b - halfe);
+            halfe = basey + (size - 1) / 2;
+
+            vBotRit = GetIndex(set, basex + size - 1, basey);
+            vBotLft = GetIndex(set, basex, basey);
+            vTop = GetIndex(set, basex, basey + size - 1);
+
+            vBtm = GetIndex(set, basex + (size - 1) / 2, basey);
+            vLft = GetIndex(set, basex, halfe);
+            vRit = GetIndex(set, basex + (size - 1) / 2, halfe);
         } else {
             // Normal pointing up triangle
-            halfe = a - (size - 1) / 2;
-            halfe = halfe * (halfe + 1) / 2 + (base - a * (a + 1) / 2);
+            //halfe = a - (size - 1) / 2;
+            //halfe = halfe * (halfe + 1) / 2 + (base - a * (a + 1) / 2);
+            halfe = basey - (size - 1) / 2;
 
-            vBotRit = GetIndex(set, base + size - 1);
-            vBotLft = GetIndex(set, base);
-            vTop = GetIndex(set, top);
-            vBtm = GetIndex(set, base + (size - 1) / 2);
-            vLft = GetIndex(set, halfe);
-            vRit = GetIndex(set, halfe + (size - 1) / 2);
+            vBotRit = GetIndex(set, basex + size - 1, basey);
+            vBotLft = GetIndex(set, basex, basey);
+            vTop = GetIndex(set, basex, basey - size + 1);
+
+            vBtm = GetIndex(set, basex + (size - 1) / 2, basey);
+            vLft = GetIndex(set, basex, halfe);
+            vRit = GetIndex(set, basex + (size - 1) / 2, halfe);
         }
 
         // Start with bottom side
@@ -508,14 +562,14 @@ protected:
             //RecursiveSubdivide(set, halfe, (size + 1) / 2 - 1,
             //                    base + (size - 1) / 2, !down);
             
-            RecursiveSubdivide(set, base + (size - 1) / 2, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, halfe + (size - 1) / 2, down);
-            // Bottom left
-            RecursiveSubdivide(set, base, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, halfe, down);
+            // Bottom Right
+            RecursiveSubdivide(set, basex + (size - 1) / 2, basey, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, down);
+            // Bottom Left
+            RecursiveSubdivide(set, basex, basey, (size - 1) / 2 + 1, down);
             // Top
-            RecursiveSubdivide(set, halfe, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, top, down);
-
-            RecursiveSubdivide(set, halfe, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1,
-                                base + (size - 1) / 2, !down);  
+            RecursiveSubdivide(set, basex, halfe, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, down);
+            // Center
+            RecursiveSubdivide(set, basex, halfe, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, !down);
         }
     }
 
@@ -638,7 +692,7 @@ public:
             }*/
 
         planet_ = new PlanWren();
-        planet_->Initialize(context_, 60000.0f, scene_, cache);
+        planet_->Initialize(context_, 60.0f, scene_, cache);
 
         //sindBuf_ = SharedPtr<IndexBuffer>(indBuf);
         //vertData.Reserve(12 * 3);
@@ -647,11 +701,11 @@ public:
         // [12 fundementals, (x) shared lines, (x)*20 face indicies]
 
         Node* boxNode_=scene_->CreateChild("Box");
-        boxNode_->SetPosition(Vector3(0,-60000,0));
+        //boxNode_->SetPosition(Vector3(0,-60,0));
         boxNode_->SetScale(Vector3(1.0f,1.0f,1.0f));
         StaticModel* boxObjectB=boxNode_->CreateComponent<StaticModel>();
         boxObjectB->SetModel(planet_->GetModel());
-        boxObjectB->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
+        boxObjectB->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
         boxObjectB->SetCastShadows(true);
 
         // We need a camera from which the viewport can render.
@@ -809,7 +863,7 @@ public:
 
         Input* input=GetSubsystem<Input>();
         if(input->GetQualifierDown(1))  // 1 is shift, 2 is ctrl, 4 is alt
-            MOVE_SPEED*=10000;
+            MOVE_SPEED*=100;
         if(input->GetKeyDown('W'))
             cameraNode_->Translate(Vector3(0,0, 1)*MOVE_SPEED*timeStep);
         if(input->GetKeyDown('S'))
