@@ -283,6 +283,12 @@ public:
         // Mouse sensitivity as degrees per pixel
         const float MOUSE_SENSITIVITY=0.1f;
 
+        // Subtract 
+        Vector3 dir(cameraNode_->GetPosition());
+        float dist = dir.Length();
+        dir /= dist;
+        planet_->Update(dist, dir);
+
         if(time_ >=1) {
 
             std::string str;
@@ -310,7 +316,7 @@ public:
             str.append(" fps");
             String s(str.c_str(),str.size());
             text_->SetText(s);
-            URHO3D_LOGINFO(s);     // this show how to put stuff into the log
+            ///URHO3D_LOGINFO(s);     // this show how to put stuff into the log
             framecount_=0;
             time_=0;
         }
