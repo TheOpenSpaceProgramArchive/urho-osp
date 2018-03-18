@@ -44,8 +44,8 @@ public:
     unsigned char set_;
 
     // Indicies in set, Indicies in buffer, Index in gpu buffer
-    uint    lod_, glIndex_,
-            x_, y_;
+    int lod_;
+    uint glIndex_, x_, y_;
 
     SubTriangle* children_;
     Vector3 normal_;
@@ -78,6 +78,8 @@ class PlanWren {
 
     uint maxTriangles_;
     SubTriangle* triangles_;
+    uint bufActive_;
+    uint bufMax_;
     uint* triDomain_;
 
 public:
@@ -238,34 +240,34 @@ uint PlanWren::GetIndex(unsigned char set, uint input) {
 uint PlanWren::GetIndex(unsigned char set, uint x, uint y) {
     //printf("XY: %u, (%u, %u) ", set, x, y);
     if (y == 0) {
-        printf("TOP %u\n", (Abs(triangleSets_[set * 3 + 1]) - 1)); 
+        //printf("TOP %u\n", (Abs(triangleSets_[set * 3 + 1]) - 1)); 
         //set = 0;
         return (lines_[(Abs(triangleSets_[set * 3 + 1]) - 1) * 2 + (triangleSets_[set * 3 + 1] < 0)]) * 6;
     } else if (y == shared_ + 1) {
         if (x == 0) {
-            printf("BOTTOM LEFT\n");
+            //printf("BOTTOM LEFT\n");
             return (lines_[(Abs(triangleSets_[set * 3]) - 1) * 2
                       + (triangleSets_[set * 3] < 0)]) * 6;
         } else if (x == shared_ + 1) {
-            printf("BOTTOM RIGHT\n");
+            //printf("BOTTOM RIGHT\n");
             return (lines_[(Abs(triangleSets_[set * 3]) - 1) * 2
                       + (triangleSets_[set * 3] > 0)]) * 6;
         } else {
-            printf("BOTTOM\n");
+            //printf("BOTTOM\n");
             return (12 + shared_ * (Abs(triangleSets_[set * 3]) - 1) +
                       ((triangleSets_[set * 3] < 0) ? x - 1 : (shared_ - x))) * 6;
         }
     } else if (y < shared_ + 1) {
         if (x == 0) {
-            printf("LEFT\n");
+            //printf("LEFT\n");
             return (12 + shared_ * (Abs(triangleSets_[set * 3 + 1]) - 1) +
                   ((triangleSets_[set * 3 + 1] > 0) ? y - 1 : (shared_ - y))) * 6;
         } else if (x == y) {
-            printf("RIGHT\n");
+            //printf("RIGHT\n");
             return (12 + shared_ * (Abs(triangleSets_[set * 3 + 2]) - 1) +
                   ((triangleSets_[set * 3 + 2] < 0) ? y - 1 : (shared_ - y))) * 6;
         } else {
-            printf("CENTER\n");
+            //printf("CENTER\n");
             return (12 + shared_ * 30 + owns_ * uint(set) + (y - 2) * (y - 1) / 2 - 1 + x) * 6;
         }
     } else {
@@ -376,14 +378,16 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
         //indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 2]) - 1) * 2 + (triangleSets_[i * 3 + 2] > 0)]));
     }
 
-    maxTriangles_ = 20;
+    maxTriangles_ = 100;
+    bufMax_ = 20;
+    bufActive_ = 0;
     triangles_ = new SubTriangle[maxTriangles_];
     triDomain_ = new uint[maxTriangles_];
 
     // Paranoid and should be removed
-    for (ushort i = 0; i < maxTriangles_; i ++) {
-        triDomain_ = 0;
-    }
+    //for (ushort i = 0; i < maxTriangles_; i ++) {
+    //    triDomain_ = 0;
+    //}
 
     // Making it into a sphere, and adding normals
     double vx, vy, vz;
@@ -410,7 +414,7 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
             indData_.Push(GetIndex(i, coB) / 6);
             indData_.Push(GetIndex(i, coA) / 6);
             indData_.Push(GetIndex(i, coB + 1) / 6);
-            coA ++;
+            coA ++; 
             coB ++;
             if (coA - coD == coC) {
               coD += coC;
@@ -421,7 +425,7 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
         }
 
         triangles_[i].set_ = i;
-        triangles_[i].lod_ = 0;
+        triangles_[i].lod_ = maxLOD_;
         triangles_[i].x_ = 0;
         triangles_[i].y_ = shared_ + 1;
         triangles_[i].CalculateNormal(this);
@@ -435,14 +439,14 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
     vrtBuf_->SetData(vertData_);
     vrtBuf_->SetShadowed(true);
 
-    indBuf_->SetSize(indData_.Size(), true, true);
-    indBuf_->SetData(indData_.Buffer());
+    indBuf_->SetSize(bufMax_ * 3, true, true);
+    //indBuf_->SetData();
     indBuf_->SetShadowed(true);
 
     geometry_->SetNumVertexBuffers(1);
     geometry_->SetVertexBuffer(0, vrtBuf_);
     geometry_->SetIndexBuffer(indBuf_);
-    geometry_->SetDrawRange(TRIANGLE_LIST, 0, indData_.Size());
+    geometry_->SetDrawRange(TRIANGLE_LIST, 0, bufMax_ * 3);
 
     model_->SetNumGeometries(1);
     model_->SetGeometry(0, 0, geometry_);
@@ -497,13 +501,35 @@ void PlanWren::RecursiveSightTest(uint triIndex, float threshold, Vector3& dir) 
             //glIndex_ = 
             // Find a space
             tri->bitmask_ = tri->bitmask_ | 2;
-            printf("VISBL c E: %u\n", triIndex);
+            printf("VISBLE: %u\n", triIndex);
+            if (bufActive_ + 1 != bufMax_) {
+                // there is space available
+                uint xz[3];
+                uint size = Pow(2, tri->lod_);
+                xz[0] = GetIndex(tri->set_, tri->x_ + size, tri->y_) / 6;
+                xz[1] = GetIndex(tri->set_, tri->x_, tri->y_) / 6;
+                xz[2] = GetIndex(tri->set_, tri->x_, tri->y_ - size) / 6;
+                indBuf_->SetDataRange(&xz, bufActive_ * 3, 3);
+                printf("DURIANS %u %u %u\n", xz[0], xz[1], xz[2]);
+                tri->glIndex_ = bufActive_;
+                triDomain_[bufActive_] = triIndex;
+                bufActive_ ++;
+            }
         }
     } else {
         if ((tri->bitmask_ & 2) == 2) {
             // Is drawable, then hide
             tri->bitmask_ = tri->bitmask_ ^ 2;
             printf("HIDING: %u\n", triIndex);
+            uint xz[3];
+            bufActive_ --;
+            // set this to the last element
+            //(const uint*)(indBuf_->GetShadowData()) + tri->glIndex_ * 3
+            triangles_[triDomain_[bufActive_]].glIndex_ = tri->glIndex_;
+            triDomain_[tri->glIndex_] = triDomain_[bufActive_];
+            indBuf_->SetDataRange((const uint*)(indBuf_->GetShadowData()) + bufActive_ * 3, tri->glIndex_ * 3, 3);
+            indBuf_->SetDataRange(&xz, bufActive_ * 3, 3);
+            
         }
     }
 }
@@ -616,7 +642,7 @@ SubTriangle::SubTriangle() {
 }
 
 void SubTriangle::CalculateNormal(PlanWren* wren) {
-    uint size = Pow(uint(2), lod_);
+    uint size = Pow(2, lod_);
     uint a = wren->GetIndex(set_, x_ + size, y_);
     uint b = wren->GetIndex(set_, x_, y_);
     uint c = wren->GetIndex(set_, x_, y_ - size);
@@ -632,6 +658,6 @@ void SubTriangle::CalculateNormal(PlanWren* wren) {
     normal_.z_ += vdata[c + 5];
     float ol = normal_.Length();
     normal_.Normalize();
-    printf("Normal for something on set %u, %f (%.4f, %.4f, %.4f)\n", set_, ol, normal_.x_, normal_.y_, normal_.z_);
+    printf("Normal for something on set %u, (%u %u %u) %f (%.4f, %.4f, %.4f)\n", set_, a, b, c, ol, normal_.x_, normal_.y_, normal_.z_);
     //printf("Normal xyz: (%f, %f, %f)\n", normal_.x_, normal_.y_, normal_.z_);
 }

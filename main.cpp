@@ -166,7 +166,7 @@ public:
         boxNode_->SetScale(Vector3(1.0f,1.0f,1.0f));
         StaticModel* boxObjectB=boxNode_->CreateComponent<StaticModel>();
         boxObjectB->SetModel(planet_->GetModel());
-        boxObjectB->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+        boxObjectB->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
         boxObjectB->SetCastShadows(true);
 
         // We need a camera from which the viewport can render.
@@ -342,7 +342,7 @@ public:
 
         if(input->GetKeyDown('E')) {
             static uint e = 0;
-            ushort xz[3];
+            uint xz[3];
             xz[0] = 0;
             xz[1] = 0;
             xz[2] = 0;
