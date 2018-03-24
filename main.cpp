@@ -292,7 +292,7 @@ public:
         if(time_ >=1) {
 
             std::string str;
-            str.append("Keys: tab = toggle mouse, AWSD = move camera, Shift = fast mode, Esc = quit.\n");
+            str.append("Tab: toggle mouse, WASD: move, Shift = fast mode, Esc: quit.\n");
             {
                 std::ostringstream ss;
                 ss<<framecount_;
@@ -313,7 +313,14 @@ public:
                 std::string s(ss.str());
                 str.append(s.substr(0,6));
             }
-            str.append(" fps");
+            str.append(" fps, ");
+            {
+                std::ostringstream ss;
+                ss<<planet_->GetVisibleCount();
+                std::string s(ss.str());
+                str.append(s.substr(0,6));
+            }
+            str.append(" Tris Visible");
             String s(str.c_str(),str.size());
             text_->SetText(s);
             ///URHO3D_LOGINFO(s);     // this show how to put stuff into the log

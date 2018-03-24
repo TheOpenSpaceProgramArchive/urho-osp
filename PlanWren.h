@@ -53,6 +53,7 @@ public:
     SubTriangle();
 
     void CalculateNormal(PlanWren* wren);
+    void Subdivide();
 
 };
 
@@ -76,11 +77,12 @@ class PlanWren {
     Vector<uint> indData_;
     Geometry* geometry_;
 
-    uint maxTriangles_;
     SubTriangle* triangles_;
     uint bufActive_;
+    uint* bufDomain_;
     uint bufMax_;
-    uint* triDomain_;
+    uint maxTriangles_;
+    uint triActive_;
 
 public:
 
@@ -90,6 +92,7 @@ public:
     PlanWren();
     uint GetIndex(unsigned char set, uint input);
     uint GetIndex(unsigned char set, uint x, uint y);
+    const uint GetVisibleCount();
     const float* GetVertData();
 
     void Initialize(Context* context, double size, Scene* scene, ResourceCache* cache);
@@ -275,6 +278,10 @@ uint PlanWren::GetIndex(unsigned char set, uint x, uint y) {
     }
 }
 
+const uint PlanWren::GetVisibleCount() {
+    return bufActive_;
+}
+
 const float* PlanWren::GetVertData() {
     return vertData_;
 }
@@ -382,11 +389,11 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
     bufMax_ = 20;
     bufActive_ = 0;
     triangles_ = new SubTriangle[maxTriangles_];
-    triDomain_ = new uint[maxTriangles_];
+    bufDomain_ = new uint[maxTriangles_];
 
     // Paranoid and should be removed
     //for (ushort i = 0; i < maxTriangles_; i ++) {
-    //    triDomain_ = 0;
+    //    bufDomain_ = 0;
     //}
 
     // Making it into a sphere, and adding normals
@@ -512,8 +519,12 @@ void PlanWren::RecursiveSightTest(uint triIndex, float threshold, Vector3& dir) 
                 indBuf_->SetDataRange(&xz, bufActive_ * 3, 3);
                 printf("DURIANS %u %u %u\n", xz[0], xz[1], xz[2]);
                 tri->glIndex_ = bufActive_;
-                triDomain_[bufActive_] = triIndex;
+                bufDomain_[bufActive_] = triIndex;
                 bufActive_ ++;
+                bool divisible = tri->lod_ == maxLOD_;
+                if (divisible) {
+                    tri->Subdivide();
+                }
             }
         }
     } else {
@@ -525,11 +536,10 @@ void PlanWren::RecursiveSightTest(uint triIndex, float threshold, Vector3& dir) 
             bufActive_ --;
             // set this to the last element
             //(const uint*)(indBuf_->GetShadowData()) + tri->glIndex_ * 3
-            triangles_[triDomain_[bufActive_]].glIndex_ = tri->glIndex_;
-            triDomain_[tri->glIndex_] = triDomain_[bufActive_];
+            triangles_[bufDomain_[bufActive_]].glIndex_ = tri->glIndex_;
+            bufDomain_[tri->glIndex_] = bufDomain_[bufActive_];
             indBuf_->SetDataRange((const uint*)(indBuf_->GetShadowData()) + bufActive_ * 3, tri->glIndex_ * 3, 3);
             indBuf_->SetDataRange(&xz, bufActive_ * 3, 3);
-            
         }
     }
 }
@@ -551,28 +561,19 @@ void PlanWren::RecursiveSubdivide(unsigned char set, uint basex, uint basey, uin
         //halfe = a + (size - 1) / 2;
         //halfe = halfe * (halfe + 1) / 2 + (base - a * (a + 1) / 2) + (b - halfe);
         halfe = basey + (size - 1) / 2;
-
-        vBotRit = GetIndex(set, basex + size - 1, basey);
-        vBotLft = GetIndex(set, basex, basey);
-        vTop = GetIndex(set, basex, basey + size - 1);
-
-        vBtm = GetIndex(set, basex + (size - 1) / 2, basey);
-        vLft = GetIndex(set, basex, halfe);
-        vRit = GetIndex(set, basex + (size - 1) / 2, halfe);
+        vTop = GetIndex(set, basex, basey + size - 1);  
     } else {
         // Normal pointing up triangle
         //halfe = a - (size - 1) / 2;
         //halfe = halfe * (halfe + 1) / 2 + (base - a * (a + 1) / 2);
         halfe = basey - (size - 1) / 2;
-
-        vBotRit = GetIndex(set, basex + size - 1, basey);
-        vBotLft = GetIndex(set, basex, basey);
         vTop = GetIndex(set, basex, basey - size + 1);
-
-        vBtm = GetIndex(set, basex + (size - 1) / 2, basey);
-        vLft = GetIndex(set, basex, halfe);
-        vRit = GetIndex(set, basex + (size - 1) / 2, halfe);
     }
+    vBotRit = GetIndex(set, basex + size - 1, basey);
+    vBotLft = GetIndex(set, basex, basey);
+    vBtm = GetIndex(set, basex + (size - 1) / 2, basey);
+    vLft = GetIndex(set, basex, halfe);
+    vRit = GetIndex(set, basex + (size - 1) / 2, halfe);
 
     // Start with bottom side
     uint vertA = vBotLft,
@@ -599,27 +600,13 @@ void PlanWren::RecursiveSubdivide(unsigned char set, uint basex, uint basey, uin
         vx = (vertData_[vertA + 0] + vertData_[vertB + 0]) / 2.0f;
         vy = (vertData_[vertA + 1] + vertData_[vertB + 1]) / 2.0f;
         vz = (vertData_[vertA + 2] + vertData_[vertB + 2]) / 2.0f;
-        double mag = Sqrt(vx * vx
-                          + vy * vy
-                          + vz * vz);
-        vertData_[vertC + 0] = vx;//float(vx / mag * double(size_));
-        vertData_[vertC + 1] = vy;//float(vy / mag * double(size_));
-        vertData_[vertC + 2] = vz;//float(vz / mag * double(size_));
+        vertData_[vertC + 0] = vx;
+        vertData_[vertC + 1] = vy;
+        vertData_[vertC + 2] = vz;
     }
+    // 3 is the smallest possible triangle
     if (size != 3) {
-        // 0, 3, 5
-        //printf("EEE %u\n", (size + 1) / 2);
-        // Bottom right
-        //RecursiveSubdivide(set, base + (size - 1) / 2, (size + 1) / 2 - 1,
-        //                    halfe + (size - 1) / 2, false);
-        // Bottom left
-        //RecursiveSubdivide(set, base, (size + 1) / 2 - 1, halfe, false);
-        // Top
-        //RecursiveSubdivide(set, halfe, (size + 1) / 2 - 1, top, false);
-        //RecursiveSubdivide(set, 3, 3, 0, false);
-        // Center
-        //RecursiveSubdivide(set, halfe, (size + 1) / 2 - 1,
-        //                    base + (size - 1) / 2, !down);
+        // Not yet at snallest possible triangle
         
         // Bottom Right
         RecursiveSubdivide(set, basex + (size - 1) / 2, basey, Pow(uint(2), LogBaseTwo(size - 1) - 1) + 1, down);
@@ -660,4 +647,9 @@ void SubTriangle::CalculateNormal(PlanWren* wren) {
     normal_.Normalize();
     printf("Normal for something on set %u, (%u %u %u) %f (%.4f, %.4f, %.4f)\n", set_, a, b, c, ol, normal_.x_, normal_.y_, normal_.z_);
     //printf("Normal xyz: (%f, %f, %f)\n", normal_.x_, normal_.y_, normal_.z_);
+}
+
+void SubTriangle::Subdivide() {
+    
+    
 }
