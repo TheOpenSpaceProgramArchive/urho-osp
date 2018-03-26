@@ -166,7 +166,9 @@ public:
         boxNode_->SetScale(Vector3(1.0f,1.0f,1.0f));
         StaticModel* boxObjectB=boxNode_->CreateComponent<StaticModel>();
         boxObjectB->SetModel(planet_->GetModel());
-        boxObjectB->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
+        Material* m = cache->GetResource<Material>("Materials/Stone.xml");
+        m->SetFillMode(FILL_WIREFRAME);
+        boxObjectB->SetMaterial(m);
         boxObjectB->SetCastShadows(true);
 
         // We need a camera from which the viewport can render.
@@ -256,6 +258,11 @@ public:
         int key=eventData[P_KEY].GetInt();
         if(key==KEY_ESCAPE)
             engine_->Exit();
+
+        if(key==KEY_Q) {
+            Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Stone.xml");
+            m->SetFillMode((m->GetFillMode() == FILL_WIREFRAME) ? FILL_SOLID : FILL_WIREFRAME );
+        }
 
         if(key==KEY_TAB) {
             // toggle mouse cursor when pressing tab
