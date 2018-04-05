@@ -53,7 +53,8 @@ public:
     SubTriangle();
 
     void CalculateNormal(PlanWren* wren);
-    void Subdivide(PlanWren* wren, uint& top, uint& triActive, SubTriangle* triangles, uint* bufDomain);
+    void Subdivide(PlanWren* wren, uint& top, uint& triActive,
+                    SubTriangle* triangles, uint* bufDomain);
 
 };
 
@@ -96,7 +97,10 @@ public:
     const float* GetVertData();
 
     void Initialize(Context* context, double size, Scene* scene, ResourceCache* cache);
-    void ShowTriangle(SubTriangle* tri, uint index);
+    void TriangleHide(SubTriangle* tri);
+    void TriangleRemoveChildren(SubTriangle* tri);
+    void TriangleRemove(uint tri);
+    void TriangleShow(SubTriangle* tri, uint index);
     void Update(float distance, Vector3& dir);
 
     Model* GetModel();
@@ -386,12 +390,12 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
         //indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 2]) - 1) * 2 + (triangleSets_[i * 3 + 2] > 0)]));
     }
 
-    maxTriangles_ = 1024;
-    bufMax_ = 1024;
+    maxTriangles_ = 1024 * 8;
+    bufMax_ = 1024 * 2;
     triActive_ = 20;
     bufActive_ = 0;
     triangles_ = new SubTriangle[maxTriangles_];
-    bufDomain_ = new uint[maxTriangles_];
+    bufDomain_ = new uint[bufMax_];
 
     // Paranoid and should be removed
     //for (ushort i = 0; i < maxTriangles_; i ++) {
@@ -414,7 +418,7 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
         vertData_[i + 3] = float(vx / mag);
         vertData_[i + 4] = float(vy / mag);
         vertData_[i + 5] = float(vz / mag);
-        printf("Mg(%.3f) V0(%.3f,%.3f,%.3f) V(%.3f,%.3f,%.3f) N(%.3f,%.3f,%.3f)\n", mag, vx, vy, vz, vertData_[i + 0], vertData_[i + 1], vertData_[i + 2], vertData_[i + 3], vertData_[i + 4], vertData_[i + 5]);
+        //printf("Mg(%.3f) V0(%.3f,%.3f,%.3f) V(%.3f,%.3f,%.3f) N(%.3f,%.3f,%.3f)\n", mag, vx, vy, vz, vertData_[i + 0], vertData_[i + 1], vertData_[i + 2], vertData_[i + 3], vertData_[i + 4], vertData_[i + 5]);
 
     }
 
@@ -472,26 +476,27 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
     model_->SetVertexBuffers(vrtBufs, morphRangeStarts, morphRangeCounts);
     model_->SetIndexBuffers(indBufs);
 
-    for(int i=0;i<verticies_ * 6;i+=6) {
+    //for(int i=0;i<verticies_ * 6;i+=6) {
         //printf("xyz: %.3f %.3f %.3f\n", vertData_[i], vertData_[i + 1], vertData_[i + 2]);
-        if (vertData_[i] + vertData_[i + 1] + vertData_[i + 2] != 0) {
+        //if (vertData_[i] + vertData_[i + 1] + vertData_[i + 2] != 0) {
             //std::cout << vertData[i] << " " << vertData[i + 1] << " " << vertData[i + 2] << "\n";
-            Node* boxNode_=scene->CreateChild("Box");
-            boxNode_->SetPosition(Vector3(vertData_[i], vertData_[i + 1],vertData_[i + 2]));
-            boxNode_->SetScale(Vector3(0.3f,0.3f,0.3f));
-            StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
-            boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+            //Node* boxNode_=scene->CreateChild("Box");
+            //boxNode_->SetPosition(Vector3(vertData_[i], vertData_[i + 1],vertData_[i + 2]));
+            //boxNode_->SetScale(Vector3(0.3f,0.3f,0.3f));
+            //StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
+            //boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
             //boxObject->SetModel(model);
-            boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
+            //boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
             //boxObject->SetCastShadows(true);
-        }
-    }
+        //}
+    //}
 }
 
 // Dir is outwards from the center, and is normalized
 void PlanWren::Update(float distance, Vector3& dir) {
     float threshold = size_ / distance;
-    for (uint i = 1; i < 2; i ++) {
+    printf("Threshold: %.6f\n", threshold);
+    for (uint i = 0; i < 20; i ++) {
         RecursiveSightTest(i, i, threshold, dir);
     }
 }
@@ -499,17 +504,65 @@ void PlanWren::Update(float distance, Vector3& dir) {
 Model* PlanWren::GetModel() {
     return model_;
 }
-;
-void PlanWren::ShowTriangle(SubTriangle* tri, uint index) {
+
+void PlanWren::TriangleRemove(uint t) {
+    // Triangle is not actually removed, only replaced by the last active tri
+    SubTriangle* tri = triangles_ + t;
+    if (((tri->bitmask_ & 2) == 2)) {
+        // Is visible, hide it
+        TriangleHide(tri);
+    } else if ((tri->bitmask_ & 8) == 8) {
+        // Has children, kill them
+        // A loop would probably take the same amount of lines and be slower
+        TriangleRemove(tri->children_[0]);
+        TriangleRemove(tri->children_[1]);
+        TriangleRemove(tri->children_[2]);
+        TriangleRemove(tri->children_[3]);
+    }
+    // Last element to swap with
+    SubTriangle* replace = triangles_ + (--triActive_);
+
+    if ((replace->bitmask_ & 2) == 2) {
+        // Replacement is visible, move the bufDomain_
+        bufDomain_[replace->glIndex_] = t;
+        tri->glIndex_ = replace->glIndex_;
+    }
+
+    // There might be a better way to do this
+    tri->bitmask_ = replace->bitmask_;
+    tri->set_ = replace->set_;
+    tri->lod_ = replace->lod_;
+    tri->x_ = replace->x_;
+    tri->y_ = replace->y_;
+    std::memcpy(tri->children_, replace->children_, sizeof(uint[4]));
+    tri->normal_ = replace->normal_;
+
+}
+
+void PlanWren::TriangleShow(SubTriangle* tri, uint index) {
     bool down = ((tri->bitmask_ & 4) == 4);
     uint xz[3];
     uint size = Pow(2, tri->lod_);
+    tri->bitmask_ = tri->bitmask_ | 2;
     xz[0 + down] = GetIndex(tri->set_, tri->x_ + size, tri->y_) / 6;
     xz[1 - down] = GetIndex(tri->set_, tri->x_, tri->y_) / 6;
     xz[2] = GetIndex(tri->set_, tri->x_ + size * down, tri->y_ + (down ? size : -size)) / 6;
 
     //printf("DURIANS %u %u %u %u\n", xz[0], xz[1], xz[2], index);
     indBuf_->SetDataRange(&xz, index * 3, 3);
+}
+
+void PlanWren::TriangleHide(SubTriangle* tri) {
+    tri->bitmask_ = tri->bitmask_ ^ 2;
+    //printf("HIDING: %u\n", triIndex);
+    uint xz[3];
+    bufActive_ --;
+    // set this to the last element
+    //(const uint*)(indBuf_->GetShadowData()) + tri->glIndex_ * 3
+    triangles_[bufDomain_[bufActive_]].glIndex_ = tri->glIndex_;
+    bufDomain_[tri->glIndex_] = bufDomain_[bufActive_];
+    indBuf_->SetDataRange((const uint*)(indBuf_->GetShadowData()) + bufActive_ * 3, tri->glIndex_ * 3, 3);
+    indBuf_->SetDataRange(&xz, bufActive_ * 3, 3);
 }
 
 void PlanWren::RecursiveSightTest(uint triIndex, uint top, float threshold, Vector3& dir) {
@@ -528,48 +581,39 @@ void PlanWren::RecursiveSightTest(uint triIndex, uint top, float threshold, Vect
                 // NOT DRAWABLE YET, DRAW IT
                 //glIndex_ = 
                 // Find a space
-                tri->bitmask_ = tri->bitmask_ | 2;
+                
                 //printf("VISBLE: %u\n", triIndex);
                 if (bufActive_ + 1 != bufMax_) {
                     // there is space available
                     //
-                    ShowTriangle(tri, bufActive_);
+                    TriangleShow(tri, bufActive_);
                     tri->glIndex_ = bufActive_;
                     bufDomain_[bufActive_] = triIndex;
                     bufActive_ ++;
-                    // has children
-                    if ((tri->bitmask_ & 8) == 8) {
-                        //RecursiveSightTest(tri->children_[0], top, threshold, dir);
-                        //RecursiveSightTest(tri->children_[1], top, threshold, dir);
-                        //RecursiveSightTest(tri->children_[2], top, threshold, dir);
-                        //RecursiveSightTest(tri->children_[3], top, threshold, dir);
-                    } else {
-                        bool divisible = (tri->lod_ != 0)
-                                          && (triActive_ + 4 < maxTriangles_)
-                                          && (tri->normal_ == triangles_[top].normal_);
-                        if (divisible) {
-                            tri->Subdivide(this, top, triActive_, triangles_, bufDomain_);
-                        }
-                    }
+                }
+            }
+            // has children
+            if ((tri->bitmask_ & 8) == 8) {
+                //RecursiveSightTest(tri->children_[0], top, threshold, dir);
+                //RecursiveSightTest(tri->children_[1], top, threshold, dir);
+                //RecursiveSightTest(tri->children_[2], top, threshold, dir);
+                //RecursiveSightTest(tri->children_[3], top, threshold, dir);
+            } else {
+                bool divisible = (tri->lod_ != 3)
+                                  && (triActive_ + 4 < maxTriangles_);
+                                  //&& (tri->normal_ == triangles_[top].normal_);
+                if (divisible) {
+                    tri->Subdivide(this, top, triActive_, triangles_, bufDomain_);
                 }
             }
         } else {
             if (((tri->bitmask_ & 2) == 2) && ((tri->bitmask_ & 8) == 0)) {
                 // Is drawable, then hide
-                tri->bitmask_ = tri->bitmask_ ^ 2;
-                //printf("HIDING: %u\n", triIndex);
-                uint xz[3];
-                bufActive_ --;
-                // set this to the last element
-                //(const uint*)(indBuf_->GetShadowData()) + tri->glIndex_ * 3
-                triangles_[bufDomain_[bufActive_]].glIndex_ = tri->glIndex_;
-                bufDomain_[tri->glIndex_] = bufDomain_[bufActive_];
-                indBuf_->SetDataRange((const uint*)(indBuf_->GetShadowData()) + bufActive_ * 3, tri->glIndex_ * 3, 3);
-                indBuf_->SetDataRange(&xz, bufActive_ * 3, 3);
+                TriangleHide(tri);
             }
         }
     }
-    model_->GetGeometries()[0][0]->SetDrawRange(TRIANGLE_LIST, 0, bufActive_ * 3);
+    model_->GetGeometries()[0][0]->SetDrawRange(TRIANGLE_LIST, 0, bufActive_ * 3);  
 }
 
 // triangle set index, left side of triangle, length of each side, top of the triangle, is pointing down
@@ -677,10 +721,11 @@ void SubTriangle::CalculateNormal(PlanWren* wren) {
     normal_.z_ += vdata[c + 5];
     float ol = normal_.Length();
     normal_.Normalize();
-    printf("Normal for something on set %p %u, (%u %u %u) %f (%.4f, %.4f, %.4f)\n", wren, set_, a, b, c, ol, vdata[a + 3], vdata[a + 4], vdata[a + 5]);
+    //printf("Normal for something on set %p %u, (%u %u %u) %f (%.4f, %.4f, %.4f)\n", wren, set_, a, b, c, ol, vdata[a + 3], vdata[a + 4], vdata[a + 5]);
     //printf("Normal xyz: (%f, %f, %f)\n", normal_.x_, normal_.y_, normal_.z_);
 }
 
+// Move this into PlanWren
 void SubTriangle::Subdivide(PlanWren* wren, uint& top, uint& triActive, SubTriangle* triangles, uint* bufDomain) {
 
     bool down = ((bitmask_ & 4) == 4);
@@ -724,13 +769,13 @@ void SubTriangle::Subdivide(PlanWren* wren, uint& top, uint& triActive, SubTrian
                 tri->x_ = x_ + size / 2 * down;
                 tri->y_ = halfe;
                 tri->CalculateNormal(wren);
-                printf("### TOP : %u %u\n", tri->x_, tri->y_);
+                //printf("### TOP : %u %u\n", tri->x_, tri->y_);
                 break;
             case 1:
                 tri->x_ = x_;
                 tri->y_ = y_;
                 tri->CalculateNormal(wren);
-                printf("### LEFT: %u %u\n", tri->x_, tri->y_);
+                //printf("### LEFT: %u %u\n", tri->x_, tri->y_);
                 break;
             case 2:
                 tri->x_ = x_ + size / 2 * down;
@@ -740,9 +785,9 @@ void SubTriangle::Subdivide(PlanWren* wren, uint& top, uint& triActive, SubTrian
                 tri->normal_ = normal_;
                 tri->glIndex_ = glIndex_;
                 bufDomain[glIndex_] = children_[i];
-                wren->ShowTriangle(tri, glIndex_);
-                printf("UPSIDE DOWN: %u, %u\n", down, tri->bitmask_ & 4);
-                printf("### CNTR: %u %u\n", tri->x_, tri->y_);
+                wren->TriangleShow(tri, glIndex_);
+                //printf("UPSIDE DOWN: %u, %u\n", down, tri->bitmask_ & 4);
+                //printf("### CNTR: %u %u\n", tri->x_, tri->y_);
                 break;
             // except 3: if there was only syntax like this
                 //tri->CalculateNormal(wren);
@@ -751,7 +796,7 @@ void SubTriangle::Subdivide(PlanWren* wren, uint& top, uint& triActive, SubTrian
                 tri->x_ = x_ + size / 2;
                 tri->y_ = y_;
                 tri->CalculateNormal(wren);
-                printf("### RITE: %u %u\n", tri->x_, tri->y_);
+                //printf("### RITE: %u %u\n", tri->x_, tri->y_);
                 break;
         }
         //tri->normal_ = normal_;
