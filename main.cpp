@@ -51,6 +51,7 @@ public:
     SharedPtr<Node> boxNode_;
     SharedPtr<Node> cameraNode_;
     PlanWren* planet_; // maybe make this work some time
+    bool updatePlanet_ = true;
 
     /**
     * This happens before the engine has been initialized
@@ -264,6 +265,20 @@ public:
             m->SetFillMode((m->GetFillMode() == FILL_WIREFRAME) ? FILL_SOLID : FILL_WIREFRAME );
         }
 
+        if(key==KEY_R) {
+            planet_->birb_ = Max(planet_->birb_ - 1, 3);
+            printf("caw %u\n", planet_->birb_);
+        }
+
+        if(key==KEY_F) {
+            planet_->birb_ = Min(planet_->birb_ + 1, 7);
+            printf("chirp %u\n", planet_->birb_);
+        }
+
+        if(key==KEY_T) {
+            updatePlanet_ = !updatePlanet_;
+        }
+
         if(key==KEY_TAB) {
             // toggle mouse cursor when pressing tab
             GetSubsystem<Input>()->SetMouseVisible(!GetSubsystem<Input>()->IsMouseVisible());
@@ -290,13 +305,15 @@ public:
         // Mouse sensitivity as degrees per pixel
         const float MOUSE_SENSITIVITY=0.1f;
 
-        // Subtract 
-        Vector3 dir(cameraNode_->GetPosition());
-        float dist = dir.Length();
-        dir /= dist;
-        planet_->Update(dist, dir);
+        if (updatePlanet_) {
+            // Subtract 
+            Vector3 dir(cameraNode_->GetPosition());
+            float dist = dir.Length();
+            dir /= dist;
+            planet_->Update(dist, dir);
+        }
 
-        if(time_ >=1) {
+        if(time_ >=1 || true) {
 
             std::string str;
             str.append("Tab: toggle mouse, WASD: move, Shift = fast mode, Esc: quit.\n");
@@ -323,11 +340,13 @@ public:
             str.append(" fps, ");
             {
                 std::ostringstream ss;
-                ss<<planet_->GetVisibleCount();
+                ss<<planet_->GetTriangleCount();
+                //ss<<",";
+                //ss<<planet_->GetTriangleCount();
                 std::string s(ss.str());
                 str.append(s.substr(0,6));
             }
-            str.append(" Tris Visible");
+            str.append(" Tris");
             String s(str.c_str(),str.size());
             text_->SetText(s);
             ///URHO3D_LOGINFO(s);     // this show how to put stuff into the log
@@ -355,12 +374,12 @@ public:
             cameraNode_->Translate(Vector3( 1,0,0)*MOVE_SPEED*timeStep);
 
         if(input->GetKeyDown('E')) {
-            static uint e = 0;
-            uint xz[3];
-            xz[0] = 0;
-            xz[1] = 0;
-            xz[2] = 0;
-            planet_->indBuf_->SetDataRange(&xz, (e ++) * 3, 3);
+            //static uint e = 0;
+            //uint xz[3];
+            //xz[0] = 0;
+            //xz[1] = 0;
+            //xz[2] = 0;
+            //planet_->indBuf_->SetDataRange(&xz, (e ++) * 3, 3);
         }
 
         if(!GetSubsystem<Input>()->IsMouseVisible()) {
