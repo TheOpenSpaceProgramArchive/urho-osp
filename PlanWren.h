@@ -1,38 +1,99 @@
-#include <string>
-#include <sstream>
+#include <cstdint>
 #include <iostream>
+#include <sstream>
+#include <string>
 
 #include <Urho3D/Core/CoreEvents.h>
 #include <Urho3D/Engine/Application.h>
 #include <Urho3D/Engine/Engine.h>
-#include <Urho3D/Input/Input.h>
+#include <Urho3D/Graphics/Camera.h>
+#include <Urho3D/Graphics/DebugRenderer.h>
+#include <Urho3D/Graphics/Geometry.h>
+#include <Urho3D/Graphics/Graphics.h>
+#include <Urho3D/Graphics/IndexBuffer.h>
+#include <Urho3D/Graphics/Light.h>
+#include <Urho3D/Graphics/Material.h>
+#include <Urho3D/Graphics/Model.h>
+#include <Urho3D/Graphics/Octree.h>
+#include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/Graphics/Skybox.h>
+#include <Urho3D/Graphics/StaticModel.h>
+#include <Urho3D/Graphics/VertexBuffer.h>
 #include <Urho3D/Input/InputEvents.h>
+#include <Urho3D/Input/Input.h>
+#include <Urho3D/IO/Log.h>
+#include <Urho3D/Math/MathDefs.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Resource/XMLFile.h>
-#include <Urho3D/IO/Log.h>
-#include <Urho3D/UI/UI.h>
-#include <Urho3D/UI/Text.h>
-#include <Urho3D/UI/Font.h>
-#include <Urho3D/UI/Button.h>
-#include <Urho3D/UI/UIEvents.h>
-#include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Scene/SceneEvents.h>
-#include <Urho3D/Graphics/Graphics.h>
-#include <Urho3D/Graphics/Camera.h>
-#include <Urho3D/Graphics/Geometry.h>
-#include <Urho3D/Graphics/IndexBuffer.h>
-#include <Urho3D/Graphics/Renderer.h>
-#include <Urho3D/Graphics/DebugRenderer.h>
-#include <Urho3D/Graphics/Octree.h>
-#include <Urho3D/Graphics/Light.h>
-#include <Urho3D/Graphics/Model.h>
-#include <Urho3D/Graphics/StaticModel.h>
-#include <Urho3D/Graphics/Material.h>
-#include <Urho3D/Graphics/Skybox.h>
-#include <Urho3D/Graphics/VertexBuffer.h>
-#include <Urho3D/Math/MathDefs.h>
+#include <Urho3D/Scene/Scene.h>
+#include <Urho3D/UI/Button.h>
+#include <Urho3D/UI/Font.h>
+#include <Urho3D/UI/Text.h>
+#include <Urho3D/UI/UIEvents.h>
+#include <Urho3D/UI/UI.h>
 
 using namespace Urho3D;
+
+
+// these lines are point to point indexed to 12 verticies of the
+// icosahedron. All of these make up a complete wireframe. These buffers
+// is not modified / reallocated in any way.
+static constexpr const uint8_t lines_[60] { 
+    //       #        #        #        #
+    0, 1,    0, 2,    0, 3,    0, 4,    0, 5,
+    1, 2,    2, 3,    3, 4,    4, 5,    5, 1,
+    1, 8,    8, 2,    2, 7,    7, 3,    3, 6,
+    6, 4,    4, 10,   10, 5,   5, 9,    9, 1,
+    6, 7,    7, 8,    8, 9,    9, 10,   10, 6,
+    11, 6,   11, 7,   11, 8,   11, 9,   11, 10
+    //       #        #        #        #
+};
+// Make triangles out of the lines above. [bottom, left, right]
+// Lines have direction. Triangle sets always go clockwise.
+// Since some lines may go the wrong way, negative means not reversed.
+// Index starts at 1, not zero, because there is no negative zero.
+static constexpr const int8_t triangleSets_[60] {
+    //            #             #             #             #
+    -6, 2, -1,    -7, 3, -2,    -8, 4, -3,    -9, 5, -4,    -10, 1, -5,
+    6, -11, -12,  22, 13, 12,   7, -13, -14,  21, 15, 14,   8, -15, -16,
+    25, 17, 16,   9, -17, -18,  24, 19, 18,   10, -19, -20, 23, 11, 20,
+    -21, 27, -26, -22, 28, -27, -23, 29, -28, -24, 30, -29, -25, 26, -30
+    //            #             #             #             #
+};
+
+// Each face is indexed like this. verticies on the edges are shared
+// with other triangles. The triangular numbers formula is used often
+// in this program.
+
+// LOD value is the number of subdivisions, divided in a very similar
+// way to the sierpinski triangle
+
+// # of verticies = (LOD^2 - 1) * LOD^2 / 2, separated into parts
+// in code.
+
+// Examples:
+
+// LOD: 0
+//         1
+//        2 3
+
+// LOD: 1
+//         1
+//        2 3
+//       4 5 6
+
+// LOD: 2
+//   1
+//   2  3
+//   4  5  6
+//   7  8  9  10
+//   11 12 13 14 15
+
+// Indicies in this space are referred to as a "Local triangle index"
+// Through different algorithms, can be converted to and from "buffer
+// index" which is the actual xyz vertex data in the buffer.
+
 
 class PlanWren;
 
@@ -40,8 +101,8 @@ class SubTriangle {
 public:
     // 1,      2,        4,            8,           16,  32,   64, 128
     // Exists, Drawable, DownPointing, HasChildren, WhichChild, 
-    unsigned char bitmask_;
-    unsigned char set_;
+    uint8_t bitmask_;
+    uint8_t set_;
     int lod_;
 
     // Indicies in set, Indicies in buffer, Index in gpu buffer
@@ -51,13 +112,9 @@ public:
     uint parent_;
     Vector3 normal_;
 
-    uint* operation_;
-
     SubTriangle();
 
     void CalculateNormal(PlanWren* wren);
-    //void Subdivide(PlanWren* wren, uint& top, uint& triActive,
-    //                SubTriangle* triangles, uint* bufDomain);
 
 };
 
@@ -71,8 +128,6 @@ class PlanWren {
     //uint fundemental_ = 12;
     double size_;
 
-    unsigned char* lines_;
-    signed char* triangleSets_;
     float* vertData_;
     uint* triangleMap_;
 
@@ -81,12 +136,15 @@ class PlanWren {
     Vector<uint> indData_;
     Geometry* geometry_;
 
-    SubTriangle* triangles_;
-    uint bufActive_;
-    uint* bufDomain_;
-    uint bufMax_;
     uint maxTriangles_;
-    uint triActive_;
+
+    SubTriangle* triangles_;
+    uint* triBin_;
+    uint triLeft_;
+
+    uint* bufDomain_;
+    uint bufActive_;
+    uint bufMax_;
 
 public:
 
@@ -95,8 +153,8 @@ public:
     ushort birb_ = 7;
 
     PlanWren();
-    uint GetIndex(unsigned char set, uint input);
-    uint GetIndex(unsigned char set, uint x, uint y);
+    uint GetIndex(uint8_t set, uint input);
+    uint GetIndex(uint8_t set, uint x, uint y);
     const uint GetVisibleCount();
     const uint GetTriangleCount();
     const float* GetVertData();
@@ -114,68 +172,11 @@ public:
 protected:
 
     void RecursiveSightTest(uint triIndex, uint top, float distance, Vector3& dir);
-    void RecursiveSubdivide(unsigned char set, uint basex, uint basey, uint size, bool down);
+    void RecursiveSubdivide(uint8_t set, uint basex, uint basey, uint size, bool down);
 
 };
 
 PlanWren::PlanWren() {
-    // these lines are point to point indexed to 12 verticies of the
-    // icosahedron. All of these make up a complete wireframe. These buffers
-    // is not modified / reallocated in any way.
-    lines_ = new unsigned char[60] { 
-        //       #        #        #        #
-        0, 1,    0, 2,    0, 3,    0, 4,    0, 5,
-        1, 2,    2, 3,    3, 4,    4, 5,    5, 1,
-        1, 8,    8, 2,    2, 7,    7, 3,    3, 6,
-        6, 4,    4, 10,   10, 5,   5, 9,    9, 1,
-        6, 7,    7, 8,    8, 9,    9, 10,   10, 6,
-        11, 6,   11, 7,   11, 8,   11, 9,   11, 10
-        //       #        #        #        #
-    };
-    // Make triangles out of the lines above. [bottom, left, right]
-    // Lines have direction. Triangle sets always go clockwise.
-    // Since some lines may go the wrong way, negative means not reversed.
-    // Index starts at 1, not zero, because there is no negative zero.
-    triangleSets_ = new signed char[60] {
-        //            #             #             #             #
-        -6, 2, -1,    -7, 3, -2,    -8, 4, -3,    -9, 5, -4,    -10, 1, -5,
-        6, -11, -12,  22, 13, 12,   7, -13, -14,  21, 15, 14,   8, -15, -16,
-        25, 17, 16,   9, -17, -18,  24, 19, 18,   10, -19, -20, 23, 11, 20,
-        -21, 27, -26, -22, 28, -27, -23, 29, -28, -24, 30, -29, -25, 26, -30
-        //            #             #             #             #
-    };
-
-    // Each face is indexed like this. verticies on the edges are shared
-    // with other triangles. The triangular numbers formula is used often
-    // in this program.
-
-    // LOD value is the number of subdivisions, divided in a very similar
-    // way to the sierpinski triangle
-
-    // # of verticies = (LOD^2 - 1) * LOD^2 / 2, separated into parts
-    // in code.
-
-    // Examples:
-
-    // LOD: 0
-    //         1
-    //        2 3
-
-    // LOD: 1
-    //         1
-    //        2 3
-    //       4 5 6
-
-    // LOD: 2
-    //   1
-    //   2  3
-    //   4  5  6
-    //   7  8  9  10
-    //   11 12 13 14 15
-
-    // Indicies in this space are referred to as a "Local triangle index"
-    // Through different algorithms, can be converted to and from "buffer
-    // index" which is the actual xyz vertex data in the buffer.
 }
 
 /**
@@ -183,7 +184,7 @@ PlanWren::PlanWren() {
 * Returns index in buffer
 * Should be deprecated
 */
-uint PlanWren::GetIndex(unsigned char set, uint input) {
+uint PlanWren::GetIndex(uint8_t set, uint input) {
     // should be using urho logs but i'm lazy
     //printf("T: %u, ", input);
     
@@ -256,7 +257,7 @@ uint PlanWren::GetIndex(unsigned char set, uint input) {
 * Same, and simpler than above. inputs x y coordinates instead
 * Returns index of the specified triangle in buffer
 */
-uint PlanWren::GetIndex(unsigned char set, uint x, uint y) {
+uint PlanWren::GetIndex(uint8_t set, uint x, uint y) {
     //printf("XY: %u, (%u, %u) ", set, x, y);
     if (y == 0) {
         //printf("TOP %u\n", (Abs(triangleSets_[set * 3 + 1]) - 1)); 
@@ -295,7 +296,7 @@ uint PlanWren::GetIndex(unsigned char set, uint x, uint y) {
 }
 
 const uint PlanWren::GetTriangleCount() {
-    return triActive_;
+    return maxTriangles_ - triLeft_;
 }
 
 const uint PlanWren::GetVisibleCount() {
@@ -411,17 +412,17 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
 
     maxTriangles_ = 1024 * 2048;
     bufMax_ = 1024 * 6;
-    triActive_ = 20;
     bufActive_ = 0;
+    triLeft_ = maxTriangles_ - 20;
     triangles_ = new SubTriangle[maxTriangles_];
+    triBin_ = new uint[maxTriangles_];
     bufDomain_ = new uint[bufMax_];
 
-    printf("SubTriangles total size: %u\n", sizeof(SubTriangle[maxTriangles_]));
+    printf("Triangle buffer size: %luMb\n", (sizeof(SubTriangle[maxTriangles_]) + sizeof(new uint[maxTriangles_ + bufMax_])) / 1000000);
 
-    // Paranoid and should be removed
-    //for (ushort i = 0; i < maxTriangles_; i ++) {
-    //    bufDomain_ = 0;
-    //}
+    for (uint i = 0; i < maxTriangles_; i ++) {
+        triBin_[i] = maxTriangles_ - i - 1;
+    }
 
     // Making it into a sphere, and adding normals
     double vx, vy, vz;
@@ -536,20 +537,7 @@ Model* PlanWren::GetModel() {
 * Calls TriangleRemove multiple times
 */
 void PlanWren::TriangleRemoveChildren(uint s) {
-    uint t = s;
-    SubTriangle* tri = triangles_ + t;
-    tri->operation_ = &t;
-    //tri->bitmask_ = tri->bitmask_ ^ 8;
-    TriangleRemove(tri->children_[0], t);
-    tri = triangles_ + t;
-    TriangleRemove(tri->children_[1], t);
-    tri = triangles_ + t;
-    TriangleRemove(tri->children_[2], t);
-    tri = triangles_ + t;
-    TriangleRemove(tri->children_[3], t);
-    tri = triangles_ + t;
-    tri->bitmask_ = tri->bitmask_ ^ 8;
-    tri->operation_ = NULL;
+
 }
 
 /** 
@@ -557,84 +545,6 @@ void PlanWren::TriangleRemoveChildren(uint s) {
 * size is shortened. All children are recusrively killed first.
 */
 void PlanWren::TriangleRemove(uint s, uint parent) {
-    // Triangle is not actually removed, only replaced by the last active tri
-    // Last element to swap with
-
-    uint t = s;
-    //uint* parentOp = (triangles_ + parent)->operation_;
-
-    SubTriangle* tri = triangles_ + t;
-    tri->operation_ = &t;
-
-    //printf("DELETE: {bitmask: %u %u %u %u %u %u %u %u}\n", tri->bitmask_ & 1, tri->bitmask_ & 2, tri->bitmask_ & 4, tri->bitmask_ & 8, tri->bitmask_ & 16, tri->bitmask_ & 32, tri->bitmask_ & 64, tri->bitmask_ & 128);
-
-    if (((tri->bitmask_ & 2) == 2)) {
-        // Is visible, hide it
-        TriangleHide(tri);
-    } 
-
-    if ((tri->bitmask_ & 8) == 8) {
-        // Has children, kill them
-        // A loop would probably take the same amount of lines and be slower
-        tri->bitmask_ = tri->bitmask_ ^ 8;
-        TriangleRemove(tri->children_[0], t); 
-        tri = triangles_ + t; // tri might move during another removal
-        TriangleRemove(tri->children_[1], t);
-        tri = triangles_ + t; // that's what the operation_ pointer is for
-        TriangleRemove(tri->children_[2], t);
-        tri = triangles_ + t;
-        TriangleRemove(tri->children_[3], t);
-        tri = triangles_ + t;
-    }
-
-    // Last element is going to be moved
-    SubTriangle* replace = triangles_ + (--triActive_);
-
-    if ((replace->bitmask_ & 2) == 2) {
-        // Replacement is visible, move the bufDomain_
-        bufDomain_[replace->glIndex_] = t;
-        tri->glIndex_ = replace->glIndex_;
-    }
-
-    printf("Parent: %u @%u\n", tri->parent_, tri->bitmask_ >> 4);
-
-    if (replace->operation_ != NULL && replace->operation_ != &t) {
-        // If a function is already operating on the triangle being moved
-        // Fix to a pretty huge bug
-        (*replace->operation_) = t;
-        tri->operation_ = replace->operation_;
-        printf("%u: OPERATION_ WAS USED: %u\n", t, *replace->operation_);
-    } else {
-        tri->operation_ = NULL;
-    }
-    replace->operation_ = NULL;
-
-    // There might be a better way to do this
-    tri->bitmask_ = replace->bitmask_;
-    tri->set_ = replace->set_;
-    tri->lod_ = replace->lod_;
-    tri->x_ = replace->x_;
-    tri->y_ = replace->y_;
-    tri->normal_ = replace->normal_;
-    //std::memcpy(tri->children_, replace->children_, sizeof(uint[4]));
-    //tri->children_[0] = replace->children_[0];
-    //tri->children_[1] = replace->children_[1];
-    //tri->children_[2] = replace->children_[2];
-    tri->parent_ = replace->parent_;
-    (triangles_ + replace->parent_)->children_[tri->bitmask_ >> 4] = t;
-    for (char i = 0; i < 4; i ++) {
-        tri->children_[i] = replace->children_[i];
-        triangles_[tri->children_[i]].parent_ = t;
-    }
-    
-
-    replace->bitmask_ = 0;
-    replace->children_[0] = 0;
-    replace->children_[1] = 0;
-    replace->children_[2] = 0;
-    replace->children_[3] = 0;
-
-    printf("Children: [%u, %u, %u, %u] Active: %u\n", tri->children_[0], tri->children_[1], tri->children_[2], tri->children_[3], triActive_);
 
 }
 
@@ -708,7 +618,7 @@ void PlanWren::RecursiveSightTest(uint triIndex, uint top, float threshold, Vect
             }
 
             //printf("bm, %u\n", tri->bitmask_ & 2);
-            if (tri->lod_ > birb_ && (triActive_ + 4 < maxTriangles_)) {
+            if (tri->lod_ > birb_ && (triLeft_ >= 4)) {
                 // Subdivide more
                 TriangleSubdivide(triIndex);
                 //printf("Subdividing!\n");
@@ -725,7 +635,7 @@ void PlanWren::RecursiveSightTest(uint triIndex, uint top, float threshold, Vect
 }
 
 // triangle set index, left side of triangle, length of each side, top of the triangle, is pointing down
-void PlanWren::RecursiveSubdivide(unsigned char set, uint basex, uint basey, uint size, bool down) {
+void PlanWren::RecursiveSubdivide(uint8_t set, uint basex, uint basey, uint size, bool down) {
     // Fucnction would only stack only up to the maxLOD, so overflow is unlikely
 
     // C is between of A and B. all in buffer index
@@ -766,7 +676,7 @@ void PlanWren::RecursiveSubdivide(unsigned char set, uint basex, uint basey, uin
     //printf("AAAA: SIZE: %u BASE: %u %u TOP: %u %u HALF: %uL%u\n", size, base, a, top, b, halfe, a - (size - 1) / 2);
     
     // Loop for all 3 sides
-    for (unsigned char i = 0; i < 3; i ++) {
+    for (uint8_t i = 0; i < 3; i ++) {
         switch (i) {
             case 1:
                 // left
@@ -804,7 +714,6 @@ void PlanWren::RecursiveSubdivide(unsigned char set, uint basex, uint basey, uin
 };
 
 SubTriangle::SubTriangle() {
-    operation_ = NULL;
     bitmask_ = 0;
     set_ = 20;
     lod_ = 0;
@@ -820,15 +729,9 @@ void SubTriangle::CalculateNormal(PlanWren* wren) {
     uint b = wren->GetIndex(set_, x_, y_);
     uint c = wren->GetIndex(set_, x_, y_ - size);
     const float* vdata = wren->GetVertData();
-    normal_.x_ = vdata[a + 3];
-    normal_.y_ = vdata[a + 4];
-    normal_.z_ = vdata[a + 5];
-    normal_.x_ += vdata[b + 3];
-    normal_.y_ += vdata[b + 4];
-    normal_.z_ += vdata[b + 5];
-    normal_.x_ += vdata[c + 3];
-    normal_.y_ += vdata[c + 4];
-    normal_.z_ += vdata[c + 5];
+    normal_.x_ = vdata[a + 3] + vdata[b + 3] + vdata[c + 3];
+    normal_.y_ = vdata[a + 4] + vdata[b + 4] + vdata[c + 4];
+    normal_.z_ = vdata[a + 5] + vdata[b + 5] + vdata[c + 5];
     float ol = normal_.Length();
     normal_.Normalize();
     //printf("Normal for something on set %p %u, (%u %u %u) %f (%.4f, %.4f, %.4f)\n", wren, set_, a, b, c, ol, vdata[a + 3], vdata[a + 4], vdata[a + 5]);
@@ -843,32 +746,14 @@ void PlanWren::TriangleSubdivide(uint t) {
     uint size = Pow(2, tri->lod_);
     uint halfe = tri->y_ + int(-1 + 2 * down) * int(size / 2);
 
-    //if (down) {
-        // If triangle is pointing down, MIRROR VERTICALLY
-        //halfe = y_ + size / 2;
-        //printf("ITS UPSIDE DOWN\n");
-        //vTop = wren->GetIndex(top, x_, y_ + size);  
-    //} else {
-        // Normal pointing up triangle
-        //halfe = y_ - size / 2;
-        //vTop = wren->GetIndex(top, x_, y_ - size + 2);
-    //}
-    //vBotRit = wren->GetIndex(top, x_ + size, y_);
-    //vBotLft = wren->GetIndex(top, x_, y_);
-    //vBtm = wren->GetIndex(top, x_ + size / 2, y_);
-    //vLft = wren->GetIndex(top, x_, halfe);
-    //vRit = wren->GetIndex(top, x_ + size / 2, halfe);
-    //printf("EEEEEEEEEE %u %u %u %u %u %u %u\n", halfe, vBotRit, vBotLft, vTop, vBtm, vLft, vRit);
-
     // Top, Left, Center, Right
 
     // XOR removes the drawable bit, 8 adds
     tri->bitmask_ = tri->bitmask_ ^ 2 | 8;
 
     SubTriangle* child;
-    for (unsigned char i = 0; i < 4; i ++) {
-        tri->children_[i] = triActive_ ++;
-        child = triangles_ + tri->children_[i];
+    for (uint8_t i = 0; i < 4; i ++) {
+        child = triangles_ + (tri->children_[i] = triBin_[-- triLeft_]);
         child->parent_ = t;
         child->lod_ = tri->lod_ - 1;
         child->bitmask_ = 1 | (tri->bitmask_ & 4) | (i << 4);

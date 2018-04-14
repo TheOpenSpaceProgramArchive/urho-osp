@@ -20,6 +20,7 @@ set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 include (UrhoCommon)
 # Define target name
 set (TARGET_NAME OSP)
+set (CMAKE_CXX_STANDARD 11)
 # Define source files
 define_source_files ()
 # Setup target with resource copying
