@@ -33,6 +33,7 @@
 #include <Urho3D/Math/MathDefs.h>
 
 #include "PlanWren.h"
+#include "config.h"
 
 using namespace Urho3D;
 
@@ -95,25 +96,26 @@ public:
         // Let's create some text to display.
         text_=new Text(context_);
         // Text will be updated later in the E_UPDATE handler. Keep readin'.
-        text_->SetText("Keys: tab = toggle mouse, AWSD = move camera, Shift = fast mode, Esc = quit.\nWait a bit to see FPS.");
+        text_->SetText("....");
         // If the engine cannot find the font, it comes with Urho3D.
         // Set the environment variables URHO3D_HOME, URHO3D_PREFIX_PATH or
         // change the engine parameter "ResourcePrefixPath" in the Setup method.
-        text_->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"),20);
-        text_->SetColor(Color(.3,0,.3));
-        text_->SetHorizontalAlignment(HA_CENTER);
+        text_->SetFont(cache->GetResource<Font>("Fonts/Anonymous Pro.ttf"), 12);
+        text_->SetColor(Color(0,0,.3));
+        text_->SetHorizontalAlignment(HA_LEFT);
         text_->SetVerticalAlignment(VA_TOP);
+        text_->SetPosition(4,0);
         GetSubsystem<UI>()->GetRoot()->AddChild(text_);
         // Add a button, just as an interactive UI sample.
-        Button* button=new Button(context_);
+        //Button* button=new Button(context_);
         // Note, must be part of the UI system before SetSize calls!
-        GetSubsystem<UI>()->GetRoot()->AddChild(button);
-        button->SetName("Button Quit");
-        button->SetStyle("Button");
-        button->SetSize(32,32);
-        button->SetPosition(16,116);
+        //GetSubsystem<UI>()->GetRoot()->AddChild(button);
+        //button->SetName("Button Quit");
+        //button->SetStyle("Button");
+        //button->SetSize(32,32);
+        //button->SetPosition(16,116);
         // Subscribe to button release (following a 'press') events
-        SubscribeToEvent(button,E_RELEASED,URHO3D_HANDLER(MyApp,HandleClosePressed));
+        //SubscribeToEvent(button,E_RELEASED,URHO3D_HANDLER(MyApp,HandleClosePressed));
 
         // Let's setup a scene to render.
         scene_=new Scene(context_);
@@ -313,11 +315,14 @@ public:
             planet_->Update(dist, dir);
         }
 
-        if(time_ >=1 || true) {
+        if(time_ >=0.2) {
 
             std::string str;
-            str.append("Tab: toggle mouse, WASD: move, Shift = fast mode, Esc: quit.\n");
-            {
+            str.append("OpenSpaceProgram " GIT_BRANCH "-" GIT_COMMIT_HASH ", too early\n"
+                       "Tab: Toggle mouse, WASD: Move, Shift: Fast mode, Q: Toggle Wireframe\n"
+                       "T: toggle planet update, R/F: LoD up/down, Esc: quit\n"
+                       "--------------------------------------------------------------------\n");
+            /*{
                 std::ostringstream ss;
                 ss<<framecount_;
                 std::string s(ss.str());
@@ -331,22 +336,47 @@ public:
                 str.append(s.substr(0,6));
             }
             str.append(" seconds = ");
+            */
             {
                 std::ostringstream ss;
                 ss<<(float)framecount_/time_;
                 std::string s(ss.str());
+                str.append("Frame R8    : ");
                 str.append(s.substr(0,6));
+                str.append("\n");
             }
-            str.append(" fps, ");
             {
                 std::ostringstream ss;
                 ss<<planet_->GetVisibleCount();
-                //ss<<",";
-                //ss<<planet_->GetTriangleCount();
+                str.append("Tris Visible: ");
                 std::string s(ss.str());
                 str.append(s.substr(0,6));
             }
-            str.append(" Tris");
+            {
+                std::ostringstream ss;
+                ss<<planet_->GetVisibleMax();
+                std::string s(ss.str());
+                str.append("/");
+                str.append(s.substr(0,6));
+                str.append("\n");
+            }
+            {
+                std::ostringstream ss;
+                ss<<planet_->GetTriangleCount();
+                //ss<<",";
+                //ss<<planet_->GetTriangleCount();
+                str.append("Triangles   : ");
+                std::string s(ss.str());
+                str.append(s.substr(0,6));
+            }
+            {
+                std::ostringstream ss;
+                ss<<planet_->GetTriangleMax();
+                std::string s(ss.str());
+                str.append("/");
+                str.append(s.substr(0,6));
+                str.append("\n");
+            }
             String s(str.c_str(),str.size());
             text_->SetText(s);
             ///URHO3D_LOGINFO(s);     // this show how to put stuff into the log

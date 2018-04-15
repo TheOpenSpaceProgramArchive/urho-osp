@@ -155,8 +155,10 @@ public:
     //PlanWren();
     uint GetIndex(uint8_t set, uint input);
     uint GetIndex(uint8_t set, uint x, uint y);
-    const uint GetVisibleCount();
     const uint GetTriangleCount();
+    const uint GetTriangleMax();
+    const uint GetVisibleCount();
+    const uint GetVisibleMax();
     const float* GetVertData();
 
     void Initialize(Context* context, double size, Scene* scene, ResourceCache* cache);
@@ -296,8 +298,16 @@ const uint PlanWren::GetTriangleCount() {
     return maxTriangles_ - triLeft_;
 }
 
+const uint PlanWren::GetTriangleMax() {
+    return maxTriangles_;
+}
+
 const uint PlanWren::GetVisibleCount() {
     return bufActive_;
+}
+
+const uint PlanWren::GetVisibleMax() {
+    return bufMax_;
 }
 
 const float* PlanWren::GetVertData() {
@@ -407,8 +417,8 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
         //indData_.Push((lines_[(Abs(triangleSets_[i * 3 + 2]) - 1) * 2 + (triangleSets_[i * 3 + 2] > 0)]));
     }
 
-    maxTriangles_ = 1024 * 2048;
-    bufMax_ = 1024 * 6;
+    maxTriangles_ = 2048;
+    bufMax_ = 1024;
     bufActive_ = 0;
     triLeft_ = maxTriangles_ - 20;
     triangles_ = new SubTriangle[maxTriangles_];

@@ -16,6 +16,25 @@ endif ()
 project (OpenSpaceProgram)
 # Set CMake modules search path
 set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
+#http://xit0.org/2013/04/cmake-use-git-branch-and-commit-details-in-project/
+# Get the current working branch
+execute_process(
+  COMMAND git rev-parse --abbrev-ref HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_BRANCH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+# Get the latest abbreviated commit hash of the working branch
+execute_process(
+  COMMAND git log -1 --format=%h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+configure_file (
+  "config.h.in" 
+  "config.h"
+)
 # Include UrhoCommon.cmake module after setting project name
 include (UrhoCommon)
 # Define target name
