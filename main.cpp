@@ -266,7 +266,7 @@ public:
         }
 
         if(key==KEY_R) {
-            planet_->birb_ = Max(planet_->birb_ - 1, 3);
+            planet_->birb_ = Max(planet_->birb_ - 1, 0);
             printf("caw %u\n", planet_->birb_);
         }
 
@@ -340,7 +340,7 @@ public:
             str.append(" fps, ");
             {
                 std::ostringstream ss;
-                ss<<planet_->GetTriangleCount();
+                ss<<planet_->GetVisibleCount();
                 //ss<<",";
                 //ss<<planet_->GetTriangleCount();
                 std::string s(ss.str());

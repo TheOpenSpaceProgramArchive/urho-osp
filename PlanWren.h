@@ -152,7 +152,7 @@ public:
     SharedPtr<IndexBuffer> indBuf_;
     ushort birb_ = 7;
 
-    PlanWren();
+    //PlanWren();
     uint GetIndex(uint8_t set, uint input);
     uint GetIndex(uint8_t set, uint x, uint y);
     const uint GetVisibleCount();
@@ -161,8 +161,8 @@ public:
 
     void Initialize(Context* context, double size, Scene* scene, ResourceCache* cache);
     void TriangleHide(SubTriangle* tri);
-    void TriangleRemoveChildren(uint tri);
-    void TriangleRemove(uint tri, uint parent);
+    void TriangleRemoveChildren(SubTriangle* tri);
+    void TriangleRemove(uint index);
     void TriangleShow(SubTriangle* tri, uint index);
     void TriangleSubdivide(uint t);
     void Update(float distance, Vector3& dir);
@@ -175,9 +175,6 @@ protected:
     void RecursiveSubdivide(uint8_t set, uint basex, uint basey, uint size, bool down);
 
 };
-
-PlanWren::PlanWren() {
-}
 
 /**
 * Get buffer index from a set's local triangle index
@@ -461,6 +458,7 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
         }
 
         triangles_[i].set_ = i;
+        triangles_[i].parent_ = 0;
         triangles_[i].lod_ = maxLOD_;
         triangles_[i].x_ = 0;
         triangles_[i].y_ = shared_ + 1;
@@ -522,7 +520,7 @@ void PlanWren::Update(float distance, Vector3& dir) {
     float threshold = size_ / distance;
     //birb_ = Random(0, 7);
     //printf("Threshold: %.6f\n", threshold);
-    for (uint i = 0; i < 1; i ++) {
+    for (uint i = 0; i < 20; i ++) {
         RecursiveSightTest(i, i, threshold, dir);
     }
 }
@@ -536,16 +534,40 @@ Model* PlanWren::GetModel() {
 * Kill the children of the triangle at an index
 * Calls TriangleRemove multiple times
 */
-void PlanWren::TriangleRemoveChildren(uint s) {
-
+void PlanWren::TriangleRemoveChildren(SubTriangle* tri) {
+    //SubTriangle* tri = triangles_ + index;
+    TriangleRemove(tri->children_[0]);
+    TriangleRemove(tri->children_[1]);
+    TriangleRemove(tri->children_[2]);
+    TriangleRemove(tri->children_[3]);
+    tri->bitmask_ = tri->bitmask_ ^ 8;
 }
 
 /** 
 * Removes a triangle by reeplacing itself with the last element, then the array
 * size is shortened. All children are recusrively killed first.
 */
-void PlanWren::TriangleRemove(uint s, uint parent) {
+void PlanWren::TriangleRemove(uint index) {
+    SubTriangle* tri = triangles_ + index;
+    if ((tri->bitmask_ & 8) == 8) {
+        // Remove own children if present
+        TriangleRemoveChildren(tri);
+    } else if (((tri->bitmask_ & 2) == 2)) {
+        // Is visible, hide it
+        // Can only be visible if it has no children
+        TriangleHide(tri);
+    } 
 
+    // The removing part
+    tri->bitmask_ = 0;
+    tri->parent_ = 0;
+    tri->children_[0] = 0;
+    tri->children_[1] = 0;
+    tri->children_[2] = 0;
+    tri->children_[3] = 0;
+    //push self into triBin_
+    triBin_[triLeft_ ++] = index;
+    
 }
 
 /**
@@ -592,7 +614,7 @@ void PlanWren::RecursiveSightTest(uint triIndex, uint top, float threshold, Vect
         // Has children
         if (tri->lod_ == birb_) {
             // delete children
-            TriangleRemoveChildren(triIndex);
+            TriangleRemoveChildren(tri);
         } else {
             RecursiveSightTest(tri->children_[0], top, threshold, dir);
             RecursiveSightTest(tri->children_[1], top, threshold, dir);
@@ -690,13 +712,9 @@ void PlanWren::RecursiveSubdivide(uint8_t set, uint basex, uint basey, uint size
                 break;
         }
         // Set vertex C to the average of A and B
-        double vx, vy, vz;
-        vx = (vertData_[vertA + 0] + vertData_[vertB + 0]) / 2.0f;
-        vy = (vertData_[vertA + 1] + vertData_[vertB + 1]) / 2.0f;
-        vz = (vertData_[vertA + 2] + vertData_[vertB + 2]) / 2.0f;
-        vertData_[vertC + 0] = vx;
-        vertData_[vertC + 1] = vy;
-        vertData_[vertC + 2] = vz;
+        vertData_[vertC + 0] = (vertData_[vertA + 0] + vertData_[vertB + 0]) / 2.0f;
+        vertData_[vertC + 1] = (vertData_[vertA + 1] + vertData_[vertB + 1]) / 2.0f;
+        vertData_[vertC + 2] = (vertData_[vertA + 2] + vertData_[vertB + 2]) / 2.0f;
     }
     // 3 is the smallest possible triangle
     if (size != 3) {
@@ -746,6 +764,11 @@ void PlanWren::TriangleSubdivide(uint t) {
     uint size = Pow(2, tri->lod_);
     uint halfe = tri->y_ + int(-1 + 2 * down) * int(size / 2);
 
+    //for (uint32_t i = maxTriangles_ - 50; i < triLeft_; i++) {
+    //    printf("%u, ", triBin_[i]);
+    //}   
+    //printf("\n");
+
     // Top, Left, Center, Right
 
     // XOR removes the drawable bit, 8 adds
@@ -753,11 +776,13 @@ void PlanWren::TriangleSubdivide(uint t) {
 
     SubTriangle* child;
     for (uint8_t i = 0; i < 4; i ++) {
+        // Pop triBin_ into children_[i], at the same time
         child = triangles_ + (tri->children_[i] = triBin_[-- triLeft_]);
         child->parent_ = t;
         child->lod_ = tri->lod_ - 1;
         child->bitmask_ = 1 | (tri->bitmask_ & 4) | (i << 4);
         child->set_ = tri->set_;
+        memset(child->children_, 0, sizeof(child->children_));
         switch (i) {
             case 0:
                 child->x_ = tri->x_ + size / 2 * down;
