@@ -1,0 +1,6 @@
+The Earth cubemap here was taken from Emil Persson (Humus) from his site
+http://www.humus.name and is licensed under
+Creative Commons Attribution 3.0 Unported License.
+http://creativecommons.org/licenses/by/3.0/
+
+Changes made: Resized to a smaller size, and changed to PNG

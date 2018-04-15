@@ -164,12 +164,12 @@ public:
         // Vertex Buffer:
         // [12 fundementals, (x) shared lines, (x)*20 face indicies]
 
-        Node* boxNode_=scene_->CreateChild("Box");
+        Node* boxNode_=scene_->CreateChild("Planet");
         //boxNode_->SetPosition(Vector3(0,-60,0));
         boxNode_->SetScale(Vector3(1.0f,1.0f,1.0f));
         StaticModel* boxObjectB=boxNode_->CreateComponent<StaticModel>();
         boxObjectB->SetModel(planet_->GetModel());
-        Material* m = cache->GetResource<Material>("Materials/Stone.xml");
+        Material* m = cache->GetResource<Material>("Materials/Earth.xml");
         m->SetFillMode(FILL_WIREFRAME);
         boxObjectB->SetMaterial(m);
         boxObjectB->SetCastShadows(true);
@@ -263,7 +263,7 @@ public:
             engine_->Exit();
 
         if(key==KEY_Q) {
-            Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Stone.xml");
+            Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Earth.xml");
             m->SetFillMode((m->GetFillMode() == FILL_WIREFRAME) ? FILL_SOLID : FILL_WIREFRAME );
         }
 
@@ -279,6 +279,10 @@ public:
 
         if(key==KEY_T) {
             updatePlanet_ = !updatePlanet_;
+        }
+
+        if(key==KEY_P) {
+            scene_->GetChild("planet")->SetScale(Vector3(1, 0.1, 1));
         }
 
         if(key==KEY_TAB) {
@@ -320,7 +324,7 @@ public:
             std::string str;
             str.append("OpenSpaceProgram " GIT_BRANCH "-" GIT_COMMIT_HASH ", too early\n"
                        "Tab: Toggle mouse, WASD: Move, Shift: Fast mode, Q: Toggle Wireframe\n"
-                       "T: toggle planet update, R/F: LoD up/down, Esc: quit\n"
+                       "T: toggle planet update, R/F: LoD up/down, P: Show truth, Esc: quit\n"
                        "--------------------------------------------------------------------\n");
             /*{
                 std::ostringstream ss;

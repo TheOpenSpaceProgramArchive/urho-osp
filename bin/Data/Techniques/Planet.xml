@@ -1,0 +1,3 @@
+<technique vs="Cubemap" ps="Cubemap">
+    <pass name="postopaque" depthwrite="true" />
+</technique>

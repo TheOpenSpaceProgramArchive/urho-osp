@@ -1,0 +1,9 @@
+<cubemap>
+    <face name="Earth_posx.png" />
+    <face name="Earth_negx.png" />
+    <face name="Earth_posy.png" />
+    <face name="Earth_negy.png" />
+    <face name="Earth_posz.png" />
+    <face name="Earth_negz.png" />
+    <quality low="0" />
+</cubemap>
