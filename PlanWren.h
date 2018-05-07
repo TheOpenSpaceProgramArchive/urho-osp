@@ -1,3 +1,6 @@
+#ifndef PLANWREN_H
+#define PLANWREN_H
+
 #include <cstdint>
 #include <iostream>
 #include <sstream>
@@ -120,6 +123,7 @@ public:
 
 class PlanWren {
 
+    bool ready_ = false;
     ushort maxLOD_;
     uint shared_;
     uint owns_;
@@ -150,9 +154,10 @@ public:
 
     // here to test if things work
     SharedPtr<IndexBuffer> indBuf_;
-    ushort birb_ = 7;
+    ushort birb_ = 4;
 
     //PlanWren();
+    bool IsReady();
     uint GetIndex(uint8_t set, uint input);
     uint GetIndex(uint8_t set, uint x, uint y);
     const uint GetTriangleCount();
@@ -177,6 +182,13 @@ protected:
     void RecursiveSubdivide(uint8_t set, uint basex, uint basey, uint size, bool down);
 
 };
+
+/**
+* Check if initialized or not dormant
+*/
+bool PlanWren::IsReady() {
+    return ready_;
+}
 
 /**
 * Get buffer index from a set's local triangle index
@@ -494,7 +506,7 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
 
     model_->SetNumGeometries(1);
     model_->SetGeometry(0, 0, geometry_);
-    model_->SetBoundingBox(BoundingBox(Sphere(Vector3(0, 0, 0), size_)));
+    model_->SetBoundingBox(BoundingBox(Sphere(Vector3(0, 0, 0), size_ * 2)));
     Vector<SharedPtr<VertexBuffer> > vrtBufs;
     Vector<SharedPtr<IndexBuffer> > indBufs;
     vrtBufs.Push(vrtBuf_);
@@ -505,6 +517,8 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
     morphRangeCounts.Push(0);
     model_->SetVertexBuffers(vrtBufs, morphRangeStarts, morphRangeCounts);
     model_->SetIndexBuffers(indBufs);
+
+    ready_ = true;
 
     //for(int i=0;i<verticies_ * 6;i+=6) {
         //printf("xyz: %.3f %.3f %.3f\n", vertData_[i], vertData_[i + 1], vertData_[i + 2]);
@@ -832,3 +846,5 @@ void PlanWren::TriangleSubdivide(uint t) {
     }
     //printf("D: %u\n", triActive);
 }
+
+#endif

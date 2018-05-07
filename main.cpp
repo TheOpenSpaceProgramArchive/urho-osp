@@ -32,7 +32,7 @@
 #include <Urho3D/Graphics/VertexBuffer.h>
 #include <Urho3D/Math/MathDefs.h>
 
-#include "PlanWren.h"
+#include "OSP.h"
 #include "config.h"
 
 using namespace Urho3D;
@@ -51,7 +51,9 @@ public:
     SharedPtr<Scene> scene_;
     SharedPtr<Node> boxNode_;
     SharedPtr<Node> cameraNode_;
-    PlanWren* planet_; // maybe make this work some time
+    SharedPtr<Node> planet_;
+    SharedPtr<AstronomicalBody> planetLogic_;
+    //PlanWren* planet_; // maybe make this work some time
     bool updatePlanet_ = true;
 
     /**
@@ -77,6 +79,7 @@ public:
         engineParameters_["WindowWidth"]=1280;
         engineParameters_["WindowHeight"]=720;
         engineParameters_["WindowResizable"]=true;
+        engineParameters_["WindowTitle"]="OpenSpaceProgram Urho3D";
     }
 
     /**
@@ -155,8 +158,8 @@ public:
                 boxObject->SetCastShadows(true);
             }*/
 
-        planet_ = new PlanWren();
-        planet_->Initialize(context_, 60.0f, scene_, cache);
+        //planet_ = new PlanWren();
+        //planet_->Initialize(context_, 3000.0f, scene_, cache);
 
         //sindBuf_ = SharedPtr<IndexBuffer>(indBuf);
         //vertData.Reserve(12 * 3);
@@ -164,20 +167,23 @@ public:
         // Vertex Buffer:
         // [12 fundementals, (x) shared lines, (x)*20 face indicies]
 
-        Node* boxNode_=scene_->CreateChild("Planet");
-        //boxNode_->SetPosition(Vector3(0,-60,0));
-        boxNode_->SetScale(Vector3(1.0f,1.0f,1.0f));
-        StaticModel* boxObjectB=boxNode_->CreateComponent<StaticModel>();
-        boxObjectB->SetModel(planet_->GetModel());
+        planet_ = scene_->CreateChild("Planet");
+        planet_->SetPosition(Vector3(0,-3000, 0));
+        planetLogic_ = planet_->CreateComponent<AstronomicalBody>();
+        planet_->SetScale(Vector3(1.0f,1.0f,1.0f));
+        StaticModel* planetModel_=boxNode_->CreateComponent<StaticModel>();
+        //planetModel_->SetModel(planet_->GetModel());
         Material* m = cache->GetResource<Material>("Materials/Earth.xml");
         m->SetFillMode(FILL_WIREFRAME);
-        boxObjectB->SetMaterial(m);
-        boxObjectB->SetCastShadows(true);
+        planetModel_->SetMaterial(m);
+        planetModel_->SetCastShadows(true);
+        planetLogic_->Initialize(context_, 3000.0f);
 
         // We need a camera from which the viewport can render.
         cameraNode_=scene_->CreateChild("Camera");
         Camera* camera=cameraNode_->CreateComponent<Camera>();
-        camera->SetFarClip(2000);
+        cameraNode_->SetPosition(Vector3(800,100,800));
+        camera->SetFarClip(200000);
 
         // Create a red directional light (sun)
         {
@@ -268,13 +274,13 @@ public:
         }
 
         if(key==KEY_R) {
-            planet_->birb_ = Max(planet_->birb_ - 1, 0);
-            printf("caw %u\n", planet_->birb_);
+            //planet_->birb_ = Max(planet_->birb_ - 1, 0);
+            //printf("caw %u\n", planet_->birb_);
         }
 
         if(key==KEY_F) {
-            planet_->birb_ = Min(planet_->birb_ + 1, 7);
-            printf("chirp %u\n", planet_->birb_);
+            //planet_->birb_ = Min(planet_->birb_ + 1, 7);
+            //printf("chirp %u\n", planet_->birb_);
         }
 
         if(key==KEY_T) {
@@ -311,12 +317,25 @@ public:
         // Mouse sensitivity as degrees per pixel
         const float MOUSE_SENSITIVITY=0.1f;
 
-        if (updatePlanet_) {
-            // Subtract 
-            Vector3 dir(cameraNode_->GetPosition());
-            float dist = dir.Length();
-            dir /= dist;
-            planet_->Update(dist, dir);
+        //if (updatePlanet_) {
+        //    // Subtract
+        //    Vector3 dir(cameraNode_->GetPosition() - scene_->GetChild("planet")->GetPosition());
+        //    float dist = dir.Length();
+        //    dir /= dist;
+        //    planet_->Update(dist, dir);
+        //}
+
+        Vector3 translateEverything(cameraNode_->GetPosition());
+        translateEverything.x_ = Floor(translateEverything.x_ / 64) * 64;
+        translateEverything.y_ = Floor(translateEverything.y_ / 64) * 64;
+        translateEverything.z_ = Floor(translateEverything.z_ / 64) * 64;
+        if (translateEverything != Vector3::ZERO) {
+            printf("saaaaa %.2f %.2f %.2f\n", translateEverything.x_, translateEverything.y_, translateEverything.z_);
+            const Vector<SharedPtr<Node>> e = scene_->GetChildren();
+            for (uint i = 0; i < e.Size(); i ++) {
+                e[i]->Translate(-translateEverything, TS_WORLD);
+            }
+          
         }
 
         if(time_ >=0.2) {
@@ -349,7 +368,7 @@ public:
                 str.append(s.substr(0,6));
                 str.append("\n");
             }
-            {
+            /*{
                 std::ostringstream ss;
                 ss<<planet_->GetVisibleCount();
                 str.append("Tris Visible: ");
@@ -380,7 +399,7 @@ public:
                 str.append("/");
                 str.append(s.substr(0,6));
                 str.append("\n");
-            }
+            }*/
             String s(str.c_str(),str.size());
             text_->SetText(s);
             ///URHO3D_LOGINFO(s);     // this show how to put stuff into the log
