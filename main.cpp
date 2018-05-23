@@ -52,7 +52,7 @@ public:
     SharedPtr<Node> boxNode_;
     SharedPtr<Node> cameraNode_;
     SharedPtr<Node> planet_;
-    SharedPtr<AstronomicalBody> planetLogic_;
+    WeakPtr<AstronomicalBody> planetLogic_;
     //PlanWren* planet_; // maybe make this work some time
     bool updatePlanet_ = true;
 
@@ -63,6 +63,7 @@ public:
     * You can also do this in the Setup method.
     */
     MyApp(Context * context) : Application(context),framecount_(0),time_(0) {
+        AstronomicalBody::RegisterObject(context);
     }
 
     /**
@@ -168,21 +169,20 @@ public:
         // [12 fundementals, (x) shared lines, (x)*20 face indicies]
 
         planet_ = scene_->CreateChild("Planet");
-        planet_->SetPosition(Vector3(0,-3000, 0));
         planetLogic_ = planet_->CreateComponent<AstronomicalBody>();
-        planet_->SetScale(Vector3(1.0f,1.0f,1.0f));
-        StaticModel* planetModel_=boxNode_->CreateComponent<StaticModel>();
+        StaticModel* planetModel_=planet_->CreateComponent<StaticModel>();
         //planetModel_->SetModel(planet_->GetModel());
+        planetModel_->SetModel(cache->GetResource<Model>("Models/ezsphere.mdl"));
         Material* m = cache->GetResource<Material>("Materials/Earth.xml");
-        m->SetFillMode(FILL_WIREFRAME);
+        //m->SetFillMode(FILL_WIREFRAME);
         planetModel_->SetMaterial(m);
-        planetModel_->SetCastShadows(true);
+        //planetModel_->SetCastShadows(true);
         planetLogic_->Initialize(context_, 3000.0f);
 
         // We need a camera from which the viewport can render.
         cameraNode_=scene_->CreateChild("Camera");
         Camera* camera=cameraNode_->CreateComponent<Camera>();
-        cameraNode_->SetPosition(Vector3(800,100,800));
+        cameraNode_->SetPosition(Vector3(0,0,0));
         camera->SetFarClip(200000);
 
         // Create a red directional light (sun)
@@ -288,7 +288,7 @@ public:
         }
 
         if(key==KEY_P) {
-            scene_->GetChild("planet")->SetScale(Vector3(1, 0.1, 1));
+            scene_->GetChild("Planet")->SetScale(Vector3(1, 0.1, 1));
         }
 
         if(key==KEY_TAB) {
@@ -325,7 +325,7 @@ public:
         //    planet_->Update(dist, dir);
         //}
 
-        Vector3 translateEverything(cameraNode_->GetPosition());
+        /*Vector3 translateEverything(cameraNode_->GetPosition());
         translateEverything.x_ = Floor(translateEverything.x_ / 64) * 64;
         translateEverything.y_ = Floor(translateEverything.y_ / 64) * 64;
         translateEverything.z_ = Floor(translateEverything.z_ / 64) * 64;
@@ -336,7 +336,7 @@ public:
                 e[i]->Translate(-translateEverything, TS_WORLD);
             }
           
-        }
+        }*/
 
         if(time_ >=0.2) {
 

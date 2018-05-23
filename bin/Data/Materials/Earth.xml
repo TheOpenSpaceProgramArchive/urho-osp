@@ -1,5 +1,5 @@
 <material>
     <technique name="Techniques/Planet.xml" />
     <texture unit="diffuse" name="Textures/Earth.xml" />
-    <cull value="none" />
+    <cull value="ccw" />
 </material>

@@ -1,3 +1,5 @@
+#include <Urho3D/Physics/CollisionShape.h>
+
 #include "OSP.h"
 
 
@@ -24,4 +26,10 @@ void AstronomicalBody::FixedUpdate(float timeStep) {
 void AstronomicalBody::Initialize(Context* context, double size) {
     ResourceCache* cache = GetSubsystem<ResourceCache>();
     planet_.Initialize(context, size, GetScene(), cache);
+    node_->SetPosition(Vector3(0,-size / 2, 0));
+    node_->SetScale(Vector3(size / 2,size / 2,size / 2));
+    //collider_ = node_->CreateComponent<RigidBody>();
+    //CollisionShape* sphere = node_->CreateComponent<CollisionShape>();
+    //sphere->SetSphere(1.0f);
+
 }
