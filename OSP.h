@@ -26,4 +26,18 @@ private:
     WeakPtr<RigidBody> collider_;
 };
 
+class OspPart : public LogicComponent {
+    URHO3D_OBJECT(OspPart, LogicComponent)
+
+public:
+    OspPart(Context* context);
+
+    static void RegisterObject(Context* context);
+
+    virtual void FixedUpdate(float timeStep);
+
+private:
+
+};
+
 #endif

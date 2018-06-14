@@ -23,6 +23,9 @@
 #include <Urho3D/Graphics/IndexBuffer.h>
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Graphics/DebugRenderer.h>
+#include <Urho3D/Physics/CollisionShape.h>
+#include <Urho3D/Physics/PhysicsWorld.h>
+#include <Urho3D/Physics/RigidBody.h>
 #include <Urho3D/Graphics/Octree.h>
 #include <Urho3D/Graphics/Light.h>
 #include <Urho3D/Graphics/Model.h>
@@ -64,6 +67,7 @@ public:
     */
     MyApp(Context * context) : Application(context),framecount_(0),time_(0) {
         AstronomicalBody::RegisterObject(context);
+        OspPart::RegisterObject(context);
     }
 
     /**
@@ -127,24 +131,35 @@ public:
         scene_->CreateComponent<Octree>();
         // Let's add an additional scene component for fun.
         scene_->CreateComponent<DebugRenderer>();
+        PhysicsWorld* world = scene_->CreateComponent<PhysicsWorld>();
+        world->SetGravity(Vector3::ZERO);
 
         // Let's put some sky in there.
         // Again, if the engine can't find these resources you need to check
         // the "ResourcePrefixPath". These files come with Urho3D.
         Node* skyNode=scene_->CreateChild("Sky");
         skyNode->SetScale(500.0f); // The scale actually does not matter
-        Skybox* skybox=skyNode->CreateComponent<Skybox>();
-        skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-        skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
+        //Skybox* skybox=skyNode->CreateComponent<Skybox>();
+        //skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
+        //skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
         // Let's put a box in there.
         boxNode_=scene_->CreateChild("Box");
-        boxNode_->SetPosition(Vector3(0,2,15));
+        boxNode_->SetPosition(Vector3(0,10,0));
         boxNode_->SetScale(Vector3(3,3,3));
         StaticModel* boxObject=boxNode_->CreateComponent<StaticModel>();
         boxObject->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
         boxObject->SetMaterial(cache->GetResource<Material>("Materials/Stone.xml"));
         boxObject->SetCastShadows(true);
+        RigidBody* collider = boxNode_->CreateComponent<RigidBody>();
+        CollisionShape* box = boxNode_->CreateComponent<CollisionShape>();
+        //collider->SetGravityOverride(Vector3(0, 10, 0));
+        boxNode_->CreateComponent<OspPart>();
+        box->SetBox(Vector3(1, 1, 1));
+        collider->SetMass(1.0f);
+        //collider->SetFriction(0.75f);
+        // Fire at orbital velocity
+        collider->ApplyImpulse(Vector3(0, 0, Sqrt(9.8 * 3010) * 1.4), Vector3::ZERO);
 
         // Create 400 boxes in a grid.
         /*for(int x=-30;x<30;x+=3)
@@ -288,7 +303,7 @@ public:
         }
 
         if(key==KEY_P) {
-            scene_->GetChild("Planet")->SetScale(Vector3(1, 0.1, 1));
+            scene_->GetChild("Planet")->SetScale(Vector3(1500, 0.1, 1500));
         }
 
         if(key==KEY_TAB) {
@@ -337,6 +352,9 @@ public:
             }
           
         }*/
+
+        cameraNode_->SetPosition(boxNode_->GetPosition());
+        cameraNode_->Translate(Vector3(0, 0, -40), TS_LOCAL);
 
         if(time_ >=0.2) {
 
@@ -412,7 +430,7 @@ public:
         // With LogicComponents it is easy to control things like movement
         // and animation from some IDE, console or just in game.
         // Alas, it is out of the scope for our simple example.
-        boxNode_->Rotate(Quaternion(8*timeStep,16*timeStep,0));
+        //boxNode_->Rotate(Quaternion(80e0*timeStep,0,0));
 
         Input* input=GetSubsystem<Input>();
         if(input->GetQualifierDown(1))  // 1 is shift, 2 is ctrl, 4 is alt
