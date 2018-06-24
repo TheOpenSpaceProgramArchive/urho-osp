@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <title>Algorithm Test - Triangle Subdividing</title>
+  <style>
+    @font-face {
+      font-family: 'Bowman';
+      src: url('Bowman.ttf') format('truetype');
+    }
+    body {
+      background-color: #eeeeec;
+      text-align: center;
+      width:100%;
+      height:100%
+    }
+    canvas {
+      background-color: white;
+      top: 0%;
+      width: 512px;
+      height: 512px;
+      box-shadow: 0px 4px 20px -4px rgba(0,0,0,0.75);
+      border-radius: 3px;
+    }
+  </style>
+  </head>
+  <body>
+    <script>
+
+    // Make canvas and setup some variables
+    var canvasdraw = document.createElement("canvas");
+    var ctx = canvasdraw.getContext("2d");
+    var input = {mouseX: 0, mouseY: 0}
+    var application = {};
+
+    // Put canvas on the document
+    canvasdraw.width = 512;
+    canvasdraw.height = 512;
+    document.body.appendChild(canvasdraw);
+
+    // Keep track of mouse position
+    canvasdraw.onmousemove = function(e) {
+      var g = canvasdraw.getBoundingClientRect();
+      input.mouseX = Math.floor(e.x - g.x);
+      input.mouseY = Math.floor(e.y - g.y);
+      ctx.fillText("This is test", input.mouseX, input.mouseY);
+      ctx.fillRect(input.mouseX, input.mouseY, 2, 2);
+    }
+
+    var drawLoop = function() {
+      application.draw();
+      window.requestAnimationFrame(drawLoop);
+    }
+
+    // Actual stuff starts here
+
+    // Using typed arrays was probably unnecessary for something like this
+    application.vertexBuffer = new Float32Array(9 * 2);
+    application.indexBuffer = new Uint32Array(2000 * 2);
+
+    application.init = function() {
+      
+      // Put the 9 vertices in the right place
+      for (var y = 0; y < 3; y ++) {
+        for (var x = 0; x < 3; x ++) {
+          // Set X and Y position for the vertex
+          this.vertexBuffer[y * 6 + x * 2 + 0]
+              = Math.floor(6 + (100 * (y == 1)) + x * 200);
+          this.vertexBuffer[y * 6 + x * 2 + 1]
+              = Math.floor(160 + Math.sqrt(3) * 100 * y);
+        }
+      }
+      console.log(this.vertexBuffer);
+    }
+
+    application.draw = function() {
+      ctx.clearRect(0, 0, 512, 512);
+      ctx.fillStyle = "#11122b";
+      ctx.fillText("OSP Planet Triangle Subdividing test", 4, 20);
+      
+      // Draw vertex buffer
+      for (var i = 0; i < this.vertexBuffer.length; i += 2) {
+        ctx.fillRect(this.vertexBuffer[i] - 3, this.vertexBuffer[i + 1] - 3, 6, 6)
+      }
+    }
+
+    // End of actual stuff
+
+    ctx.font = "14px Bowman";
+    ctx.fillText("LoadTheDamnFont", 0, -40);
+    application.init();
+    window.requestAnimationFrame(drawLoop);
+
+    </script>
+  </body>
+</html>
