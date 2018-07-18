@@ -34,7 +34,7 @@
 
     // Put canvas on the document
     canvasdraw.width = 512;
-    canvasdraw.height = 512;
+    canvasdraw.height = 512;  
     document.body.appendChild(canvasdraw);
 
     // Keep track of mouse position
@@ -44,6 +44,7 @@
       input.mouseY = Math.floor(e.y - g.y);
       ctx.fillText("This is test", input.mouseX, input.mouseY);
       ctx.fillRect(input.mouseX, input.mouseY, 2, 2);
+      application.mouseMove();
     }
 
     var drawLoop = function() {
@@ -51,11 +52,28 @@
       window.requestAnimationFrame(drawLoop);
     }
 
-    // Actual stuff starts here
+    // Actual stuff starts  here  ----------------------------------------------
+
+    application.Triangle = function(sides, verts) {
+      this.parent = null;
+      this.children = [null, null, null, null];
+      //this.maxDepth = 0; // the deepest this thing goes
+      this.subdivided = false; // whether it's subdivided or not
+      this.myDepth = 1; // how deep it is in the tree, more ancestors = higher number
+      this.index = null; // Location in index buffer
+      this.verts = verts; // index of 3 vertices, [top, left, right] conterclockwise
+      this.midVerts = [0, 0, 0]; // index of  Middle vertices when subdivided
+      this.sides = sides; // Index of bottom, right, and left triangles
+      
+    }
 
     // Using typed arrays was probably unnecessary for something like this
-    application.vertexBuffer = new Float32Array(9 * 2);
     application.indexBuffer = new Uint32Array(2000 * 2);
+    application.indexDomain = new Uint32Array(2000);
+    application.vertexBuffer = new Float32Array(9 * 2);
+    application.indexCount = 0;
+    application.vertexBufferSize = 0;
+    application.triangles = [];
 
     application.init = function() {
       
@@ -69,17 +87,163 @@
               = Math.floor(160 + Math.sqrt(3) * 100 * y);
         }
       }
-      console.log(this.vertexBuffer);
+
+      // Add the triangles
+      for (var y = 0; y < 2; y ++) {
+        for (var x = 0; x < 4; x ++) {
+          var verts = [-1, -1, -1];
+          var sides = [-1, -1, -1];
+          var ydiv = y % 2;
+          var up = (y + x) % 2; // Alternates 1 to 0
+          
+          if (up) {
+            // Up pointing triangle
+            //    0
+            //  .   .
+            // 1  .  2
+            verts[0] = (y * 6 + x + 1 - ydiv);
+            verts[1] = (y * 6 + 6 + x - 1 + ydiv);
+            verts[2] = (y * 6 + 6 + x + 1 + ydiv);
+          } else {
+            // Upside down triangle
+            // 2  .  1
+            //  .   .
+            //    0
+            verts[0] = (y * 6 + 6 + x + ydiv);
+            verts[1] = (y * 6 + x + 2 - ydiv);
+            verts[2] = (y * 6 + x - ydiv);
+          }
+          if (y != 2 * (!up)) { // A Bottom side exists
+            sides[0] = y * 4 + x;
+          }
+          if (x != 3) { // A Right side exists
+              sides[1] = y * 4 + x + 1 - (!up * 2);
+          }
+          if (x != 0) { // A Left side exists
+              sides[2] = y * 4 + x - 1 + (!up * 2);
+          }
+          // push
+          this.setVisible(application.triangles.push(new this.Triangle(sides, verts)) - 1, true);
+        }
+      }
+    }
+
+    application.subdiv = function(trindex) {
+      // if bottom triangle is deeper, use that vertex
+      // same with left and right
+
+      var tri = this.triangles[trindex];
+      if (tri.index != null) {
+        // if visible, then hide
+        this.setVisible(trindex, false);
+      }
+    }
+
+    application.setVisible = function(trindex, v) {
+      var tri = this.triangles[trindex];
+      if (v) {
+        // show the triangle
+        if (tri.index == null) {
+          this.indexDomain[this.indexCount] = trindex;
+          tri.index = this.indexCount * 3;
+          this.indexCount ++;
+          this.indexBuffer[tri.index] = tri.verts[0];
+          this.indexBuffer[tri.index + 1] = tri.verts[1];
+          this.indexBuffer[tri.index + 2] = tri.verts[2];
+        }
+      } else {
+        // delete
+        if (tri.index != null) {
+          console.log("removed!");
+          // How to remove a triangle from the buffer: 
+          // Move the last element of the buffer (3 ints) into the location of the triangle
+          // that is suppose o be removed. this keeps holes out of the index buffer so
+          // the gpu doesn't have to deal with holes, and holes dont have to be seeked out
+          // for a new triangle to be inserted in.
+
+          // decrement the index count, this is now the index of the last triangle
+          this.indexCount --;
+          // change the last triangle class's index to new location.
+          console.log(this.indexDomain[this.indexCount]);
+          this.triangles[this.indexDomain[this.indexCount]].index = tri.index;
+          // move the location of the last element's domain to the new location
+          this.indexDomain[tri.index / 3] = this.indexDomain[this.indexCount];
+
+          // get the index buffer data of the last triangle (last 3 ints), and put it into the new location
+          this.indexBuffer.set(this.indexBuffer.slice(this.indexCount * 3, this.indexCount * 3 + 3), tri.index);
+          // indicates that tri is now invisible
+          tri.index = null;
+        }
+      }
+    }
+
+    application.subRecurse = function(trindex, point) {
+      var tri = this.triangles[trindex];
+      var center = this.center(tri);
+      var dist = Math.sqrt(Math.pow(point[0] - center[0], 2)
+                            + Math.pow(point[1] - center[1], 2))
+      if (dist < (160 / tri.myDepth)) {
+        //this.setVisible(trindex, true);
+        this.subdiv(trindex);
+      } else {
+        //this.setVisible(trindex, false);
+      }
+      
+    }
+
+    application.center = function(tri) {
+      var vec = [];
+      // Average out the coordinates
+      vec[0] = this.vertexBuffer[tri.verts[0]] / 3 + this.vertexBuffer[tri.verts[1]] / 3 + this.vertexBuffer[tri.verts[2]] / 3;
+      vec[1] = this.vertexBuffer[tri.verts[0] + 1] / 3 + this.vertexBuffer[tri.verts[1] + 1] / 3 + this.vertexBuffer[tri.verts[2] + 1] / 3;
+      return vec;
+    }
+
+    application.mouseMove = function() {
+      for (var i = 0; i < 8; i ++) {
+        //var tri = this.triangles[i]
+        //var center = this.center(tri);
+        this.subRecurse(i, [input.mouseX, input.mouseY]);
+      }
     }
 
     application.draw = function() {
-      ctx.clearRect(0, 0, 512, 512);
-      ctx.fillStyle = "#11122b";
-      ctx.fillText("OSP Planet Triangle Subdividing test", 4, 20);
-      
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.fillStyle = "#262c50";
+      ctx.strokeStyle = "#262c50";
+      var msg = "OSP Planet Triangle Subdividing test";
+      msg += " Triangles Count: " + this.indexCount + "/" + this.triangles.length;
+      msg += "\nInd Buf: {" + this.indexBuffer.join(",") + "}";
+      msg += "\nInd Dom: {" + this.indexDomain.join(",") + "}";
+
+      var lines = msg.split("\n");
+      for (var i = 0; i < lines.length; i ++) {
+        ctx.fillText(lines[i], 4, 20 + 18 * i);
+      }
+
       // Draw vertex buffer
       for (var i = 0; i < this.vertexBuffer.length; i += 2) {
-        ctx.fillRect(this.vertexBuffer[i] - 3, this.vertexBuffer[i + 1] - 3, 6, 6)
+        ctx.fillRect(this.vertexBuffer[i] - 3,
+                      this.vertexBuffer[i + 1] - 3,
+                      6, 6)
+      }
+
+      ctx.fillStyle = "#aeb7de";
+      //for (var i = 0; i < this.triangles.length; i ++) {
+      for (var i = 0; i < this.indexCount * 3; i += 3) {
+        var tri = this.triangles[i];
+        ctx.beginPath();
+        ctx.moveTo(this.vertexBuffer[this.indexBuffer[i]], this.vertexBuffer[this.indexBuffer[i] + 1]);
+        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 1]], this.vertexBuffer[this.indexBuffer[i + 1] + 1]);
+        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 2]], this.vertexBuffer[this.indexBuffer[i + 2] + 1]);
+        //ctx.moveTo(this.vertexBuffer[tri.verts[0]], this.vertexBuffer[tri.verts[0] + 1]);
+        //ctx.lineTo(this.vertexBuffer[tri.verts[1]], this.vertexBuffer[tri.verts[1] + 1]);
+        //ctx.lineTo(this.vertexBuffer[tri.verts[2]], this.vertexBuffer[tri.verts[2] + 1]);
+        ctx.closePath()
+        ctx.fill();
+        ctx.stroke();
       }
     }
 

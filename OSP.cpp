@@ -11,7 +11,7 @@ AstronomicalBody::AstronomicalBody(Context* context) : LogicComponent(context) {
 
 void AstronomicalBody::RegisterObject(Context* context) {
 
-    context->RegisterFactory<AstronomicalBody>();
+    context->RegisterFactory<AstronomicalBody>("AstronomicalBody");
 
 }
 

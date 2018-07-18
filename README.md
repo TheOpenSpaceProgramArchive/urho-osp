@@ -1,2 +1,16 @@
 # Urho3D Open Space Program
-An experiment by Capital-Asterisk, to see if Open Space Program can be made with Urho3D; for now, planet rendering and large worlds is the priority.
+An experiment by Capital-Asterisk, to see if Open Space Program can be made with Urho3D. The current state of this master branch is expected to be unusable for quite some time, checkout a previous commit.
+
+##### Screenshots of things that previously happened on this repository:
+
+Tests on subdividing spheres
+![alt text](https://cdn.discordapp.com/attachments/325425261069860875/415682532626137089/Screenshot_2018-02-20_17-32-48.png "It looks pretty but it's completely wrong.")
+
+![alt text](https://cdn.discordapp.com/attachments/425003724633669633/428391873720090639/Screenshot_2018-03-27_20-14-23.png "This too is completely wrong.")
+
+Cube in orbit
+![alt text](https://cdn.discordapp.com/attachments/425003724633669633/451141764582080533/Screenshot_2018-05-29_14-29-53.png "An inverse square force towards the center.")
+
+More accurate model of our planet
+![alt text](https://cdn.discordapp.com/attachments/425003724633669633/448727538706153472/Screenshot_2018-05-22_23-02-33.png "This the truth, don't let the goverment fool you.")
+
