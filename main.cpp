@@ -3,37 +3,43 @@
 #include <iostream>
 
 #include <Urho3D/Core/CoreEvents.h>
+#include <Urho3D/Core/WorkQueue.h>
 #include <Urho3D/Engine/Application.h>
 #include <Urho3D/Engine/Engine.h>
-#include <Urho3D/Input/Input.h>
-#include <Urho3D/Input/InputEvents.h>
-#include <Urho3D/Resource/ResourceCache.h>
-#include <Urho3D/Resource/XMLFile.h>
-#include <Urho3D/IO/Log.h>
-#include <Urho3D/UI/UI.h>
-#include <Urho3D/UI/Text.h>
-#include <Urho3D/UI/Font.h>
-#include <Urho3D/UI/Button.h>
-#include <Urho3D/UI/UIEvents.h>
-#include <Urho3D/Scene/Scene.h>
-#include <Urho3D/Scene/SceneEvents.h>
-#include <Urho3D/Graphics/Graphics.h>
 #include <Urho3D/Graphics/Camera.h>
-#include <Urho3D/Graphics/Geometry.h>
-#include <Urho3D/Graphics/IndexBuffer.h>
-#include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Graphics/DebugRenderer.h>
+#include <Urho3D/Graphics/Geometry.h>
+#include <Urho3D/Graphics/Graphics.h>
+#include <Urho3D/Graphics/IndexBuffer.h>
+#include <Urho3D/Graphics/Light.h>
+#include <Urho3D/Graphics/Material.h>
+#include <Urho3D/Graphics/Model.h>
+#include <Urho3D/Graphics/Octree.h>
+#include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/Graphics/Skybox.h>
+#include <Urho3D/Graphics/StaticModel.h>
+#include <Urho3D/Graphics/VertexBuffer.h>
+#include <Urho3D/Graphics/Texture2D.h>
+#include <Urho3D/Input/InputEvents.h>
+#include <Urho3D/Input/Input.h>
+#include <Urho3D/IO/Log.h>
+#include <Urho3D/Math/MathDefs.h>
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/RigidBody.h>
-#include <Urho3D/Graphics/Octree.h>
-#include <Urho3D/Graphics/Light.h>
-#include <Urho3D/Graphics/Model.h>
-#include <Urho3D/Graphics/StaticModel.h>
-#include <Urho3D/Graphics/Material.h>
-#include <Urho3D/Graphics/Skybox.h>
-#include <Urho3D/Graphics/VertexBuffer.h>
-#include <Urho3D/Math/MathDefs.h>
+#include <Urho3D/Resource/ResourceCache.h>
+#include <Urho3D/Resource/XMLFile.h>
+#include <Urho3D/Scene/SceneEvents.h>
+#include <Urho3D/Scene/Scene.h>
+#include <Urho3D/UI/Button.h>
+#include <Urho3D/UI/BorderImage.h>
+#include <Urho3D/UI/Font.h>
+#include <Urho3D/UI/Text.h>
+#include <Urho3D/UI/Window.h>
+#include <Urho3D/UI/UIElement.h>
+#include <Urho3D/UI/UIEvents.h>
+#include <Urho3D/UI/UI.h>
+
 
 #include "OSP.h"
 #include "config.h"
@@ -75,11 +81,11 @@ public:
         // These parameters should be self-explanatory.
         // See http://urho3d.github.io/documentation/1.5/_main_loop.html
         // for a more complete list.
-        engineParameters_["FullScreen"]=false;
-        engineParameters_["WindowWidth"]=1280;
-        engineParameters_["WindowHeight"]=720;
-        engineParameters_["WindowResizable"]=true;
-        engineParameters_["WindowTitle"]="OpenSpaceProgram Urho3D";
+        engineParameters_["FullScreen"] = false;
+        engineParameters_["WindowWidth"] = 1280;
+        engineParameters_["WindowHeight"] = 720;
+        engineParameters_["WindowResizable"] = true;
+        engineParameters_["WindowTitle"] = "OpenSpaceProgram Urho3D";
     }
 
     /**
@@ -94,24 +100,26 @@ public:
         // If the engine can't find them, check the ResourcePrefixPath (see http://urho3d.github.io/documentation/1.5/_main_loop.html).
         ResourceCache* cache=GetSubsystem<ResourceCache>();
 
+        UIElement* root = GetSubsystem<UI>()->GetRoot();
         // Let's use the default style that comes with Urho3D.
-        GetSubsystem<UI>()->GetRoot()->SetDefaultStyle(cache->GetResource<XMLFile>("UI/DefaultStyle.xml"));
+        root->SetDefaultStyle(cache->GetResource<XMLFile>("UI/DefaultStyle.xml"));
+
+        BorderImage* loading = new BorderImage(context_);
+        loading->SetTexture(cache->GetResource<Texture2D>("Textures/TempLoad.png"));
+        loading->SetSize(1280, 720);
+        //root->AddChild(loading);
 
         // Let's setup a scene to render.
-        m_scene=new Scene(context_);
-        // Let the scene have an Octree component!
-        m_scene->CreateComponent<Octree>();
-        // Let's add an additional scene component for fun.
-        m_scene->CreateComponent<DebugRenderer>();
+        m_scene = new Scene(context_);
+        //m_scene->CreateComponent<Octree>();
+        //m_scene->CreateComponent<DebugRenderer>();
         PhysicsWorld* world = m_scene->CreateComponent<PhysicsWorld>();
         world->SetGravity(Vector3::ZERO);
 
         // Let's put some sky in there.
-        // Again, if the engine can't find these resources you need to check
-        // the "ResourcePrefixPath". These files come with Urho3D.
-        Node* skyNode=m_scene->CreateChild("Sky");
-        skyNode->SetScale(500.0f); // The scale actually does not matter
-        //Skybox* skybox=skyNode->CreateComponent<Skybox>();
+        //Node* skyNode=m_scene->CreateChild("Sky");
+        //skyNode->SetScale(500.0f); // The scale actually does not matter
+        //Skybox* skybox = skyNode->CreateComponent<Skybox>();
         //skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
         //skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
@@ -119,12 +127,34 @@ public:
         m_cameraNode=m_scene->CreateChild("Camera");
         Camera* camera=m_cameraNode->CreateComponent<Camera>();
         m_cameraNode->SetPosition(Vector3(0,0,0));
-        camera->SetFarClip(200000);
+        camera->SetFarClip(20000);
+
+
+        m_scene->LoadXML(cache->GetResource<XMLFile>("Scenes/Menu.xml")->GetRoot());
+        SharedPtr<UIElement>  menu = GetSubsystem<UI>()->LoadLayout(cache->GetResource<XMLFile>("UI/MenuUI.xml"));
+        menu->SetDefaultStyle(root->GetDefaultStyle());
+        root->AddChild(menu);
+
+        // Create a red directional light (sun)`
+        //{
+        //    Node* lightNode = m_scene->CreateChild();
+        //    lightNode->SetDirection(Vector3::FORWARD);
+        //    lightNode->Yaw(50);     // horizontal
+        //    lightNode->Pitch(10);   // vertical
+        //    Light* light=lightNode->CreateComponent<Light>();
+        //    light->SetLightType(LIGHT_DIRECTIONAL);
+        //    light->SetBrightness(1.6);
+        //    light->SetColor(Color(1.0, 0.6, 0.3, 1));
+        //    light->SetCastShadows(true);
+        //}
 
         // Now we setup the viewport. Of course, you can have more than one!
         Renderer* renderer=GetSubsystem<Renderer>();
         SharedPtr<Viewport> viewport(new Viewport(context_,m_scene,m_cameraNode->GetComponent<Camera>()));
-        renderer->SetViewport(0,viewport);
+        renderer->SetViewport(0, viewport);
+
+        GetSubsystem<Input>()->SetMouseGrabbed(false);
+        GetSubsystem<Input>()->SetMouseVisible(true);
 
         // We subscribe to the events we'd like to handle.
         // In this example we will be showing what most of them do,
@@ -258,11 +288,11 @@ public:
             String s(str.c_str(),str.size());
             //text_->SetText(s);
             ///URHO3D_LOGINFO(s);     // this show how to put stuff into the log
-            m_framecount=0;
-            m_time=0;
+            m_framecount = 0;
+            m_time = 0;
         }
 
-        Input* input=GetSubsystem<Input>();
+        Input* input = GetSubsystem<Input>();
         if(input->GetQualifierDown(1))  // 1 is shift, 2 is ctrl, 4 is alt
             MOVE_SPEED*=100;
         if(input->GetKeyDown('W'))
@@ -276,16 +306,16 @@ public:
 
         if(!GetSubsystem<Input>()->IsMouseVisible()) {
             // Use this frame's mouse motion to adjust camera node yaw and pitch. Clamp the pitch between -90 and 90 degrees
-            IntVector2 mouseMove=input->GetMouseMove();
-            static float yaw_=0;
-            static float pitch_=0;
-            yaw_+=MOUSE_SENSITIVITY*mouseMove.x_;
-            pitch_+=MOUSE_SENSITIVITY*mouseMove.y_;
-            pitch_=Clamp(pitch_,-90.0f,90.0f);
+            IntVector2 mouseMove = input->GetMouseMove();
+            static float sc_yaw = 0;
+            static float sc_pitch = 0;
+            sc_yaw += MOUSE_SENSITIVITY * mouseMove.x_;
+            sc_pitch += MOUSE_SENSITIVITY * mouseMove.y_;
+            sc_pitch = Clamp(sc_pitch,-90.0f,90.0f);
             // Reset rotation and set yaw and pitch again
             m_cameraNode->SetDirection(Vector3::FORWARD);
-            m_cameraNode->Yaw(yaw_);
-            m_cameraNode->Pitch(pitch_);
+            m_cameraNode->Yaw(sc_yaw);
+            m_cameraNode->Pitch(sc_pitch);
         }
     }
     /**
