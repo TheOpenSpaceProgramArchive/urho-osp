@@ -2,6 +2,9 @@
 #include <sstream>
 #include <iostream>
 
+#include <Urho3D/AngelScript/Script.h>
+#include <Urho3D/AngelScript/ScriptFile.h>
+#include <Urho3D/Container/Vector.h>
 #include <Urho3D/Core/CoreEvents.h>
 #include <Urho3D/Core/WorkQueue.h>
 #include <Urho3D/Engine/Application.h>
@@ -27,7 +30,9 @@
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/RigidBody.h>
+#include "Urho3D/Resource/BackgroundLoader.h"
 #include <Urho3D/Resource/ResourceCache.h>
+#include <Urho3D/Resource/ResourceEvents.h>
 #include <Urho3D/Resource/XMLFile.h>
 #include <Urho3D/Scene/SceneEvents.h>
 #include <Urho3D/Scene/Scene.h>
@@ -46,6 +51,8 @@
 
 using namespace Urho3D;
 
+void salamander(const WorkItem* item, unsigned threadIndex);
+
 /**
 * Using the convenient Application API we don't have
 * to worry about initializing the engine or writing a main.
@@ -59,6 +66,8 @@ public:
 
     SharedPtr<Scene> m_scene;
     SharedPtr<Node> m_cameraNode;
+    //Vector<ScriptFile*> m_runImmediately;
+    Vector<String> m_runImmediately;
 
     /**
     * This happens before the engine has been initialized
@@ -107,14 +116,14 @@ public:
         BorderImage* loading = new BorderImage(context_);
         loading->SetTexture(cache->GetResource<Texture2D>("Textures/TempLoad.png"));
         loading->SetSize(1280, 720);
-        //root->AddChild(loading);
+        root->AddChild(loading);
 
         // Let's setup a scene to render.
         m_scene = new Scene(context_);
         //m_scene->CreateComponent<Octree>();
         //m_scene->CreateComponent<DebugRenderer>();
-        PhysicsWorld* world = m_scene->CreateComponent<PhysicsWorld>();
-        world->SetGravity(Vector3::ZERO);
+        //PhysicsWorld* world = m_scene->CreateComponent<PhysicsWorld>();
+        //world->SetGravity(Vector3::ZERO);
 
         // Let's put some sky in there.
         //Node* skyNode=m_scene->CreateChild("Sky");
@@ -129,11 +138,21 @@ public:
         m_cameraNode->SetPosition(Vector3(0,0,0));
         camera->SetFarClip(20000);
 
+        context_->RegisterSubsystem(new Script(context_));
+        m_runImmediately.Push("Scripts/MainMenu.as");
+        cache->BackgroundLoadResource<ScriptFile>("Scripts/MainMenu.as", true);
 
-        m_scene->LoadXML(cache->GetResource<XMLFile>("Scenes/Menu.xml")->GetRoot());
-        SharedPtr<UIElement>  menu = GetSubsystem<UI>()->LoadLayout(cache->GetResource<XMLFile>("UI/MenuUI.xml"));
-        menu->SetDefaultStyle(root->GetDefaultStyle());
-        root->AddChild(menu);
+        //WorkQueue* queue = GetSubsystem<WorkQueue>();
+        //SharedPtr<WorkItem> item = queue->GetFreeItem();
+        //item->start_ = this;
+        //item->workFunction_ = salamander;
+        //queue->AddWorkItem(item);
+
+        //GetSubsystem<Script>()->Execute("Print(\"Hello World!\");");
+        //m_scene->LoadXML(cache->GetResource<XMLFile>("Scenes/Menu.xml")->GetRoot());
+        //SharedPtr<UIElement>  menu = GetSubsystem<UI>()->LoadLayout(cache->GetResource<XMLFile>("UI/MenuUI.xml"));
+        //menu->SetDefaultStyle(root->GetDefaultStyle());
+        //root->AddChild(menu);
 
         // Create a red directional light (sun)`
         //{
@@ -163,13 +182,14 @@ public:
         // These are sort of subscribed in the order in which the engine
         // would send the events. Read each handler method's comment for
         // details.
-        SubscribeToEvent(E_BEGINFRAME,URHO3D_HANDLER(OSPApplication, HandleBeginFrame));
-        SubscribeToEvent(E_KEYDOWN,URHO3D_HANDLER(OSPApplication, HandleKeyDown));
-        SubscribeToEvent(E_UPDATE,URHO3D_HANDLER(OSPApplication, HandleUpdate));
-        SubscribeToEvent(E_POSTUPDATE,URHO3D_HANDLER(OSPApplication, HandlePostUpdate));
-        SubscribeToEvent(E_RENDERUPDATE,URHO3D_HANDLER(OSPApplication, HandleRenderUpdate));
-        SubscribeToEvent(E_POSTRENDERUPDATE,URHO3D_HANDLER(OSPApplication, HandlePostRenderUpdate));
-        SubscribeToEvent(E_ENDFRAME,URHO3D_HANDLER(OSPApplication, HandleEndFrame));
+        SubscribeToEvent(E_BEGINFRAME, URHO3D_HANDLER(OSPApplication, HandleBeginFrame));
+        SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(OSPApplication, HandleKeyDown));
+        SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(OSPApplication, HandleUpdate));
+        SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(OSPApplication, HandlePostUpdate));
+        SubscribeToEvent(E_RENDERUPDATE, URHO3D_HANDLER(OSPApplication, HandleRenderUpdate));
+        SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(OSPApplication, HandlePostRenderUpdate));
+        SubscribeToEvent(E_ENDFRAME, URHO3D_HANDLER(OSPApplication, HandleEndFrame));
+        SubscribeToEvent(E_RESOURCEBACKGROUNDLOADED, URHO3D_HANDLER(OSPApplication, HandleResourceLoaded));
     }
 
     /**
@@ -233,6 +253,11 @@ public:
         float MOVE_SPEED = 10.0f;
         // Mouse sensitivity as degrees per pixel
         const float MOUSE_SENSITIVITY = 0.1f;
+
+        //if (!eventData[E_RESOURCEBACKGROUNDLOADED]->IsEmpty())
+        //{
+        //    printf("Succ: %i\n", eventData[ResourceBackgroundLoaded::P_SUCCESS].GetBool());
+        //}
 
         //if (updatePlanet_) {
         //    // Subtract
@@ -353,7 +378,47 @@ public:
         // We really don't have anything useful to do here for this example.
         // Probably shouldn't be subscribing to events we don't care about.
     }
+
+    void HandleResourceLoaded(StringHash eventType, VariantMap& eventData) {
+
+        if (eventData[ResourceBackgroundLoaded::P_SUCCESS].GetBool())
+        {
+            printf("Succ: %s %s\n", eventData[ResourceBackgroundLoaded::P_RESOURCENAME].GetString().CString(), m_runImmediately[0].CString());
+
+            // Check if the the resource is in the run run immediately list
+            unsigned i = m_runImmediately.IndexOf(eventData[ResourceBackgroundLoaded::P_RESOURCENAME].GetString());
+            if (i != -1)
+            {
+                // Run the thing, probably a script
+                m_runImmediately.Erase(i);
+                ScriptFile* script = reinterpret_cast<ScriptFile*>(eventData[ResourceBackgroundLoaded::P_RESOURCE].GetVoidPtr());
+                VariantVector params;
+                script->Execute("void main()", params);
+            }
+
+
+        } else {
+            // error!
+            URHO3D_LOGERROR("Loading something went wrong");
+        }
+    }
+
 };
+
+//void salamander(const WorkItem* item, unsigned threadIndex)
+//{
+//    OSPApplication* app = reinterpret_cast<OSPApplication*>(item->start_);
+//    UIElement* root = app->GetSubsystem<UI>()->GetRoot();
+//    ResourceCache* cache = app->GetSubsystem<ResourceCache>();
+
+//    app->GetSubsystem<Script>()->Execute("    ");
+//    //app->m_scene->LoadXML(cache->GetResource<XMLFile>("Scenes/Menu.xml")->GetRoot());
+//    SharedPtr<UIElement> menu = app->GetSubsystem<UI>()->LoadLayout(cache->GetResource<XMLFile>("UI/MenuUI.xml"));
+//    //menu->SetDefaultStyle(root->GetDefaultStyle());
+//    root->RemoveAllChildren();
+//    root->AddChild(menu);
+//  }
+
 
 /**
 * This macro is expanded to (roughly, depending on OS) this:
