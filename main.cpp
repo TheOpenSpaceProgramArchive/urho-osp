@@ -393,7 +393,8 @@ public:
                 m_runImmediately.Erase(i);
                 ScriptFile* script = reinterpret_cast<ScriptFile*>(eventData[ResourceBackgroundLoaded::P_RESOURCE].GetVoidPtr());
                 VariantVector params;
-                script->Execute("void main()", params);
+                params.Push(Variant(m_scene));
+                script->Execute("void main(Scene&)", params);
             }
 
 
