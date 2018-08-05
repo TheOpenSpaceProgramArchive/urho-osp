@@ -40,17 +40,17 @@ void AstronomicalBody::Initialize(Context* context, double size) {
 
 
 
-OspPart::OspPart(Context* context) : LogicComponent(context) {
+OspInstance::OspInstance(Context* context) : LogicComponent(context) {
     SetUpdateEventMask(USE_FIXEDUPDATE);
 }
 
-void OspPart::RegisterObject(Context* context) {
+void OspInstance::RegisterObject(Context* context) {
 
-    context->RegisterFactory<OspPart>();
+    context->RegisterFactory<OspInstance>();
 
 }
 
-void OspPart::FixedUpdate(float timeStep) {
+void OspInstance::FixedUpdate(float timeStep) {
     RigidBody* a = static_cast<RigidBody*>(node_->GetComponent("RigidBody"));
     Vector3 planetPos = node_->GetScene()->GetChild("Planet")->GetPosition();
     // Gravity equation, probably not very precise and efficient here

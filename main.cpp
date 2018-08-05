@@ -69,6 +69,8 @@ public:
     //Vector<ScriptFile*> m_runImmediately;
     Vector<String> m_runImmediately;
 
+
+
     /**
     * This happens before the engine has been initialized
     * so it's usually minimal code setting defaults for
@@ -77,7 +79,7 @@ public:
     */
     OSPApplication(Context * context) : Application(context), m_framecount(0), m_time(0) {
         AstronomicalBody::RegisterObject(context);
-        OspPart::RegisterObject(context);
+        OspInstance::RegisterObject(context);
     }
 
     /**
@@ -95,6 +97,7 @@ public:
         engineParameters_["WindowHeight"] = 720;
         engineParameters_["WindowResizable"] = true;
         engineParameters_["WindowTitle"] = "OpenSpaceProgram Urho3D";
+        engineParameters_["ResourcePaths"] = "Data;CoreData;OSPData";
     }
 
     /**
@@ -150,7 +153,7 @@ public:
 
         //GetSubsystem<Script>()->Execute("Print(\"Hello World!\");");
         //m_scene->LoadXML(cache->GetResource<XMLFile>("Scenes/Menu.xml")->GetRoot());
-        //SharedPtr<UIElement>  menu = GetSubsystem<UI>()->LoadLayout(cache->GetResource<XMLFile>("UI/MenuUI.xml"));
+        //SharedPtr<UIElement>  menu = GetSubsystem<UI>()-> (cache->GetResource<XMLFile>("UI/MenuUI.xml"));
         //menu->SetDefaultStyle(root->GetDefaultStyle());
         //root->AddChild(menu);
 
@@ -224,9 +227,9 @@ public:
             m->SetFillMode((m->GetFillMode() == FILL_WIREFRAME) ? FILL_SOLID : FILL_WIREFRAME );
         }
 
-        if(key==KEY_P) {
-            m_scene->GetChild("Planet")->SetScale(Vector3(1500, 0.1, 1500));
-        }
+        //if(key==KEY_P) {
+        //    m_scene->GetChild("Planet")->SetScale(Vector3(1500, 0.1, 1500));
+        //}
 
         if(key==KEY_TAB) {
             // toggle mouse cursor when pressing tab

@@ -34,3 +34,9 @@ void play_pressed()
     ui.root.RemoveAllChildren();
     g_scene.RemoveAllChildren();
 }
+
+void construct_apparatus()
+{
+
+
+}

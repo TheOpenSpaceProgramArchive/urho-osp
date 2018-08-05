@@ -1,0 +1,269 @@
+{
+    "accessors" : [
+        {
+            "bufferView" : 0,
+            "componentType" : 5123,
+            "count" : 2130,
+            "max" : [
+                536
+            ],
+            "min" : [
+                0
+            ],
+            "type" : "SCALAR"
+        },
+        {
+            "bufferView" : 1,
+            "componentType" : 5126,
+            "count" : 537,
+            "max" : [
+                2.1185548305511475,
+                27.505979537963867,
+                2.118595838546753
+            ],
+            "min" : [
+                -2.1185550689697266,
+                -19.9935245513916,
+                -2.1185142993927
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 2,
+            "componentType" : 5126,
+            "count" : 537,
+            "max" : [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "min" : [
+                -1.0,
+                -1.0,
+                -1.0
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 3,
+            "componentType" : 5126,
+            "count" : 537,
+            "max" : [
+                0.6395758986473083,
+                1.0
+            ],
+            "min" : [
+                0.0,
+                0.00015586614608764648
+            ],
+            "type" : "VEC2"
+        },
+        {
+            "bufferView" : 4,
+            "componentType" : 5123,
+            "count" : 7674,
+            "max" : [
+                2167
+            ],
+            "min" : [
+                0
+            ],
+            "type" : "SCALAR"
+        },
+        {
+            "bufferView" : 5,
+            "componentType" : 5126,
+            "count" : 2168,
+            "max" : [
+                2.109555244445801,
+                20.089073181152344,
+                2.109596014022827
+            ],
+            "min" : [
+                -2.109555244445801,
+                -21.11439323425293,
+                -2.1095144748687744
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 6,
+            "componentType" : 5126,
+            "count" : 2168,
+            "max" : [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "min" : [
+                -1.0,
+                -1.0,
+                -1.0
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 7,
+            "componentType" : 5126,
+            "count" : 2168,
+            "max" : [
+                0.0,
+                1.0
+            ],
+            "min" : [
+                0.0,
+                1.0
+            ],
+            "type" : "VEC2"
+        }
+    ],
+    "asset" : {
+        "generator" : "Khronos Blender glTF 2.0 exporter",
+        "version" : "2.0"
+    },
+    "bufferViews" : [
+        {
+            "buffer" : 0,
+            "byteLength" : 4260,
+            "byteOffset" : 0,
+            "target" : 34963
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 6444,
+            "byteOffset" : 4260,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 6444,
+            "byteOffset" : 10704,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 4296,
+            "byteOffset" : 17148,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 15348,
+            "byteOffset" : 21444,
+            "target" : 34963
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 26016,
+            "byteOffset" : 36792,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 26016,
+            "byteOffset" : 62808,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 17344,
+            "byteOffset" : 88824,
+            "target" : 34962
+        }
+    ],
+    "buffers" : [
+        {
+            "byteLength" : 106168,
+            "uri" : "f9.sturdy.bin"
+        }
+    ],
+    "meshes" : [
+        {
+            "name" : "Cylinder",
+            "primitives" : [
+                {
+                    "attributes" : {
+                        "NORMAL" : 2,
+                        "POSITION" : 1,
+                        "TEXCOORD_0" : 3
+                    },
+                    "indices" : 0
+                },
+                {
+                    "attributes" : {
+                        "NORMAL" : 6,
+                        "POSITION" : 5,
+                        "TEXCOORD_0" : 7
+                    },
+                    "indices" : 4
+                }
+            ]
+        }
+    ],
+    "nodes" : [
+        {
+            "extras" : {
+                "method" : "POINT",
+                "type" : "FLAT"
+            },
+            "name" : "attach_stage2",
+            "scale" : [
+                3.6589999198913574,
+                3.6589999198913574,
+                3.6589999198913574
+            ],
+            "translation" : [
+                0.0,
+                20.651472091674805,
+                -0.0
+            ]
+        },
+        {
+            "extras" : {
+                "shape" : "cylinder"
+            },
+            "name" : "col_collider",
+            "scale" : [
+                1.8618593215942383,
+                24.379796981811523,
+                1.8618593215942383
+            ],
+            "translation" : [
+                0.0,
+                3.1334776878356934,
+                -0.0
+            ]
+        },
+        {
+            "children" : [
+                0,
+                1
+            ],
+            "mesh" : 0,
+            "name" : "comp_Model"
+        },
+        {
+            "children" : [
+                2
+            ],
+            "extras" : {
+                "category" : "boosters",
+                "cost" : 90000000,
+                "country" : "United States",
+                "description" : "Elon's RP-1 powered Linear Beef",
+                "manufacturer" : "SpaceX",
+                "name" : "Falcon 9 Block 4"
+            },
+            "name" : "part_F9"
+        }
+    ],
+    "scene" : 0,
+    "scenes" : [
+        {
+            "name" : "Scene",
+            "nodes" : [
+                3
+            ]
+        }
+    ]
+}

@@ -9,7 +9,8 @@
 using namespace Urho3D;
 
 
-class AstronomicalBody : public LogicComponent {
+class AstronomicalBody : public LogicComponent
+{
     URHO3D_OBJECT(AstronomicalBody, LogicComponent)
 
 public:
@@ -26,11 +27,12 @@ private:
     WeakPtr<RigidBody> collider_;
 };
 
-class OspPart : public LogicComponent {
-    URHO3D_OBJECT(OspPart, LogicComponent)
+class OspInstance : public LogicComponent
+{
+    URHO3D_OBJECT(OspInstance, LogicComponent)
 
 public:
-    OspPart(Context* context);
+    OspInstance(Context* context);
 
     static void RegisterObject(Context* context);
 
@@ -39,5 +41,12 @@ public:
 private:
 
 };
+
+class OspPart
+{
+    String name;
+    String id;
+};
+
 
 #endif
