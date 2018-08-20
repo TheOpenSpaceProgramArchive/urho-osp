@@ -73,4 +73,19 @@ void OspInstance::FixedUpdate(float timeStep) {
     a->SetGravityOverride(gravity);
 }
 
-
+SystemOsp::SystemOsp(Context* context) : Object(context)
+{
+    m_hiddenScene = new Scene(context);
+    // Parts holds
+    m_parts = m_hiddenScene->CreateChild("Parts");
+    Node* category = m_parts->CreateChild("dbg");
+    category->SetVar("DisplayName", "Debug Parts");
+    for (uint i = 0; i < 20; i ++)
+    {
+        Node* aPart = category->CreateChild("dbg_" + String(i));
+        aPart->SetVar("Country", "Canarda");
+        aPart->SetVar("Description", "A simple oddly shaped cube");
+        aPart->SetVar("Manufacturer", "Gotzietec Industries");
+        aPart->SetVar("DisplayName", "Cube "  + String(i));
+    }
+}

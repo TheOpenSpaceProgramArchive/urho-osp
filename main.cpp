@@ -44,6 +44,7 @@
 #include <Urho3D/UI/UIElement.h>
 #include <Urho3D/UI/UIEvents.h>
 #include <Urho3D/UI/UI.h>
+#include <Urho3D/AngelScript/APITemplates.h>
 
 
 #include "OSP.h"
@@ -51,25 +52,16 @@
 
 using namespace Urho3D;
 
-void salamander(const WorkItem* item, unsigned threadIndex);
-
-/**
-* Using the convenient Application API we don't have
-* to worry about initializing the engine or writing a main.
-* You can probably mess around with initializing the engine
-* and running a main manually, but this is convenient and portable.
-*/
 class OSPApplication : public Application {
 public:
     int m_framecount;
     float m_time;
 
     SharedPtr<Scene> m_scene;
+    SharedPtr<SystemOsp> m_osp;
     SharedPtr<Node> m_cameraNode;
     //Vector<ScriptFile*> m_runImmediately;
     Vector<String> m_runImmediately;
-
-
 
     /**
     * This happens before the engine has been initialized
@@ -77,9 +69,15 @@ public:
     * whatever instance variables you have.
     * You can also do this in the Setup method.
     */
-    OSPApplication(Context * context) : Application(context), m_framecount(0), m_time(0) {
+    OSPApplication(Context * context) : Application(context), m_framecount(0), m_time(0)
+    {
         AstronomicalBody::RegisterObject(context);
         OspInstance::RegisterObject(context);
+    }
+
+    SystemOsp* GetOsp()
+    {
+        return m_osp.Get();
     }
 
     /**
@@ -88,10 +86,8 @@ public:
     * of engine importance happens (such as windows, search paths,
     * resolution and other things that might be user configurable).
     */
-    virtual void Setup() {
-        // These parameters should be self-explanatory.
-        // See http://urho3d.github.io/documentation/1.5/_main_loop.html
-        // for a more complete list.
+    virtual void Setup()
+    {
         engineParameters_["FullScreen"] = false;
         engineParameters_["WindowWidth"] = 1280;
         engineParameters_["WindowHeight"] = 720;
@@ -100,29 +96,38 @@ public:
         engineParameters_["ResourcePaths"] = "Data;CoreData;OSPData";
     }
 
-    /**
-    * This method is called after the engine has been initialized.
-    * This is where you set up your actual content, such as scenes,
-    * models, controls and what not. Basically, anything that needs
-    * the engine initialized and ready goes in here.
-    */
     virtual void Start() {
-        // We will be needing to load resources.
-        // All the resources used in this example comes with Urho3D.
-        // If the engine can't find them, check the ResourcePrefixPath (see http://urho3d.github.io/documentation/1.5/_main_loop.html).
-        ResourceCache* cache=GetSubsystem<ResourceCache>();
+        // Get the subsystem that is used to load resources
+        ResourceCache* cache = GetSubsystem<ResourceCache>();
 
+        // Use Default Urho3D style
         UIElement* root = GetSubsystem<UI>()->GetRoot();
-        // Let's use the default style that comes with Urho3D.
         root->SetDefaultStyle(cache->GetResource<XMLFile>("UI/DefaultStyle.xml"));
 
+        // Initialize OSP system
+        m_osp = new SystemOsp(context_);
+
+        // Get Angelscript working
+        context_->RegisterSubsystem(new Script(context_));
+
+        // Register "osp" as a global in AngelScript
+        asIScriptEngine* scriptEngine = GetSubsystem<Script>()->GetScriptEngine();
+        // Copied from Urho3D/AngelScript/*API.cpp
+        RegisterObject<SystemOsp>(scriptEngine, "SystemOsp");
+        scriptEngine->RegisterObjectMethod("SystemOsp", "Scene@+ get_hiddenScene() const", asMETHOD(SystemOsp, GetHiddenScene), asCALL_THISCALL);
+        // call GetOsp when osp is accessed from angelscript, see thing about singleton https://www.angelcode.com/angelscript/sdk/docs/manual/doc_register_func.html
+        scriptEngine->RegisterGlobalFunction("SystemOsp@+ get_osp()", asMETHOD(OSPApplication, GetOsp), asCALL_THISCALL_ASGLOBAL, this);
+
+        // Run main menu script once it's loaded
+        m_runImmediately.Push("Scripts/MainMenu.as");
+        cache->BackgroundLoadResource<ScriptFile>("Scripts/MainMenu.as", true);
+
+        // Create the loading screen image and add it to the UI root
         BorderImage* loading = new BorderImage(context_);
         loading->SetTexture(cache->GetResource<Texture2D>("Textures/TempLoad.png"));
         loading->SetSize(1280, 720);
         root->AddChild(loading);
 
-        // Let's setup a scene to render.
-        m_scene = new Scene(context_);
         //m_scene->CreateComponent<Octree>();
         //m_scene->CreateComponent<DebugRenderer>();
         //PhysicsWorld* world = m_scene->CreateComponent<PhysicsWorld>();
@@ -135,56 +140,25 @@ public:
         //skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
         //skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
 
-        // We need a camera from which the viewport can render.
-        m_cameraNode=m_scene->CreateChild("Camera");
-        Camera* camera=m_cameraNode->CreateComponent<Camera>();
-        m_cameraNode->SetPosition(Vector3(0,0,0));
-        camera->SetFarClip(20000);
+        // Create empty scene
+        m_scene = new Scene(context_);
 
-        context_->RegisterSubsystem(new Script(context_));
-        m_runImmediately.Push("Scripts/MainMenu.as");
-        cache->BackgroundLoadResource<ScriptFile>("Scripts/MainMenu.as", true);
+        // Add camera node and component
+        m_cameraNode = m_scene->CreateChild("Camera");
+        m_cameraNode->CreateComponent<Camera>();
+        m_cameraNode->SetPosition(Vector3(0, 0, 0));
 
-        //WorkQueue* queue = GetSubsystem<WorkQueue>();
-        //SharedPtr<WorkItem> item = queue->GetFreeItem();
-        //item->start_ = this;
-        //item->workFunction_ = salamander;
-        //queue->AddWorkItem(item);
-
-        //GetSubsystem<Script>()->Execute("Print(\"Hello World!\");");
-        //m_scene->LoadXML(cache->GetResource<XMLFile>("Scenes/Menu.xml")->GetRoot());
-        //SharedPtr<UIElement>  menu = GetSubsystem<UI>()-> (cache->GetResource<XMLFile>("UI/MenuUI.xml"));
-        //menu->SetDefaultStyle(root->GetDefaultStyle());
-        //root->AddChild(menu);
-
-        // Create a red directional light (sun)`
-        //{
-        //    Node* lightNode = m_scene->CreateChild();
-        //    lightNode->SetDirection(Vector3::FORWARD);
-        //    lightNode->Yaw(50);     // horizontal
-        //    lightNode->Pitch(10);   // vertical
-        //    Light* light=lightNode->CreateComponent<Light>();
-        //    light->SetLightType(LIGHT_DIRECTIONAL);
-        //    light->SetBrightness(1.6);
-        //    light->SetColor(Color(1.0, 0.6, 0.3, 1));
-        //    light->SetCastShadows(true);
-        //}
-
-        // Now we setup the viewport. Of course, you can have more than one!
-        Renderer* renderer=GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(context_,m_scene,m_cameraNode->GetComponent<Camera>()));
+        // Add a single viewport
+        Renderer* renderer = GetSubsystem<Renderer>();
+        SharedPtr<Viewport> viewport(new Viewport(context_, m_scene, m_cameraNode->GetComponent<Camera>()));
         renderer->SetViewport(0, viewport);
 
+        // Don't grab the mouse
         GetSubsystem<Input>()->SetMouseGrabbed(false);
         GetSubsystem<Input>()->SetMouseVisible(true);
 
         // We subscribe to the events we'd like to handle.
-        // In this example we will be showing what most of them do,
-        // but in reality you would only subscribe to the events
-        // you really need to handle.
-        // These are sort of subscribed in the order in which the engine
-        // would send the events. Read each handler method's comment for
-        // details.
+        // Some of these are unused, and much more fresh from the example
         SubscribeToEvent(E_BEGINFRAME, URHO3D_HANDLER(OSPApplication, HandleBeginFrame));
         SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(OSPApplication, HandleKeyDown));
         SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(OSPApplication, HandleUpdate));
@@ -216,7 +190,7 @@ public:
     * Input from keyboard is handled here. I'm assuming that Input, if
     * available, will be handled before E_UPDATE.
     */
-    void HandleKeyDown(StringHash eventType,VariantMap& eventData) {
+    void HandleKeyDown(StringHash eventType, VariantMap& eventData) {
         using namespace KeyDown;
         int key=eventData[P_KEY].GetInt();
         if(key==KEY_ESCAPE)
@@ -226,10 +200,6 @@ public:
             Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Earth.xml");
             m->SetFillMode((m->GetFillMode() == FILL_WIREFRAME) ? FILL_SOLID : FILL_WIREFRAME );
         }
-
-        //if(key==KEY_P) {
-        //    m_scene->GetChild("Planet")->SetScale(Vector3(1500, 0.1, 1500));
-        //}
 
         if(key==KEY_TAB) {
             // toggle mouse cursor when pressing tab
@@ -270,6 +240,7 @@ public:
         //    planet_->Update(dist, dir);
         //}
 
+        // Quick and easy floating point origin
         /*Vector3 translateEverything(m_cameraNode->GetPosition());
         translateEverything.x_ = Floor(translateEverything.x_ / 64) * 64;
         translateEverything.y_ = Floor(translateEverything.y_ / 64) * 64;
@@ -331,20 +302,6 @@ public:
             m_cameraNode->Translate(Vector3(-1,0,0) * MOVE_SPEED * timeStep);
         if(input->GetKeyDown('D'))
             m_cameraNode->Translate(Vector3( 1,0,0) * MOVE_SPEED * timeStep);
-
-        if(!GetSubsystem<Input>()->IsMouseVisible()) {
-            // Use this frame's mouse motion to adjust camera node yaw and pitch. Clamp the pitch between -90 and 90 degrees
-            IntVector2 mouseMove = input->GetMouseMove();
-            static float sc_yaw = 0;
-            static float sc_pitch = 0;
-            sc_yaw += MOUSE_SENSITIVITY * mouseMove.x_;
-            sc_pitch += MOUSE_SENSITIVITY * mouseMove.y_;
-            sc_pitch = Clamp(sc_pitch,-90.0f,90.0f);
-            // Reset rotation and set yaw and pitch again
-            m_cameraNode->SetDirection(Vector3::FORWARD);
-            m_cameraNode->Yaw(sc_yaw);
-            m_cameraNode->Pitch(sc_pitch);
-        }
     }
     /**
     * Anything in the non-rendering logic that requires a second pass,
@@ -409,35 +366,5 @@ public:
 
 };
 
-//void salamander(const WorkItem* item, unsigned threadIndex)
-//{
-//    OSPApplication* app = reinterpret_cast<OSPApplication*>(item->start_);
-//    UIElement* root = app->GetSubsystem<UI>()->GetRoot();
-//    ResourceCache* cache = app->GetSubsystem<ResourceCache>();
 
-//    app->GetSubsystem<Script>()->Execute("    ");
-//    //app->m_scene->LoadXML(cache->GetResource<XMLFile>("Scenes/Menu.xml")->GetRoot());
-//    SharedPtr<UIElement> menu = app->GetSubsystem<UI>()->LoadLayout(cache->GetResource<XMLFile>("UI/MenuUI.xml"));
-//    //menu->SetDefaultStyle(root->GetDefaultStyle());
-//    root->RemoveAllChildren();
-//    root->AddChild(menu);
-//  }
-
-
-/**
-* This macro is expanded to (roughly, depending on OS) this:
-*
-* > int RunApplication()
-* > {
-* > Urho3D::SharedPtr<Urho3D::Context> context(new Urho3D::Context());
-* > Urho3D::SharedPtr<className> application(new className(context));
-* > return application->Run();
-* > }
-* >
-* > int main(int argc, char** argv)
-* > {
-* > Urho3D::ParseArguments(argc, argv);
-* > return function;
-* > }
-*/
 URHO3D_DEFINE_APPLICATION_MAIN(OSPApplication)

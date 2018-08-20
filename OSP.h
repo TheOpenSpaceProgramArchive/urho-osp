@@ -1,6 +1,7 @@
 #ifndef OSP_H
 #define OSP_H
 
+#include <Urho3D/Container/RefCounted.h>
 #include <Urho3D/Scene/LogicComponent.h>
 #include <Urho3D/Physics/RigidBody.h>
 
@@ -42,11 +43,26 @@ private:
 
 };
 
-class OspPart
-{
-    String name;
-    String id;
-};
+//class OspPart
+//{
+//    String m_id;
+//
+//    String m_name;
+//    String m_desc;
+//};
 
+class SystemOsp : public Object
+{
+    SharedPtr<Scene> m_hiddenScene;
+    SharedPtr<Node> m_parts;
+    //Vector<OspPart>
+    // list of countried, manufacturers, and other stuff
+
+    URHO3D_OBJECT(SystemOsp, Object)
+public:
+    SystemOsp(Context* context);
+
+    Scene* GetHiddenScene() { return m_hiddenScene; }
+};
 
 #endif

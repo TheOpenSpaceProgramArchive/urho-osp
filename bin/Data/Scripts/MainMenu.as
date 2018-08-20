@@ -10,7 +10,7 @@ Scene@ g_scene;
 
 void main(Scene& scene)
 {
-    Print("This is a print from the menu script");
+    Print("This is a print from the menu script " + osp.typeName);
 
     g_scene = scene;
 
