@@ -33,10 +33,11 @@ void play_pressed()
     Print("Button pressed");
     ui.root.RemoveAllChildren();
     g_scene.RemoveAllChildren();
+    construct_apparatus();
 }
 
 void construct_apparatus()
 {
-
+     g_scene.LoadJSON(cache.GetFile("Scenes/VAB.json"));
 
 }

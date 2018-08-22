@@ -1,0 +1,34 @@
+{
+	"techniques": [
+		{
+			"name": "Techniques/Diff.xml",
+			"quality": 1,
+			"loddistance": 0.0
+		}
+	],
+	"textures": {
+		"diffuse": "Textures/Floor0.png"
+	},
+	"shaderParameters": {
+		"UOffset": "1 0 0 0",
+		"VOffset": "0 1 0 0",
+		"MatDiffColor": "0.7 0.7 0.76 1",
+		"MatEmissiveColor": "0 0 0",
+		"MatEnvMapColor": "1 1 1",
+		"MatSpecColor": "0.3 0.3 0.3 16",
+		"Roughness": "0.5",
+		"Metallic": "0"
+	},
+	"shaderParameterAnimations": null,
+	"cull": "none",
+	"shadowcull": "ccw",
+	"fill": "solid",
+	"depthbias": {
+		"constant": 0.0,
+		"slopescaled": 0.0
+	},
+	"alphatocoverage": false,
+	"lineantialias": false,
+	"renderorder": 128,
+	"occlusion": true
+}

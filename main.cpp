@@ -104,6 +104,12 @@ public:
         UIElement* root = GetSubsystem<UI>()->GetRoot();
         root->SetDefaultStyle(cache->GetResource<XMLFile>("UI/DefaultStyle.xml"));
 
+        // Create the loading screen image and add it to the UI root
+        BorderImage* loading = new BorderImage(context_);
+        loading->SetTexture(cache->GetResource<Texture2D>("Textures/TempLoad.png"));
+        loading->SetSize(1280, 720);
+        root->AddChild(loading);
+
         // Initialize OSP system
         m_osp = new SystemOsp(context_);
 
@@ -121,12 +127,6 @@ public:
         // Run main menu script once it's loaded
         m_runImmediately.Push("Scripts/MainMenu.as");
         cache->BackgroundLoadResource<ScriptFile>("Scripts/MainMenu.as", true);
-
-        // Create the loading screen image and add it to the UI root
-        BorderImage* loading = new BorderImage(context_);
-        loading->SetTexture(cache->GetResource<Texture2D>("Textures/TempLoad.png"));
-        loading->SetSize(1280, 720);
-        root->AddChild(loading);
 
         //m_scene->CreateComponent<Octree>();
         //m_scene->CreateComponent<DebugRenderer>();

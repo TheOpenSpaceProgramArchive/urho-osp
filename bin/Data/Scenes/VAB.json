@@ -1,0 +1,223 @@
+{
+	"id": 1,
+	"attributes": {
+		"Name": "",
+		"Time Scale": 1.0,
+		"Smoothing Constant": 50.0,
+		"Snap Threshold": 5.0,
+		"Elapsed Time": 1.0622800588607789,
+		"Next Replicated Node ID": 14,
+		"Next Replicated Component ID": 18,
+		"Next Local Node ID": 16777218,
+		"Next Local Component ID": 16777240,
+		"Variables": {},
+		"Variable Names": ""
+	},
+	"components": [
+		{
+			"type": "Octree",
+			"id": 1,
+			"attributes": null
+		},
+		{
+			"type": "DebugRenderer",
+			"id": 2,
+			"attributes": null
+		},
+		{
+			"type": "Zone",
+			"id": 13,
+			"attributes": {
+				"Bounding Box Min": "-1000 -1000 -1000",
+				"Bounding Box Max": "1000 1000 1000",
+				"Ambient Color": "0.1 0.08 0.1 1"
+			}
+		},
+		{
+			"type": "SoundSource",
+			"id": 17,
+			"attributes": {
+				"Sound": "Sound;Music/somefthing.ogg",
+				"Type": "Music",
+				"Frequency": 44100.0,
+				"Is Playing": true,
+				"Play Position": -5208544
+			}
+		}
+	],
+	"children": [
+		{
+			"id": 2,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Plane",
+				"Tags": [],
+				"Position": "0 -2.1 0",
+				"Rotation": "1 0 0 0",
+				"Scale": "20 0.2 20",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 3,
+					"attributes": {
+						"Model": "Model;Models/Box.mdl",
+						"Material": "Material;Materials/Floor0.json"
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 3,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "CeilLight",
+				"Tags": [],
+				"Position": "0 1.74172 0",
+				"Rotation": "0.707733 0.593858 0.293152 -0.245984",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "Light",
+					"id": 4,
+					"attributes": {
+						"Light Type": "Directional",
+						"Color": "1 0.9 0.7 1",
+						"Brightness Multiplier": 0.800000011920929
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 5,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "FloorLight",
+				"Tags": [],
+				"Position": "0 1.74172 0",
+				"Rotation": "0.707107 -0.707107 0 0",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "Light",
+					"id": 5,
+					"attributes": {
+						"Light Type": "Directional",
+						"Color": "0.9 0.9 1 1",
+						"Specular Intensity": 0.0,
+						"Brightness Multiplier": 0.4000000059604645
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 8,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "SpotLight",
+				"Tags": [],
+				"Position": "0 6.87098 0",
+				"Rotation": "0.707107 0.707107 1.33492e-06 -1.33492e-06",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "Light",
+					"id": 10,
+					"attributes": {
+						"Light Type": "Spot",
+						"Color": "1 0.9 0.8 1",
+						"Brightness Multiplier": 0.4000000059604645,
+						"Spot FOV": 90.0,
+						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 10,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Plane",
+				"Tags": [],
+				"Position": "0 7.45856 0",
+				"Rotation": "1 0 0 0",
+				"Scale": "20 0.2 20",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 12,
+					"attributes": {
+						"Model": "Model;Models/Box.mdl",
+						"Material": "Material;Materials/Floor0.json"
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 11,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "SpotLight",
+				"Tags": [],
+				"Position": "-3.37755 6.87098 0",
+				"Rotation": "0.707107 0.707107 1.33492e-06 -1.33492e-06",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "Light",
+					"id": 14,
+					"attributes": {
+						"Light Type": "Spot",
+						"Color": "1 0.9 0.8 1",
+						"Brightness Multiplier": 0.4000000059604645,
+						"Spot FOV": 90.0,
+						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 12,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "SpotLight",
+				"Tags": [],
+				"Position": "3.21722 6.87098 0",
+				"Rotation": "0.707107 0.707107 1.33492e-06 -1.33492e-06",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "Light",
+					"id": 15,
+					"attributes": {
+						"Light Type": "Spot",
+						"Color": "1 0.9 0.8 1",
+						"Brightness Multiplier": 0.4000000059604645,
+						"Spot FOV": 90.0,
+						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		}
+	]
+}

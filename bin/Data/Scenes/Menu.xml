@@ -7,8 +7,8 @@
 	<attribute name="Elapsed Time" value="1.06228" />
 	<attribute name="Next Replicated Node ID" value="11" />
 	<attribute name="Next Replicated Component ID" value="13" />
-	<attribute name="Next Local Node ID" value="16778245" />
-	<attribute name="Next Local Component ID" value="16778278" />
+	<attribute name="Next Local Node ID" value="16778246" />
+	<attribute name="Next Local Component ID" value="16778290" />
 	<attribute name="Variables" />
 	<attribute name="Variable Names" value="" />
 	<component type="Octree" id="1" />
@@ -17,7 +17,7 @@
 		<attribute name="Is Enabled" value="true" />
 		<attribute name="Name" value="Box" />
 		<attribute name="Tags" />
-		<attribute name="Position" value="0.92629 1.75841 7.1099" />
+		<attribute name="Position" value="-3.89684 -0.15704 7.24024" />
 		<attribute name="Rotation" value="1 0 0 0" />
 		<attribute name="Scale" value="1.10108 1.93582 1" />
 		<attribute name="Variables" />
@@ -31,7 +31,7 @@
 		<attribute name="Is Enabled" value="true" />
 		<attribute name="Name" value="Box" />
 		<attribute name="Tags" />
-		<attribute name="Position" value="1.55205 -0.0942342 6.88912" />
+		<attribute name="Position" value="1.55205 -1.16733 6.88912" />
 		<attribute name="Rotation" value="1 0 0 0" />
 		<attribute name="Scale" value="11.4167 0.0916207 11.3355" />
 		<attribute name="Variables" />
@@ -89,7 +89,7 @@
 		<attribute name="Is Enabled" value="true" />
 		<attribute name="Name" value="Box" />
 		<attribute name="Tags" />
-		<attribute name="Position" value="1.55205 1.03655 6.88912" />
+		<attribute name="Position" value="1.55205 -0.357413 6.88912" />
 		<attribute name="Rotation" value="1 0 0 0" />
 		<attribute name="Scale" value="1 1 1" />
 		<attribute name="Variables" />
@@ -102,7 +102,7 @@
 		<attribute name="Is Enabled" value="true" />
 		<attribute name="Name" value="Box" />
 		<attribute name="Tags" />
-		<attribute name="Position" value="-1.81983 1.03655 3.12822" />
+		<attribute name="Position" value="-1.81983 0.291705 5.90377" />
 		<attribute name="Rotation" value="1 0 0 0" />
 		<attribute name="Scale" value="1 1 1" />
 		<attribute name="Variables" />
