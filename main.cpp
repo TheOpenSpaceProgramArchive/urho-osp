@@ -59,7 +59,7 @@ public:
 
     SharedPtr<Scene> m_scene;
     SharedPtr<SystemOsp> m_osp;
-    SharedPtr<Node> m_cameraNode;
+    //SharedPtr<Node> m_cameraNode;
     //Vector<ScriptFile*> m_runImmediately;
     Vector<String> m_runImmediately;
 
@@ -144,13 +144,14 @@ public:
         m_scene = new Scene(context_);
 
         // Add camera node and component
-        m_cameraNode = m_scene->CreateChild("Camera");
-        m_cameraNode->CreateComponent<Camera>();
-        m_cameraNode->SetPosition(Vector3(0, 0, 0));
+        //m_cameraNode = m_scene->CreateChild("Camera");
+        //m_cameraNode->CreateComponent<Camera>();
+        //m_cameraNode->SetPosition(Vector3(0, 0, 0));
 
         // Add a single viewport
         Renderer* renderer = GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(context_, m_scene, m_cameraNode->GetComponent<Camera>()));
+        SharedPtr<Viewport> viewport(new Viewport(context_));
+        viewport->SetScene(m_scene);
         renderer->SetViewport(0, viewport);
 
         // Don't grab the mouse
@@ -294,14 +295,14 @@ public:
         Input* input = GetSubsystem<Input>();
         if(input->GetQualifierDown(1))  // 1 is shift, 2 is ctrl, 4 is alt
             MOVE_SPEED*=100;
-        if(input->GetKeyDown('W'))
-            m_cameraNode->Translate(Vector3(0,0, 1) * MOVE_SPEED * timeStep);
-        if(input->GetKeyDown('S'))
-            m_cameraNode->Translate(Vector3(0,0,-1) * MOVE_SPEED * timeStep);
-        if(input->GetKeyDown('A'))
-            m_cameraNode->Translate(Vector3(-1,0,0) * MOVE_SPEED * timeStep);
-        if(input->GetKeyDown('D'))
-            m_cameraNode->Translate(Vector3( 1,0,0) * MOVE_SPEED * timeStep);
+        //if(input->GetKeyDown('W'))
+        //    m_cameraNode->Translate(Vector3(0,0, 1) * MOVE_SPEED * timeStep);
+        //if(input->GetKeyDown('S'))
+        //    m_cameraNode->Translate(Vector3(0,0,-1) * MOVE_SPEED * timeStep);
+        //if(input->GetKeyDown('A'))
+        //    m_cameraNode->Translate(Vector3(-1,0,0) * MOVE_SPEED * timeStep);
+        //if(input->GetKeyDown('D'))
+        //    m_cameraNode->Translate(Vector3( 1,0,0) * MOVE_SPEED * timeStep);
     }
     /**
     * Anything in the non-rendering logic that requires a second pass,

@@ -1,3 +1,4 @@
+#include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/Physics/CollisionShape.h>
 
 #include "OSP.h"
@@ -87,5 +88,9 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         aPart->SetVar("Description", "A simple oddly shaped cube");
         aPart->SetVar("Manufacturer", "Gotzietec Industries");
         aPart->SetVar("DisplayName", "Cube "  + String(i));
+
+        StaticModel* model = aPart->CreateComponent<StaticModel>();
+        model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
+
     }
 }
