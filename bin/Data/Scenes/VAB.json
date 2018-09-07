@@ -6,10 +6,10 @@
 		"Smoothing Constant": 50.0,
 		"Snap Threshold": 5.0,
 		"Elapsed Time": 1.0622800588607789,
-		"Next Replicated Node ID": 14,
-		"Next Replicated Component ID": 18,
-		"Next Local Node ID": 16777218,
-		"Next Local Component ID": 16777240,
+		"Next Replicated Node ID": 15,
+		"Next Replicated Component ID": 22,
+		"Next Local Node ID": 16777221,
+		"Next Local Component ID": 16777276,
 		"Variables": {},
 		"Variable Names": ""
 	},
@@ -41,8 +41,13 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -5208544
+				"Play Position": -7369120
 			}
+		},
+		{
+			"type": "PhysicsWorld",
+			"id": 20,
+			"attributes": null
 		}
 	],
 	"children": [
@@ -65,6 +70,23 @@
 						"Model": "Model;Models/Box.mdl",
 						"Material": "Material;Materials/Floor0.json"
 					}
+				},
+				{
+					"type": "RigidBody",
+					"id": 19,
+					"attributes": {
+						"Physics Rotation": "1 0 0 0",
+						"Physics Position": "0 -2.1 0",
+						"Rolling Friction": 0.5
+					}
+				},
+				{
+					"type": "CollisionShape",
+					"id": 21,
+					"attributes": {
+						"Shape Type": "TriangleMesh",
+						"Model": "Model;Models/Box.mdl"
+					}
 				}
 			],
 			"children": []
@@ -86,7 +108,7 @@
 					"id": 4,
 					"attributes": {
 						"Light Type": "Directional",
-						"Color": "1 0.9 0.7 1",
+						"Color": "1 1 1.01 1",
 						"Brightness Multiplier": 0.800000011920929
 					}
 				}
@@ -124,8 +146,8 @@
 				"Is Enabled": true,
 				"Name": "SpotLight",
 				"Tags": [],
-				"Position": "0 6.87098 0",
-				"Rotation": "0.707107 0.707107 1.33492e-06 -1.33492e-06",
+				"Position": "6.24304 6.87098 0",
+				"Rotation": "0.691724 0.691725 -0.146686 -0.146689",
 				"Scale": "1 1 1",
 				"Variables": {}
 			},
@@ -135,8 +157,8 @@
 					"id": 10,
 					"attributes": {
 						"Light Type": "Spot",
-						"Color": "1 0.9 0.8 1",
-						"Brightness Multiplier": 0.4000000059604645,
+						"Color": "1 0.9 0.5 1",
+						"Range": 30.0,
 						"Spot FOV": 90.0,
 						"Cast Shadows": true
 					}
@@ -150,7 +172,7 @@
 				"Is Enabled": true,
 				"Name": "Plane",
 				"Tags": [],
-				"Position": "0 7.45856 0",
+				"Position": "0 8.92264 0",
 				"Rotation": "1 0 0 0",
 				"Scale": "20 0.2 20",
 				"Variables": {}
@@ -168,51 +190,23 @@
 			"children": []
 		},
 		{
-			"id": 11,
+			"id": 14,
 			"attributes": {
 				"Is Enabled": true,
-				"Name": "SpotLight",
+				"Name": "Box",
 				"Tags": [],
-				"Position": "-3.37755 6.87098 0",
-				"Rotation": "0.707107 0.707107 1.33492e-06 -1.33492e-06",
+				"Position": "3.00322 -1.47087 -4.35253",
+				"Rotation": "1 0 0 0",
 				"Scale": "1 1 1",
 				"Variables": {}
 			},
 			"components": [
 				{
-					"type": "Light",
-					"id": 14,
+					"type": "StaticModel",
+					"id": 18,
 					"attributes": {
-						"Light Type": "Spot",
-						"Color": "1 0.9 0.8 1",
-						"Brightness Multiplier": 0.4000000059604645,
-						"Spot FOV": 90.0,
-						"Cast Shadows": true
-					}
-				}
-			],
-			"children": []
-		},
-		{
-			"id": 12,
-			"attributes": {
-				"Is Enabled": true,
-				"Name": "SpotLight",
-				"Tags": [],
-				"Position": "3.21722 6.87098 0",
-				"Rotation": "0.707107 0.707107 1.33492e-06 -1.33492e-06",
-				"Scale": "1 1 1",
-				"Variables": {}
-			},
-			"components": [
-				{
-					"type": "Light",
-					"id": 15,
-					"attributes": {
-						"Light Type": "Spot",
-						"Color": "1 0.9 0.8 1",
-						"Brightness Multiplier": 0.4000000059604645,
-						"Spot FOV": 90.0,
+						"Model": "Model;Models/Box.mdl",
+						"Material": "Material;Materials/Stone.xml",
 						"Cast Shadows": true
 					}
 				}

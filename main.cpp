@@ -72,7 +72,7 @@ public:
     OSPApplication(Context * context) : Application(context), m_framecount(0), m_time(0)
     {
         AstronomicalBody::RegisterObject(context);
-        OspInstance::RegisterObject(context);
+        Entity::RegisterObject(context);
     }
 
     SystemOsp* GetOsp()
@@ -120,7 +120,8 @@ public:
         asIScriptEngine* scriptEngine = GetSubsystem<Script>()->GetScriptEngine();
         // Copied from Urho3D/AngelScript/*API.cpp
         RegisterObject<SystemOsp>(scriptEngine, "SystemOsp");
-        scriptEngine->RegisterObjectMethod("SystemOsp", "Scene@+ get_hiddenScene() const", asMETHOD(SystemOsp, GetHiddenScene), asCALL_THISCALL);
+        scriptEngine->RegisterObjectMethod("SystemOsp", "Scene@+ get_hiddenScene() const", asMETHOD(SystemOsp, get_hidden_scene), asCALL_THISCALL);
+        scriptEngine->RegisterObjectMethod("SystemOsp", "void make_craft(Node@+) const", asMETHOD(SystemOsp, make_craft), asCALL_THISCALL);
         // call GetOsp when osp is accessed from angelscript, see thing about singleton https://www.angelcode.com/angelscript/sdk/docs/manual/doc_register_func.html
         scriptEngine->RegisterGlobalFunction("SystemOsp@+ get_osp()", asMETHOD(OSPApplication, GetOsp), asCALL_THISCALL_ASGLOBAL, this);
 

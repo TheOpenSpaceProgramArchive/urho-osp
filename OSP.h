@@ -9,10 +9,29 @@
 
 using namespace Urho3D;
 
+class AstronomicalBody;
 
-class AstronomicalBody : public LogicComponent
+class LongVector
 {
-    URHO3D_OBJECT(AstronomicalBody, LogicComponent)
+    int64_t m_x, m_y, m_z;
+    Vector3 m_fraction;
+};
+
+class Sattelite : public LogicComponent
+{
+    URHO3D_OBJECT(Sattelite, LogicComponent)
+
+public:
+    Sattelite(Context* context) : LogicComponent(context) {}
+
+    LongVector m_position;
+    WeakPtr<AstronomicalBody> orbiting;
+
+};
+
+class AstronomicalBody : public Sattelite
+{
+    URHO3D_OBJECT(AstronomicalBody, Sattelite)
 
 public:
     AstronomicalBody(Context* context);
@@ -28,18 +47,22 @@ private:
     WeakPtr<RigidBody> collider_;
 };
 
-class OspInstance : public LogicComponent
+class Entity : public Sattelite
 {
-    URHO3D_OBJECT(OspInstance, LogicComponent)
+
+    URHO3D_OBJECT(Entity, Sattelite)
 
 public:
-    OspInstance(Context* context);
+    Entity(Context* context);
 
     static void RegisterObject(Context* context);
 
     virtual void FixedUpdate(float timeStep);
 
-private:
+    Vector3 m_staticCoM;
+    float m_staticMass;
+
+//private:
 
 };
 
@@ -62,7 +85,8 @@ class SystemOsp : public Object
 public:
     SystemOsp(Context* context);
 
-    Scene* GetHiddenScene() { return m_hiddenScene; }
+    Scene* get_hidden_scene() { return m_hiddenScene; }
+    void make_craft(Node* node);
 };
 
 #endif

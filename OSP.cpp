@@ -1,11 +1,12 @@
 #include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/Physics/CollisionShape.h>
+#include <Urho3D/Physics/RigidBody.h>
 
 #include "OSP.h"
 
 
 
-AstronomicalBody::AstronomicalBody(Context* context) : LogicComponent(context) {
+AstronomicalBody::AstronomicalBody(Context* context) : Sattelite(context) {
     SetUpdateEventMask(USE_FIXEDUPDATE);
 
 }
@@ -41,42 +42,37 @@ void AstronomicalBody::Initialize(Context* context, double size) {
 
 
 
-OspInstance::OspInstance(Context* context) : LogicComponent(context) {
+Entity::Entity(Context* context) : Sattelite(context) {
     SetUpdateEventMask(USE_FIXEDUPDATE);
 }
 
-void OspInstance::RegisterObject(Context* context) {
+void Entity::RegisterObject(Context* context) {
 
-    context->RegisterFactory<OspInstance>();
+    context->RegisterFactory<Entity>();
 
 }
 
-void OspInstance::FixedUpdate(float timeStep) {
-    RigidBody* a = static_cast<RigidBody*>(node_->GetComponent("RigidBody"));
-    Vector3 planetPos = node_->GetScene()->GetChild("Planet")->GetPosition();
+void Entity::FixedUpdate(float timeStep) {
+    //RigidBody* a = static_cast<RigidBody*>(node_->GetComponent("RigidBody"));
+    //Vector3 planetPos = node_->GetScene()->GetChild("Planet")->GetPosition();
     // Gravity equation, probably not very precise and efficient here
 
-    // Try getting 9.8 at the surface
-    // Planet radius: 3000;
-    // 9.8 = something / 3000^2     --ignore gravitational constant and mass for now
-    // something = 9.8 * 3000^2
-    // something = 88200000         --divide by G to get mass o
+    //float moon = 88200000;
+    //Vector3 gravity = (planetPos - node_->GetPosition());
+    //float r = gravity.Length();
+    //gravity = gravity / r;
+    //gravity *= moon / (r * r);
+    //printf("gravity: (%f, %f, %f)\n", gravity.x_, gravity.y_, gravity.z_);
+    //a->SetGravityOverride(gravity);
+    //printf("AAAA\n");
 
-    float moon = 88200000;
-    Vector3 gravity = (planetPos - node_->GetPosition());
-    float r = gravity.Length();
-    //gravity.x_ = moon / (gravity.x_ * gravity.x_);
-    //gravity.y_ = moon / (gravity.y_ * gravity.y_);
-    //gravity.z_ = moon / (gravity.z_ * gravity.z_);
-    gravity = gravity / r;
-    gravity *= moon / (r * r);
-    printf("gravity: (%f, %f, %f)\n", gravity.x_, gravity.y_, gravity.z_);
-    a->SetGravityOverride(gravity);
 }
 
 SystemOsp::SystemOsp(Context* context) : Object(context)
 {
     m_hiddenScene = new Scene(context);
+    m_hiddenScene->SetUpdateEnabled(false);
+    m_hiddenScene->SetEnabled(false);
     // Parts holds
     m_parts = m_hiddenScene->CreateChild("Parts");
     Node* category = m_parts->CreateChild("dbg");
@@ -88,9 +84,22 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         aPart->SetVar("Description", "A simple oddly shaped cube");
         aPart->SetVar("Manufacturer", "Gotzietec Industries");
         aPart->SetVar("DisplayName", "Cube "  + String(i));
+        aPart->SetScale(0.05f * (i + 1));
+        aPart->SetEnabled(false);
 
         StaticModel* model = aPart->CreateComponent<StaticModel>();
+        model->SetCastShadows(true);
         model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
 
+        RigidBody* rb = aPart->CreateComponent<RigidBody>();
+        rb->SetMass(0.05f * (i + 1));
+        rb->SetEnabled(false);
+        CollisionShape* shape = aPart->CreateComponent<CollisionShape>();
+
     }
+}
+
+void SystemOsp::make_craft(Node* node)
+{
+    node->CreateComponent<Entity>();
 }

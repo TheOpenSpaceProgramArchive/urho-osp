@@ -40,6 +40,10 @@ void play_pressed()
 
 
 Node@ cameraCenter;
+Node@ grabbed;
+Node@ subject;
+
+Vector2 prevMouseRay;
 
 int bint(bool b)
 {
@@ -48,21 +52,26 @@ int bint(bool b)
 
 void construct_apparatus()
 {
-    
+
     g_scene.LoadJSON(cache.GetFile("Scenes/VAB.json"));
-    UIElement@ assemblyUI = ui.LoadLayout(cache.GetResource("XMLFile", "UI/AssemblyUI.xml"));
-    ListView@ partList = assemblyUI.GetChild("Content").GetChild("ListView");
-    UIElement@ itemContainer = partList.GetChild("SV_ScrollPanel").GetChild("LV_ItemContainer");
-    
+
     cameraCenter = g_scene.CreateChild("CameraCenter");
     Node@ camera = cameraCenter.CreateChild("Camera");
     camera.position = Vector3(0, 0, -8);
     renderer.viewports[0].camera = camera.CreateComponent("Camera");
-    
+
+    subject = g_scene.CreateChild("Subject");
+    subject.position = Vector3(0, 0, 0);
+
+    Button@ bottomBlank = Button();
+    UIElement@ assemblyUI = ui.LoadLayout(cache.GetResource("XMLFile", "UI/AssemblyUI.xml"));
+    ListView@ partList = assemblyUI.GetChild("Content").GetChild("ListView");
+    UIElement@ itemContainer = partList.GetChild("SV_ScrollPanel").GetChild("LV_ItemContainer");
+
     Array<Node@> categories = osp.hiddenScene.GetChild("Parts").GetChildren();
-    
+
     for (uint i = 0; i < categories.length; i ++)
-    {
+    { 
         Array<Node@> parts = categories[i].GetChildren();
         for (uint j = 0; j < parts.length; j ++)
         {
@@ -74,14 +83,32 @@ void construct_apparatus()
             butt.vars["N"] = parts[j];
             itemContainer.AddChild(butt);
             itemContainer.SetSize(itemContainer.size.x, 2000);
-            SubscribeToEvent(butt, "Released", "clickpart");
+            SubscribeToEvent(butt, "Pressed", "clickpart");
         }
     }
    
+    bottomBlank.SetPosition(0, 0);
+    bottomBlank.SetSize(graphics.width, graphics.height);
+    bottomBlank.opacity = 0;
+    
+    //ui.root.AddChild(bottomBlank);
     ui.root.AddChild(assemblyUI);
 
+    SubscribeToEvent("UIMouseClick", "click_drop");
+    SubscribeToEvent("KeyDown", "construct_keydown");
     SubscribeToEvent(g_scene, "SceneUpdate", "construct_update");
 
+    g_scene.CreateComponent("PhysicsWorld");
+}
+
+void click_drop(StringHash eventType, VariantMap& eventData)
+{
+    if (eventData["Element"].GetPtr() is null)
+    {
+        Print("Nothing was clicked");
+        //cast<RigidBody>(grabbed.GetComponent("RigidBody")).mass = 1;
+        grabbed = null;
+    }
 }
 
 void clickpart(StringHash eventType, VariantMap& eventData)
@@ -95,7 +122,64 @@ void clickpart(StringHash eventType, VariantMap& eventData)
     Print("Country      : " + part.vars["Country"].GetString());
     
     Node@ clone = part.Clone();
-    g_scene.AddChild(clone);
+    clone.enabled = true;
+    
+    grabbed = clone;
+    subject.AddChild(clone);
+}
+
+void construct_keydown(StringHash eventType, VariantMap& eventData)
+{
+    if (eventData["Key"].GetInt() == KEY_SPACE && !subject.HasComponent("RigidBody"))
+    {
+        // Make it into a craft
+
+        // Calculate center of mass
+        Array<Node@> childrenColliders = subject.GetChildrenWithComponent("RigidBody");
+
+        Vector3 centerOfMass(0, 0, 0);
+        float totalMass = 0;
+
+        for (uint i = 0; i < childrenColliders.length; i ++) 
+        {
+            RigidBody@ shape = cast<RigidBody>(childrenColliders[i].GetComponent("RigidBody"));
+            centerOfMass += (childrenColliders[i].position + childrenColliders[i].rotation * shape.centerOfMass ) * shape.mass;
+            totalMass += shape.mass;
+        }
+
+        centerOfMass /= totalMass;
+        Print(totalMass);
+
+        //subject.position += centerOfMass;
+        for (uint i = 0; i < childrenColliders.length; i ++) 
+        {
+            childrenColliders[i].position -= centerOfMass;
+            Array<Component@> shapes = childrenColliders[i].GetComponents("CollisionShape");
+            for (uint j = 0; j < shapes.length; j ++) 
+            {
+                CollisionShape@ shapeA = cast<CollisionShape>(subject.CreateComponent("CollisionShape"));
+                CollisionShape@ shapeB = cast<CollisionShape>(shapes[j]);
+                
+                shapeA.SetBox(Vector3(1, 1, 1)); // this is too avoid a weird glitch
+                shapeA.position = childrenColliders[i].position + childrenColliders[i].rotation * shapeB.position * childrenColliders[i].scale;
+                shapeA.size = childrenColliders[i].scale * shapeB.size * 1.01f;
+                shapeA.shapeType = shapeB.shapeType;
+                Print("shape added " + shapeA.position.x);
+            }
+        }
+
+        osp.make_craft(subject);
+        RigidBody@ body = subject.CreateComponent("RigidBody");
+        body.mass = totalMass;
+
+        ui.root.RemoveAllChildren();
+    }
+    else if (eventData["Key"].GetInt() == KEY_R)
+    {
+        ui.root.RemoveAllChildren();
+        g_scene.RemoveAllChildren();
+        construct_apparatus();
+    }
 }
 
 void construct_update(StringHash eventType, VariantMap& eventData)
@@ -103,8 +187,26 @@ void construct_update(StringHash eventType, VariantMap& eventData)
     float delta = eventData["TimeStep"].GetFloat();
     Vector2 arrowKeys(bint(input.keyDown[KEY_RIGHT]) - bint(input.keyDown[KEY_LEFT]), bint(input.keyDown[KEY_UP]) - bint(input.keyDown[KEY_DOWN]));
     //cameraCenter.rotation.FromEulerAngles(cameraCenter.rotation.yaw, cameraCenter.rotation.pitch, 0.0);
-    Print("update! " + Clamp(cameraCenter.rotation.pitch + arrowKeys.y * delta * 90, -100, 100));
+    //Print("update! " + Clamp(cameraCenter.rotation.pitch + arrowKeys.y * delta * 90, -100, 100));
     cameraCenter.rotation = Quaternion(Clamp(cameraCenter.rotation.pitch + arrowKeys.y * delta * 90, -80.0f, 80.0f), cameraCenter.rotation.yaw - arrowKeys.x * delta * 90, 0.0);
+    //prevMouseRay
+      
+    // do kind of an unproject
+    float dist = 8;
+    Vector2 mouseCenter(input.mousePosition.x - (graphics.width - graphics.width / 2), -input.mousePosition.y + (graphics.height - graphics.height / 2));
+    float scaleFactor = (graphics.height - graphics.height / 2) / Tan(float(renderer.viewports[0].camera.fov) / 2.0f);
+    mouseCenter /= scaleFactor;
+
+    //Print("Floating position: " + mouseCenter.x + ", " + mouseCenter.y);
+    
+    if (grabbed !is null)
+    {
+        grabbed.position = renderer.viewports[0].camera.node.LocalToWorld(Vector3(mouseCenter.x * dist, mouseCenter.y * dist, dist));
+    }
+    
+    
+    
+    
 }
 
 void grid_arrange(UIElement@ p)
