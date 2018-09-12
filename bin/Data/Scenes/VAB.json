@@ -8,8 +8,8 @@
 		"Elapsed Time": 1.0622800588607789,
 		"Next Replicated Node ID": 15,
 		"Next Replicated Component ID": 22,
-		"Next Local Node ID": 16777221,
-		"Next Local Component ID": 16777276,
+		"Next Local Node ID": 16777222,
+		"Next Local Component ID": 16777288,
 		"Variables": {},
 		"Variable Names": ""
 	},
@@ -41,7 +41,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -7369120
+				"Play Position": -7619600
 			}
 		},
 		{
@@ -84,7 +84,6 @@
 					"type": "CollisionShape",
 					"id": 21,
 					"attributes": {
-						"Shape Type": "TriangleMesh",
 						"Model": "Model;Models/Box.mdl"
 					}
 				}

@@ -92,10 +92,9 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
 
         RigidBody* rb = aPart->CreateComponent<RigidBody>();
-        rb->SetMass(0.05f * (i + 1));
+        rb->SetMass(Pow(0.05f * (i + 1), 3.0f));
         rb->SetEnabled(false);
         CollisionShape* shape = aPart->CreateComponent<CollisionShape>();
-
     }
 }
 
