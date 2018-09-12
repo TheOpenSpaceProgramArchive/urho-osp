@@ -1,5 +1,4 @@
-#ifndef OSP_H
-#define OSP_H
+#pragma once
 
 #include <Urho3D/Container/RefCounted.h>
 #include <Urho3D/Scene/LogicComponent.h>
@@ -8,6 +7,8 @@
 #include "PlanWren.h"
 
 using namespace Urho3D;
+
+namespace osp {
 
 class AstronomicalBody;
 
@@ -26,6 +27,15 @@ public:
 
     LongVector m_position;
     WeakPtr<AstronomicalBody> orbiting;
+
+};
+
+class Machine : public LogicComponent
+{
+    URHO3D_OBJECT(Sattelite, LogicComponent)
+
+public:
+    Machine(Context* context) : LogicComponent(context) {}
 
 };
 
@@ -89,4 +99,4 @@ public:
     void make_craft(Node* node);
 };
 
-#endif
+}

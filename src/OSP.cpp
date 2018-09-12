@@ -2,9 +2,10 @@
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/RigidBody.h>
 
+
 #include "OSP.h"
 
-
+using namespace osp;
 
 AstronomicalBody::AstronomicalBody(Context* context) : Sattelite(context) {
     SetUpdateEventMask(USE_FIXEDUPDATE);

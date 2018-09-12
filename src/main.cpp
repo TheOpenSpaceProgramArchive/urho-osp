@@ -51,6 +51,7 @@
 #include "config.h"
 
 using namespace Urho3D;
+using namespace osp;
 
 class OSPApplication : public Application {
 public:

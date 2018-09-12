@@ -1,5 +1,4 @@
-#ifndef PLANWREN_H
-#define PLANWREN_H
+#pragma once
 
 #include <cstdint>
 #include <iostream>
@@ -182,5 +181,3 @@ protected:
     void RecursiveSubdivide(uint8_t set, uint basex, uint basey, uint size, bool down);
 
 };
-
-#endif
