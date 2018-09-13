@@ -6,6 +6,7 @@
 
 #include "OSP.h"
 
+
 namespace osp {
 
 
@@ -16,11 +17,14 @@ class MachineRocket : public Machine
 public:
     MachineRocket(Context* context);
 
-    static void RegisterObject(Context* context);
+    static void RegisterObject(Context* context)
+    {
+        context->RegisterFactory<MachineRocket>("MachineRocket");
+    }
 
-    virtual void FixedUpdate(float timeStep);
+    //virtual void FixedUpdate(float timeStep);
 
-    VariantMap m_curveInputs;
+    HashMap<StringHash, float>* m_curveInputs;
 
     PerformanceCurves m_thrust;
     PerformanceCurves m_efficiency;

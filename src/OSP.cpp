@@ -4,6 +4,7 @@
 
 
 #include "OSP.h"
+#include "Machines.h"
 
 using namespace osp;
 
@@ -96,6 +97,8 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         rb->SetMass(Pow(0.05f * (i + 1), 3.0f));
         rb->SetEnabled(false);
         CollisionShape* shape = aPart->CreateComponent<CollisionShape>();
+
+        MachineRocket* rocket = aPart->CreateComponent<MachineRocket>();
     }
 }
 
