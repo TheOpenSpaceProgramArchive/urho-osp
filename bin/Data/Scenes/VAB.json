@@ -5,11 +5,11 @@
 		"Time Scale": 1.0,
 		"Smoothing Constant": 50.0,
 		"Snap Threshold": 5.0,
-		"Elapsed Time": 1.0622800588607789,
-		"Next Replicated Node ID": 15,
-		"Next Replicated Component ID": 22,
-		"Next Local Node ID": 16777222,
-		"Next Local Component ID": 16777288,
+		"Elapsed Time": 3.1755282878875734,
+		"Next Replicated Node ID": 18,
+		"Next Replicated Component ID": 31,
+		"Next Local Node ID": 16777224,
+		"Next Local Component ID": 16777312,
 		"Variables": {},
 		"Variable Names": ""
 	},
@@ -41,7 +41,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -7619600
+				"Play Position": -661904
 			}
 		},
 		{
@@ -166,29 +166,6 @@
 			"children": []
 		},
 		{
-			"id": 10,
-			"attributes": {
-				"Is Enabled": true,
-				"Name": "Plane",
-				"Tags": [],
-				"Position": "0 8.92264 0",
-				"Rotation": "1 0 0 0",
-				"Scale": "20 0.2 20",
-				"Variables": {}
-			},
-			"components": [
-				{
-					"type": "StaticModel",
-					"id": 12,
-					"attributes": {
-						"Model": "Model;Models/Box.mdl",
-						"Material": "Material;Materials/Floor0.json"
-					}
-				}
-			],
-			"children": []
-		},
-		{
 			"id": 14,
 			"attributes": {
 				"Is Enabled": true,
@@ -207,6 +184,70 @@
 						"Model": "Model;Models/Box.mdl",
 						"Material": "Material;Materials/Stone.xml",
 						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 15,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Cursor",
+				"Tags": [],
+				"Position": "0 -3.94427 7.88854",
+				"Rotation": "1 0 0 0",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "SoundSource",
+					"id": 24,
+					"attributes": {
+						"Sound": "Sound;Sfx/MetalHit.ogg",
+						"Frequency": 44100.0
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 17,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Plane",
+				"Tags": [],
+				"Position": "0 -2.60532 0",
+				"Rotation": "1 0 0 0",
+				"Scale": "400 1 400",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 28,
+					"attributes": {
+						"Model": "Model;Models/Box.mdl",
+						"Material": "Material;Materials/Floor0.json"
+					}
+				},
+				{
+					"type": "RigidBody",
+					"id": 29,
+					"attributes": {
+						"Physics Rotation": "1 0 0 0",
+						"Physics Position": "0 -2.60532 0",
+						"Rolling Friction": 0.5
+					}
+				},
+				{
+					"type": "CollisionShape",
+					"id": 30,
+					"attributes": {
+						"Shape Type": "StaticPlane",
+						"Offset Position": "0 0.5 0",
+						"Model": "Model;Models/Box.mdl"
 					}
 				}
 			],

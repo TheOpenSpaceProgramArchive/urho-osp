@@ -48,6 +48,7 @@
 
 
 #include "OSP.h"
+#include "Machines.h"
 #include "config.h"
 
 using namespace Urho3D;
@@ -74,6 +75,7 @@ public:
     {
         AstronomicalBody::RegisterObject(context);
         Entity::RegisterObject(context);
+        MachineRocket::RegisterObject(context);
     }
 
     SystemOsp* GetOsp()

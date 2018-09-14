@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "PerformanceCurves.h"
 
 using namespace Urho3D;
@@ -13,10 +15,18 @@ float PerformanceCurves::get_float(float f)
     for (uint i = 0; i < m_curves.Size(); i ++)
     {
         Curve* curve = &(m_curves[i]);
-        //value *=
-        // determine which two numbers we're dealing with
-        float f = (*m_curveInputs)[curve->m_factor];
+        // get the number, then scale to array index
+        float factor = (*m_curveInputs)[curve->m_factor];
+        factor = Clamp((factor - curve->m_inputMinimum) * (curve->m_points.Size() - 1) / curve->m_inputRange, 0.0f, float(curve->m_points.Size() - 1));
+        // see which 2 numbers in m_points correspond
+        float a = curve->m_points[FloorToInt(factor)] / 65535.0f;
+        float b = curve->m_points[CeilToInt(factor)] / 65535.0f;
+        //printf("F: %i %i, A: %f B: %f\n", FloorToInt(factor), CeilToInt(factor), a, b);
+        // Interpolate between the two numbers
+        value *= Lerp(a, b, Fract(factor));
+
     }
+    //printf("Out: %f\n", value);
     return value;
 }
 

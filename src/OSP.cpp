@@ -2,7 +2,6 @@
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/RigidBody.h>
 
-
 #include "OSP.h"
 #include "Machines.h"
 
