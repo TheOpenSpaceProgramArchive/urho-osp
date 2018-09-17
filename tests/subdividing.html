@@ -56,12 +56,12 @@
 
     // Actual stuff starts  here  ----------------------------------------------
 
-    application.Triangle = function(sides, verts) {
+    application.Triangle = function(sides, verts, depth) {
       this.parent = null;
       this.children = [null, null, null, null];
       //this.maxDepth = 0; // the deepest this thing goes
       this.subdivided = false; // whether it's subdivided or not
-      this.myDepth = 1; // how deep it is in the tree, more ancestors = higher number
+      this.myDepth = depth; // how deep it is in the tree, more ancestors = higher number
       this.index = null; // Location in index buffer
       this.verts = verts; // index of 3 vertices, [top, left, right] conterclockwise
       this.midVerts = [0, 0, 0]; // index of  Middle vertices when subdivided
@@ -70,13 +70,15 @@
     }
 
     // Using typed arrays was probably unnecessary for something like this
-    application.indexBuffer = new Uint32Array(2000 * 2);
-    application.indexDomain = new Uint32Array(2000);
-    application.vertexBuffer = new Float32Array(30 * 2);
+    application.indexBuffer = new Uint32Array(4000 * 2);
+    application.indexDomain = new Uint32Array(4000);
+    application.vertexBuffer = new Float32Array(4000 * 2);
     application.indexCount = 0;
     application.vertexCount = 0;
     application.vertexBufferSize = 0;
     application.triangles = [];
+    
+    application.paint = [];
     application.timeStart = new Date();
     application.time = 0;
 
@@ -133,7 +135,7 @@
               sides[2] = y * 4 + x - 1 + (!up * 2);
           }
           // push
-          this.setVisible(application.triangles.push(new this.Triangle(sides, verts)) - 1, true);
+          this.setVisible(application.triangles.push(new this.Triangle(sides, verts, 1)) - 1, true);
         }
       }
     }
@@ -148,50 +150,8 @@
         // if visible, then hide
         this.setVisible(trindex, false);
 
-        console.log("Right: " + tri.sides[1]);
-        console.log("Left: " + tri.sides[2]);
-
-        // Subdivide lines and add verticies, or take from other triangles
-        // TODO: make a function for all 3 of these
-
-        // bottom
-        var triBottom = this.triangles[tri.sides[0]];
-        // Check if the line is already subdivided
-        if (tri.sides[0] != -1 && triBottom.myDepth > tri.myDepth) {
-            // which side is tri on?
-            tri.midVerts[0] = triBottom.midVerts[triBottom.sides.indexOf(trindex)];
-        } else {
-            tri.midVerts[0] = this.vertexCount * 2;
-            application.vertexBuffer[tri.midVerts[0]] = application.vertexBuffer[tri.verts[1]] / 2 + application.vertexBuffer[tri.verts[2]] / 2;
-            application.vertexBuffer[tri.midVerts[0] + 1] = application.vertexBuffer[tri.verts[1] + 1] / 2 + application.vertexBuffer[tri.verts[2] + 1] / 2;
-            this.vertexCount ++;
-        }
-        
-        // right
-        var triRight = this.triangles[tri.sides[1]];
-        // Check if the line is already subdivided
-        if (tri.sides[1] != -1 && triRight.myDepth > tri.myDepth) {
-            // which side is tri on?
-            tri.midVerts[1] = triRight.midVerts[triRight.sides.indexOf(trindex)];
-        } else {
-            tri.midVerts[1] = this.vertexCount * 2;
-            application.vertexBuffer[tri.midVerts[1]] = application.vertexBuffer[tri.verts[0]] / 2 + application.vertexBuffer[tri.verts[2]] / 2;
-            application.vertexBuffer[tri.midVerts[1] + 1] = application.vertexBuffer[tri.verts[0] + 1] / 2 + application.vertexBuffer[tri.verts[2] + 1] / 2;
-            this.vertexCount ++;
-        }
-        
-        // left
-        var triLeft = this.triangles[tri.sides[2]];
-        // Check if the line is already subdivided
-        if (tri.sides[2] != -1 && triLeft.myDepth > tri.myDepth) {
-            // which side is tri on?
-            tri.midVerts[2] = triLeft.midVerts[triLeft.sides.indexOf(trindex)];
-        } else {
-            tri.midVerts[2] = this.vertexCount * 2;
-            application.vertexBuffer[tri.midVerts[2]] = application.vertexBuffer[tri.verts[0]] / 2 + application.vertexBuffer[tri.verts[1]] / 2;
-            application.vertexBuffer[tri.midVerts[2] + 1] = application.vertexBuffer[tri.verts[0] + 1] / 2 + application.vertexBuffer[tri.verts[1] + 1] / 2;
-            this.vertexCount ++;
-        }
+        //console.log("Right: " + tri.sides[1]);
+        //console.log("Left: " + tri.sides[2]);
 
         // Add the 4 new triangles
         // Top Left Right Center
@@ -203,16 +163,67 @@
         // For example
         // [tri.children[3], tri.sides[1], tri.sides[2]] means that the top triangle has the center triangle on it's bottom side, and it's left and right side are the same as the parent triangle
         // [tri.verts[0], tri.midVerts[2], tri.midVerts[1] means that the top vertex of the parent triangle, and the left and right middle vertices make up the top triangle
-        this.triangles[tri.children[0]] = new this.Triangle([tri.children[3], tri.sides[1], tri.sides[2]], [tri.verts[0], tri.midVerts[2], tri.midVerts[1]]);
-        this.triangles[tri.children[1]] = new this.Triangle([tri.sides[0], tri.children[3], tri.sides[1]], [tri.midVerts[2], tri.verts[1], tri.midVerts[0]]);
-        this.triangles[tri.children[2]] = new this.Triangle([tri.sides[0], tri.sides[1], tri.children[3]], [tri.midVerts[1], tri.midVerts[0], tri.verts[2]]);
-        this.triangles[tri.children[3]] = new this.Triangle([tri.children[0], tri.children[1], tri.children[2]], [tri.midVerts[0], tri.midVerts[1], tri.midVerts[2]]);
+        this.triangles[tri.children[0]] = new this.Triangle([-1, -1, -1], [-1, -1, -1], tri.myDepth + 1);
+        this.triangles[tri.children[1]] = new this.Triangle([-1, -1, -1], [-1, -1, -1], tri.myDepth + 1);
+        this.triangles[tri.children[2]] = new this.Triangle([-1, -1, -1], [-1, -1, -1], tri.myDepth + 1);
+
+        this.triangles[tri.children[0]].sides = [tri.children[3], tri.sides[1], tri.sides[2]];
+        this.triangles[tri.children[1]].sides = [tri.sides[0], tri.children[3], tri.sides[2]];
+        this.triangles[tri.children[2]].sides = [tri.sides[0], tri.sides[1], tri.children[3]];
+
+        // Subdivide lines and add verticies, or take from other triangles
+
+        for (var i = 0; i < 3; i ++) {
+          var triB = this.triangles[tri.sides[i]];
+          // Check if the line is already   8subdivided
+          if (tri.sides[i] == -1 || (!triB.subdivided) || triB.myDepth != tri.myDepth) {
+
+              tri.midVerts[i] = this.vertexCount * 2;
+              application.vertexBuffer[tri.midVerts[i]] = application.vertexBuffer[tri.verts[(i + 1) % 3]] / 2 + application.vertexBuffer[tri.verts[(i + 2) % 3]] / 2;
+              application.vertexBuffer[tri.midVerts[i] + 1] = application.vertexBuffer[tri.verts[(i + 1) % 3] + 1] / 2 + application.vertexBuffer[tri.verts[(i + 2) % 3] + 1] / 2;
+              this.vertexCount ++;
+              console.log(i + ": Created new vertex");
+          } else {
+              // which side is tri on?
+              var sideB = triB.sides.indexOf(trindex);
+              
+              tri.midVerts[i] = triB.midVerts[sideB];
+              console.log(i + ": Used existing vertex");
+
+              // Set sides
+              // Side 0(bottom) corresponds to child 1(left), 2(right)
+              // Side 1(right) corresponds to child 2(right), 0(top)
+              // Side 2(left) corresponds to child 0(top), 1(left)
+
+              var triX = tri.children[(i + 1) % 3];
+              var triY = tri.children[(i + 2) % 3];
+              var triBX = triB.children[(sideB + 1) % 3];
+              var triBY = triB.children[(sideB + 2) % 3];
+
+              this.triangles[triX].sides[i] = triBY;
+              this.triangles[triY].sides[i] = triBX;
+              this.triangles[triBX].sides[i] = triY;
+              this.triangles[triBY].sides[i] = triX;
+          }
+        }
+
+        this.triangles[tri.children[0]].verts = [tri.verts[0], tri.midVerts[2], tri.midVerts[1]];
+        this.triangles[tri.children[1]].verts = [tri.midVerts[2], tri.verts[1], tri.midVerts[0]];
+        this.triangles[tri.children[2]].verts = [tri.midVerts[1], tri.midVerts[0], tri.verts[2]];
+        
+        this.triangles[tri.children[3]] = new this.Triangle([tri.children[0], tri.children[1], tri.children[2]], [tri.midVerts[0], tri.midVerts[1], tri.midVerts[2]], tri.myDepth + 1);
+
+        console.log("MyDepth: " + tri.myDepth)
+        console.log("Sides: B" + tri.sides[0] + ", R" + tri.sides[1] + ", L" + tri.sides[2]);
+        console.log("MidVerts: B" + tri.midVerts[0] + ", R" + tri.midVerts[1] + ", L" + tri.midVerts[2]);
 
         this.setVisible(tri.children[0], true);
         this.setVisible(tri.children[1], true);
         this.setVisible(tri.children[2], true);
         this.setVisible(tri.children[3], true);
-        tri.myDepth ++;
+        //tri.myDepth ++;
+        
+        tri.subdivided = true;
       }
       
     }
@@ -259,18 +270,35 @@
     // Starting at a triangle, and recurse down all its children
     // trindex refers to the index of a triangle in the triangles array
     // point is the XY position of the viewer (mouse)
-    application.subRecurse = function(trindex, point) {
+    application.subRecurse = function(trindex, point, depth) {
+      if (depth == 5) {
+        return;
+      }
       var tri = this.triangles[trindex];
       var center = this.center(tri);
       var dist = Math.sqrt(Math.pow(point[0] - center[0], 2)
                             + Math.pow(point[1] - center[1], 2))
-      if (dist < (160 / tri.myDepth)) {
+                            
+      if (tri.subdivided) {
+        // Is subdivided and close, Recurse!
+        application.subRecurse(tri.children[0], point, depth + 1);
+        application.subRecurse(tri.children[1], point, depth + 1);
+        application.subRecurse(tri.children[2], point, depth + 1);
+        application.subRecurse(tri.children[3], point, depth + 1);
+      }
+      // TODO: increase radius when subdivided
+      if (dist < (160 / depth)) {
         //this.setVisible(trindex, true);
-        this.subdiv(trindex);
+        if (tri.subdivided) {
+
+        } else {
+          // Is close, subdivide!
+          this.subdiv(trindex);
+        }
       } else {
         //this.setVisible(trindex, false);
+        //this.setVisible
       }
-      
     }
 
     application.center = function(tri) {
@@ -285,7 +313,7 @@
       for (var i = 0; i < 8; i ++) {
         //var tri = this.triangles[i]
         //var center = this.center(tri);
-        this.subRecurse(i, [input.mouseX, input.mouseY]);
+        this.subRecurse(i, [input.mouseX, input.mouseY], 1);
       }
     }
 
@@ -299,6 +327,8 @@
       msg += " Triangles Count: " + this.indexCount + "/" + this.triangles.length;
       msg += "\nInd Buf: {" + this.indexBuffer.join(",") + "}";
       msg += "\nInd Dom: {" + this.indexDomain.join(",") + "}";
+      msg += "\nMax: Vrt: " + (this.vertexCount * 2) + "/" + this.vertexBuffer.length;
+      //msg += " Ind: " + this.indexCount + "/" + this.triangles.length;
 
       var lines = msg.split("\n");
       for (var i = 0; i < lines.length; i ++) {
@@ -308,23 +338,24 @@
       ctx.fillStyle = "#262c5080";
       // Draw vertex buffer
       for (var i = 0; i < this.vertexCount * 2; i += 2) {
-        ctx.fillRect(this.vertexBuffer[i] - 2 + Math.cos(i * 0.3 + application.time) * 5,
-                      this.vertexBuffer[i + 1] - 2 + Math.sin(i * 0.3 + application.time) * 5,
+        ctx.fillRect(this.vertexBuffer[i] - 2 + Math.cos(i * 0.3 + application.time) * 4,
+                      this.vertexBuffer[i + 1] - 2 + Math.sin(i * 0.3 + application.time) * 4,
                       4, 4)
       }
 
 
-      ctx.fillStyle = "#3a61f35e";
+      
       //for (var i = 0; i < this.triangles.length; i ++) {
       for (var i = 0; i < this.indexCount * 3; i += 3) {
-        var tri = this.triangles[i];
+        ctx.fillStyle = application.paint[i / 3] != undefined ? "#ff00005e" : "#3a61f35e";
+        //var tri = this.triangles[i];
         ctx.beginPath();
-        ctx.moveTo(this.vertexBuffer[this.indexBuffer[i]] + Math.cos(this.indexBuffer[i] * 0.3 + application.time) * 5,
-                    this.vertexBuffer[this.indexBuffer[i] + 1] + Math.sin(this.indexBuffer[i] * 0.3 + application.time) * 5);
-        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 1]] + Math.cos(this.indexBuffer[i + 1] * 0.3 + application.time) * 5,
-                    this.vertexBuffer[this.indexBuffer[i + 1] + 1] + Math.sin(this.indexBuffer[i + 1] * 0.3 + application.time) * 5);
-        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 2]] + Math.cos(this.indexBuffer[i + 2] * 0.3 + application.time) * 5,
-                    this.vertexBuffer[this.indexBuffer[i + 2] + 1] + Math.sin(this.indexBuffer[i + 2] * 0.3 + application.time) * 5);
+        ctx.moveTo(this.vertexBuffer[this.indexBuffer[i]] + Math.cos(this.indexBuffer[i] * 0.3 + application.time) * 4,
+                    this.vertexBuffer[this.indexBuffer[i] + 1] + Math.sin(this.indexBuffer[i] * 0.3 + application.time) * 4);
+        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 1]] + Math.cos(this.indexBuffer[i + 1] * 0.3 + application.time) * 4,
+                    this.vertexBuffer[this.indexBuffer[i + 1] + 1] + Math.sin(this.indexBuffer[i + 1] * 0.3 + application.time) * 4);
+        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 2]] + Math.cos(this.indexBuffer[i + 2] * 0.3 + application.time) * 4,
+                    this.vertexBuffer[this.indexBuffer[i + 2] + 1] + Math.sin(this.indexBuffer[i + 2] * 0.3 + application.time) * 4);
         //ctx.moveTo(this.vertexBuffer[tri.verts[0]], this.vertexBuffer[tri.verts[0] + 1]);
         //ctx.lineTo(this.vertexBuffer[tri.verts[1]], this.vertexBuffer[tri.verts[1] + 1]);
         //ctx.lineTo(this.vertexBuffer[tri.verts[2]], this.vertexBuffer[tri.verts[2] + 1]);
@@ -332,6 +363,19 @@
         ctx.fill();
         ctx.stroke();
       }
+      
+      ctx.fillStyle = "#8ae234";
+      for (var i = 0; i < this.triangles.length; i ++) {
+        var center = this.center(this.triangles[i]);
+        ctx.fillRect(center[0] - 2, center[1] - 2,  4, 4)
+      }
+        
+
+    }
+
+    function paint(trindex) {
+        application.setVisible(trindex, true)
+        application.paint[application.triangles[trindex].index] = true;
     }
 
     // End of actual stuff

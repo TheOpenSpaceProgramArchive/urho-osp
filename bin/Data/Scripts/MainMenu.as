@@ -130,6 +130,7 @@ void click_drop(StringHash eventType, VariantMap& eventData)
         {
             grabbed = null;
             SoundSource@ dropSound = cast<SoundSource>(cursor.GetComponent("SoundSource"));
+            dropSound.frequency = 44100.0f * Random(0.9, 1.1);
             dropSound.Play(dropSound.sound);
         }
     }

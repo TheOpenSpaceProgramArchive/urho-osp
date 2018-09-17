@@ -58,9 +58,11 @@ void MachineRocket::FixedUpdate(float timeStep)
     m_rocketSound->SetFrequency(44100.0f * (m_curveInputs->operator[]("Throttle") / 70.0f + 0.3f));
     m_rocketSound->SetGain(m_curveInputs->operator[]("Throttle") / 100.0f);
 
-    //collider->GetPosition()
-    //rb->Ge
+    // Thrust related things
     Vector3 what(collider->GetPosition());
     rb->ApplyForce(rb->GetRotation() * Vector3(0, m_thrust.get_float(10.0f), 0), rb->GetRotation() * collider->GetPosition() + rb->GetCenterOfMass());
     //rb->GetBody()->applyForce(ToBtVector3(rb->GetRotation() * Vector3(0, m_thrust.get_float(10.0f), 0)), rb->GetRotation() * collider->GetPosition());
+
+    // Rotation control (temporary)
+    rb->ApplyTorque(Vector3((int(i->GetKeyDown(KEY_W)) - i->GetKeyDown(KEY_S)) * 0.5f, 0, (int(i->GetKeyDown(KEY_A)) - i->GetKeyDown(KEY_D)) * 0.5f));
 }

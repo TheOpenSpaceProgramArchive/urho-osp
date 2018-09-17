@@ -8,8 +8,8 @@
 		"Elapsed Time": 3.1755282878875734,
 		"Next Replicated Node ID": 18,
 		"Next Replicated Component ID": 31,
-		"Next Local Node ID": 16777224,
-		"Next Local Component ID": 16777312,
+		"Next Local Node ID": 16777225,
+		"Next Local Component ID": 16777324,
 		"Variables": {},
 		"Variable Names": ""
 	},
@@ -41,7 +41,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -661904
+				"Play Position": -7057584
 			}
 		},
 		{
@@ -206,7 +206,8 @@
 					"id": 24,
 					"attributes": {
 						"Sound": "Sound;Sfx/MetalHit.ogg",
-						"Frequency": 44100.0
+						"Frequency": 44100.0,
+						"Gain": 0.699999988079071
 					}
 				}
 			],
