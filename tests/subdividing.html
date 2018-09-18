@@ -157,10 +157,18 @@
 
         // Add the 4 new triangles
         // Top Left Right Center
-        tri.children[0] = this.triangles.length ++;
-        tri.children[1] = this.triangles.length ++;
-        tri.children[2] = this.triangles.length ++;
-        tri.children[3] = this.triangles.length ++;
+        if (this.trianglesFree.length == 0) {
+          tri.children[0] = this.triangles.length ++;
+          tri.children[1] = this.triangles.length ++;
+          tri.children[2] = this.triangles.length ++;
+          tri.children[3] = this.triangles.length ++;
+        } else {
+          var j = this.trianglesFree.pop();
+          tri.children[0] = j;
+          tri.children[1] = j + 1;
+          tri.children[2] = j + 2;
+          tri.children[3] = j + 3;
+        }
         
         // Most of these constructors are useless, ignote comments below
         // For example
@@ -271,7 +279,7 @@
         var triB = this.triangles[tri.sides[i]];
         
         // If the triangle on the other side is not subdivided, it means that the vertex will have no more users
-        if (triB == undefined || !triB.subdivided) {
+        if (triB == undefined || !triB.subdivided || triB.myDepth != tri.myDepth) {
           // Mark side vertex for removal
           this.vertexFree.push(tri.midVerts[i]);
         }
@@ -350,7 +358,7 @@
     // trindex refers to the index of a triangle in the triangles array
     // point is the XY position of the viewer (mouse)
     application.subRecurse = function(trindex, point, depth) {
-      if (depth == 5) {
+      if (depth == 6) {
         return;
       }
       var tri = this.triangles[trindex];
@@ -366,7 +374,7 @@
         application.subRecurse(tri.children[3], point, depth + 1);
       }
       // TODO: increase radius when subdivided
-      if (dist < (160 / depth)) {
+      if (dist < (280 / Math.pow(2, depth))) {
         //this.setVisible(trindex, true);
         if (tri.subdivided) {
 
@@ -404,10 +412,12 @@
       ctx.fillStyle = "#262c50";
       ctx.strokeStyle = "#262c50";
       var msg = "Urho-OSP Planet Triangle Subdividing test";
-      msg += " Triangles Count: " + this.indexCount + "/" + this.triangles.length;
+      msg += "\nTriangles Count: " + this.indexCount + "/" + this.triangles.length;
       //msg += "\nInd Buf: {" + this.indexBuffer.join(",") + "}";
       //msg += "\nInd Dom: {" + this.indexDomain.join(",") + "}";
       msg += "\nMax: Vrt: " + (this.vertexCount * 2) + "/" + this.vertexBuffer.length;
+      msg += "\nFree Triangles:" + (this.trianglesFree.length);
+      msg += "\nFree Verticies:" + (this.vertexFree.length);
       //msg += " Ind: " + this.indexCount + "/" + this.triangles.length;
 
       var lines = msg.split("\n");
@@ -418,9 +428,10 @@
       ctx.fillStyle = "#262c5080";
       // Draw vertex buffer
       for (var i = 0; i < this.vertexCount * 2; i += 2) {
-        ctx.fillRect(this.vertexBuffer[i] - 2 + Math.cos(i * 0.3 + application.time) * 4,
-                      this.vertexBuffer[i + 1] - 2 + Math.sin(i * 0.3 + application.time) * 4,
-                      4, 4)
+        if (this.vertexFree.indexOf(i) == -1)
+          ctx.fillRect(this.vertexBuffer[i] - 2 + Math.cos(i * 0.3 + application.time) * 2,
+                        this.vertexBuffer[i + 1] - 2 + Math.sin(i * 0.3 + application.time) * 2,
+                        4, 4)
       }
 
 
@@ -430,12 +441,12 @@
         ctx.fillStyle = application.paint[i / 3] != undefined ? "#ff00005e" : "#3a61f35e";
         //var tri = this.triangles[i];
         ctx.beginPath();
-        ctx.moveTo(this.vertexBuffer[this.indexBuffer[i]] + Math.cos(this.indexBuffer[i] * 0.3 + application.time) * 4,
-                    this.vertexBuffer[this.indexBuffer[i] + 1] + Math.sin(this.indexBuffer[i] * 0.3 + application.time) * 4);
-        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 1]] + Math.cos(this.indexBuffer[i + 1] * 0.3 + application.time) * 4,
-                    this.vertexBuffer[this.indexBuffer[i + 1] + 1] + Math.sin(this.indexBuffer[i + 1] * 0.3 + application.time) * 4);
-        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 2]] + Math.cos(this.indexBuffer[i + 2] * 0.3 + application.time) * 4,
-                    this.vertexBuffer[this.indexBuffer[i + 2] + 1] + Math.sin(this.indexBuffer[i + 2] * 0.3 + application.time) * 4);
+        ctx.moveTo(this.vertexBuffer[this.indexBuffer[i]] + Math.cos(this.indexBuffer[i] * 0.3 + application.time) * 2,
+                    this.vertexBuffer[this.indexBuffer[i] + 1] + Math.sin(this.indexBuffer[i] * 0.3 + application.time) * 2);
+        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 1]] + Math.cos(this.indexBuffer[i + 1] * 0.3 + application.time) * 2,
+                    this.vertexBuffer[this.indexBuffer[i + 1] + 1] + Math.sin(this.indexBuffer[i + 1] * 0.3 + application.time) * 2);
+        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 2]] + Math.cos(this.indexBuffer[i + 2] * 0.3 + application.time) * 2,
+                    this.vertexBuffer[this.indexBuffer[i + 2] + 1] + Math.sin(this.indexBuffer[i + 2] * 0.3 + application.time) * 2);
         //ctx.moveTo(this.vertexBuffer[tri.verts[0]], this.vertexBuffer[tri.verts[0] + 1]);
         //ctx.lineTo(this.vertexBuffer[tri.verts[1]], this.vertexBuffer[tri.verts[1] + 1]);
         //ctx.lineTo(this.vertexBuffer[tri.verts[2]], this.vertexBuffer[tri.verts[2] + 1]);
