@@ -23,7 +23,7 @@ void AstronomicalBody::FixedUpdate(float timeStep) {
         Vector3 dir(GetScene()->GetChild("Camera")->GetPosition() - GetScene()->GetChild("planet")->GetPosition());
         float dist = dir.Length();
         dir /= dist;
-        planet_.Update(dist, dir);
+        //planet_.Update(dist, dir);
     }
 }
 

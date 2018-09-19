@@ -29,7 +29,7 @@
     // Make canvas and setup some variables
     var canvasdraw = document.createElement("canvas");
     var ctx = canvasdraw.getContext("2d");
-    var input = {mouseX: 0, mouseY: 0}
+    var input = {mouseX: 0, mouseY: 0, shiftKey: false}
     var application = {};
     var randomizer = "i won coriolis three more motorcycle, i see in paper copy, dance recital";
 
@@ -41,6 +41,7 @@
     // Keep track of mouse position
     canvasdraw.onmousemove = function(e) {
       var g = canvasdraw.getBoundingClientRect();
+      input.shiftKey = e.shiftKey;
       input.mouseX = Math.floor(e.x - g.x);
       input.mouseY = Math.floor(e.y - g.y);
       ctx.fillText("This is test", input.mouseX, input.mouseY);
@@ -80,6 +81,7 @@
     application.triangles = [];
     application.trianglesFree = [];
     
+    application.zoom = 1;
     application.paint = [];
     application.timeStart = new Date();
     application.time = 0;
@@ -201,14 +203,14 @@
             application.vertexBuffer[tri.midVerts[i]] = application.vertexBuffer[tri.verts[(i + 1) % 3]] / 2 + application.vertexBuffer[tri.verts[(i + 2) % 3]] / 2;
             application.vertexBuffer[tri.midVerts[i] + 1] = application.vertexBuffer[tri.verts[(i + 1) % 3] + 1] / 2 + application.vertexBuffer[tri.verts[(i + 2) % 3] + 1] / 2;
             
-            console.log(i + ": Created new vertex");
+            //console.log(i + ": Created new vertex");
           } else {
             // Which side tri is on triB
             var sideB = triB.sides.indexOf(trindex);
 
             // Instead of creating a new vertex, use the one from triB since it's already subdivided
             tri.midVerts[i] = triB.midVerts[sideB];
-            console.log(i + ": Used existing vertex");
+            //console.log(i + ": Used existing vertex");
 
             // Set sides
             // Side 0(bottom) corresponds to child 1(left), 2(right)
@@ -237,9 +239,9 @@
         // No uncertainty with the middle triangle, always has the other 3 triangles on each side
         this.triangles[tri.children[3]] = new this.Triangle([tri.children[0], tri.children[1], tri.children[2]], [tri.midVerts[0], tri.midVerts[1], tri.midVerts[2]], tri.myDepth + 1);
 
-        console.log("MyDepth: " + tri.myDepth)
-        console.log("Sides: B" + tri.sides[0] + ", R" + tri.sides[1] + ", L" + tri.sides[2]);
-        console.log("MidVerts: B" + tri.midVerts[0] + ", R" + tri.midVerts[1] + ", L" + tri.midVerts[2]);
+        //console.log("MyDepth: " + tri.myDepth)
+        //console.log("Sides: B" + tri.sides[0] + ", R" + tri.sides[1] + ", L" + tri.sides[2]);
+        //console.log("MidVerts: B" + tri.midVerts[0] + ", R" + tri.midVerts[1] + ", L" + tri.midVerts[2]);
 
         // Make them all visible
         this.setVisible(tri.children[0], true);
@@ -331,7 +333,7 @@
       } else {
         // delete
         if (tri.index != null) {
-          console.log("removed!");
+          //console.log("removed!");
           // How to remove a triangle from the buffer: 
           // Move the last element of the buffer (3 ints) into the location of the triangle
           // that is suppose o be removed. this keeps holes out of the index buffer so
@@ -341,7 +343,7 @@
           // decrement the index count, this is now the index of the last triangle
           this.indexCount --;
           // change the last triangle class's index to new location.
-          console.log(this.indexDomain[this.indexCount]);
+          //console.log(this.indexDomain[this.indexCount]);
           this.triangles[this.indexDomain[this.indexCount]].index = tri.index;
           // move the location of the last element's domain to the new location
           this.indexDomain[tri.index / 3] = this.indexDomain[this.indexCount];
@@ -358,14 +360,14 @@
     // trindex refers to the index of a triangle in the triangles array
     // point is the XY position of the viewer (mouse)
     application.subRecurse = function(trindex, point, depth) {
-      if (depth == 6) {
+      if (depth == 7) {
         return;
       }
       var tri = this.triangles[trindex];
       var center = this.center(tri);
       var dist = Math.sqrt(Math.pow(point[0] - center[0], 2)
                             + Math.pow(point[1] - center[1], 2))
-      
+
       if (tri.subdivided) {
         // Is subdivided and close, Recurse!
         application.subRecurse(tri.children[0], point, depth + 1);
@@ -373,8 +375,7 @@
         application.subRecurse(tri.children[2], point, depth + 1);
         application.subRecurse(tri.children[3], point, depth + 1);
       }
-      // TODO: increase radius when subdivided
-      if (dist < (280 / Math.pow(2, depth))) {
+      if (dist < (280 / Math.pow(1.4, depth))) {
         //this.setVisible(trindex, true);
         if (tri.subdivided) {
 
@@ -398,15 +399,18 @@
     }
 
     application.mouseMove = function() {
+      
+    }
+
+    application.draw = function() {
+
       for (var i = 0; i < 8; i ++) {
         //var tri = this.triangles[i]
         //var center = this.center(tri);
         this.subRecurse(i, [input.mouseX, input.mouseY], 1);
       }
-    }
 
-    application.draw = function() {
-
+      ctx.resetTransform();
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, 512, 512);
       ctx.fillStyle = "#262c50";
@@ -425,15 +429,24 @@
         ctx.fillText(lines[i], 4, 20 + 18 * i);
       }
 
+      if (input.shiftKey) {
+        application.zoom += 0.02 * application.zoom;
+      } else {
+        this.zoom = Math.max(this.zoom - 0.03 * Math.abs(this.zoom), 1);
+      }
+      ctx.scale(this.zoom, this.zoom);
+      ctx.translate(-input.mouseX + 256 / this.zoom, -input.mouseY + 256 / this.zoom);
+      ctx.lineWidth = 1 / this.zoom;
+
       ctx.fillStyle = "#262c5080";
       // Draw vertex buffer
       for (var i = 0; i < this.vertexCount * 2; i += 2) {
-        if (this.vertexFree.indexOf(i) == -1)
-          ctx.fillRect(this.vertexBuffer[i] - 2 + Math.cos(i * 0.3 + application.time) * 2,
-                        this.vertexBuffer[i + 1] - 2 + Math.sin(i * 0.3 + application.time) * 2,
-                        4, 4)
+        //if (this.vertexFree.indexOf(i) == -1)
+        ctx.fillRect(this.vertexBuffer[i] - 2 / this.zoom + Math.cos(i * 0.3 + application.time) * 2 / this.zoom,
+                      this.vertexBuffer[i + 1] - 2 / this.zoom + Math.sin(i * 0.3 + application.time) * 2  / this.zoom,
+                      4 / this.zoom, 4 / this.zoom)
       }
-
+    
 
       
       //for (var i = 0; i < this.triangles.length; i ++) {
@@ -441,12 +454,12 @@
         ctx.fillStyle = application.paint[i / 3] != undefined ? "#ff00005e" : "#3a61f35e";
         //var tri = this.triangles[i];
         ctx.beginPath();
-        ctx.moveTo(this.vertexBuffer[this.indexBuffer[i]] + Math.cos(this.indexBuffer[i] * 0.3 + application.time) * 2,
-                    this.vertexBuffer[this.indexBuffer[i] + 1] + Math.sin(this.indexBuffer[i] * 0.3 + application.time) * 2);
-        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 1]] + Math.cos(this.indexBuffer[i + 1] * 0.3 + application.time) * 2,
-                    this.vertexBuffer[this.indexBuffer[i + 1] + 1] + Math.sin(this.indexBuffer[i + 1] * 0.3 + application.time) * 2);
-        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 2]] + Math.cos(this.indexBuffer[i + 2] * 0.3 + application.time) * 2,
-                    this.vertexBuffer[this.indexBuffer[i + 2] + 1] + Math.sin(this.indexBuffer[i + 2] * 0.3 + application.time) * 2);
+        ctx.moveTo(this.vertexBuffer[this.indexBuffer[i]] + Math.cos(this.indexBuffer[i] * 0.3 + application.time) * 2 / this.zoom,
+                    this.vertexBuffer[this.indexBuffer[i] + 1] + Math.sin(this.indexBuffer[i] * 0.3 + application.time) * 2 / this.zoom);
+        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 1]] + Math.cos(this.indexBuffer[i + 1] * 0.3 + application.time) * 2 / this.zoom,
+                    this.vertexBuffer[this.indexBuffer[i + 1] + 1] + Math.sin(this.indexBuffer[i + 1] * 0.3 + application.time) * 2 / this.zoom);
+        ctx.lineTo(this.vertexBuffer[this.indexBuffer[i + 2]] + Math.cos(this.indexBuffer[i + 2] * 0.3 + application.time) * 2 / this.zoom,
+                    this.vertexBuffer[this.indexBuffer[i + 2] + 1] + Math.sin(this.indexBuffer[i + 2] * 0.3 + application.time) * 2 / this.zoom);
         //ctx.moveTo(this.vertexBuffer[tri.verts[0]], this.vertexBuffer[tri.verts[0] + 1]);
         //ctx.lineTo(this.vertexBuffer[tri.verts[1]], this.vertexBuffer[tri.verts[1] + 1]);
         //ctx.lineTo(this.vertexBuffer[tri.verts[2]], this.vertexBuffer[tri.verts[2] + 1]);
@@ -460,7 +473,7 @@
         if (this.triangles[i] == null)
           continue;
         var center = this.center(this.triangles[i]);
-        ctx.fillRect(center[0] - 2, center[1] - 2,  4, 4)
+        ctx.fillRect(center[0] - 2 / this.zoom, center[1] - 2 / this.zoom,  4 / this.zoom, 4 / this.zoom)
       }
         
 

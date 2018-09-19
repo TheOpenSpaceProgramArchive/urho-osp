@@ -64,120 +64,57 @@ static constexpr const int8_t triangleSets_[60] {
     //            #             #             #             #
 };
 
-// Each face is indexed like this. verticies on the edges are shared
-// with other triangles. The triangular numbers formula is used often
-// in this program.
+typedef uint32_t trindex;
+typedef uint32_t buindex;
 
-// LOD value is the number of subdivisions, divided in a very similar
-// way to the sierpinski triangle
-
-// # of verticies = (LOD^2 - 1) * LOD^2 / 2, separated into parts
-// in code.
-
-// Examples:
-
-// LOD: 0
-//         1
-//        2 3
-
-// LOD: 1
-//         1
-//        2 3
-//       4 5 6
-
-// LOD: 2
-//   1
-//   2  3
-//   4  5  6
-//   7  8  9  10
-//   11 12 13 14 15
-
-// Indicies in this space are referred to as a "Local triangle index"
-// Through different algorithms, can be converted to and from "buffer
-// index" which is the actual xyz vertex data in the buffer.
-
-
-class PlanWren;
-
-class SubTriangle {
-public:
-    // 1,      2,        4,            8,           16,  32,   64, 128
-    // Exists, Drawable, DownPointing, HasChildren, WhichChild, 
-    uint8_t bitmask_;
-    uint8_t set_;
-    int lod_;
-
-    // Indicies in set, Indicies in buffer, Index in gpu buffer
-    uint glIndex_, x_, y_;
-
-    uint children_[4];
-    uint parent_;
-    Vector3 normal_;
-
-    SubTriangle();
-
-    void CalculateNormal(PlanWren* wren);
-
+struct SubTriangle
+{
+    trindex m_parent;
+    trindex m_children; // always has 4 children if subdivided
+    trindex m_neighbors[3];
+    buindex m_midVerts[3];
+    //bool subdivided;
+    uint8_t m_bitmask; // subdivided,
+    uint8_t m_depth;
 };
 
-class PlanWren {
+class PlanWren
+{
 
-    bool ready_ = false;
-    ushort maxLOD_;
-    uint shared_;
-    uint owns_;
-    uint setCount_;
-    uint verticies_;
-    //uint fundemental_ = 12;
-    double size_;
+    bool m_ready = false;
+    double m_size;
 
-    float* vertData_;
-    uint* triangleMap_;
+    buindex m_maxFaces;
+    buindex m_maxVertice;
+    buindex m_maxIndices;
 
-    Model* model_;
-    SharedPtr<VertexBuffer> vrtBuf_;
-    Vector<uint> indData_;
-    Geometry* geometry_;
+    Model* m_model;
+    Geometry* m_geometry;
 
-    uint maxTriangles_;
+    SharedPtr<IndexBuffer> m_indBuf;
+    trindex m_indDomain[];
+    buindex m_indCount;
 
-    SubTriangle* triangles_;
-    uint* triBin_;
-    uint triLeft_;
+    SharedPtr<VertexBuffer> m_vertBuf;
+    PODVector<buindex> m_vertFree;
+    buindex m_vertCount;
 
-    uint* bufDomain_;
-    uint bufActive_;
-    uint bufMax_;
+    PODVector<SubTriangle> m_triangles;
+    PODVector<trindex> trianglesFree;
 
 public:
 
-    // here to test if things work
-    SharedPtr<IndexBuffer> indBuf_;
     ushort birb_ = 4;
 
     //PlanWren();
     bool IsReady();
-    uint GetIndex(uint8_t set, uint input);
-    uint GetIndex(uint8_t set, uint x, uint y);
-    const uint GetTriangleCount();
-    const uint GetTriangleMax();
-    const uint GetVisibleCount();
-    const uint GetVisibleMax();
-    const float* GetVertData();
 
     void Initialize(Context* context, double size, Scene* scene, ResourceCache* cache);
-    void TriangleHide(SubTriangle* tri);
-    void TriangleRemoveChildren(SubTriangle* tri);
-    void TriangleRemove(uint index);
-    void TriangleShow(SubTriangle* tri, uint index);
-    void TriangleSubdivide(uint t);
-    void Update(float distance, Vector3& dir);
 
     Model* GetModel();
 
 protected:
 
-    void RecursiveSightTest(uint triIndex, uint top, float distance, Vector3& dir);
-    void RecursiveSubdivide(uint8_t set, uint basex, uint basey, uint size, bool down);
+
 
 };
