@@ -37,32 +37,23 @@
 
 using namespace Urho3D;
 
+// The 20 faces of the icosahedron (Top, Left, Right)
+// Each number pointing to a vertex
+static constexpr const uint8_t sc_icoTemplateTris[20 * 3] {
+//  TT  LL  RR   TT  LL  RR   TT  LL  RR   TT  LL  RR   TT  LL  RR
+     0,  2,  1,   0,  3,  2,   0,  4,  3,   0,  5,  4,   0,  1,  5,
+     8,  1,  2,   2,  7,  8,   7,  2,  3,   3,  6,  7,   6,  3,  4,
+     4, 10,  6,  10,  4,  5,   5,  9, 10,   9,  5,  1,   1,  8,  9,
+    11,  6,  7,  11,  7,  8,  11,  8,  9,  11,  9, 10,  11, 10,  6
+};
 
-// these lines are point to point indexed to 12 verticies of the
-// icosahedron. All of these make up a complete wireframe. These buffers
-// is not modified / reallocated in any way.
-static constexpr const uint8_t lines_[60] { 
-    //       #        #        #        #
-    0, 1,    0, 2,    0, 3,    0, 4,    0, 5,
-    1, 2,    2, 3,    3, 4,    4, 5,    5, 1,
-    1, 8,    8, 2,    2, 7,    7, 3,    3, 6,
-    6, 4,    4, 10,   10, 5,   5, 9,    9, 1,
-    6, 7,    7, 8,    8, 9,    9, 10,   10, 6,
-    11, 6,   11, 7,   11, 8,   11, 9,   11, 10
-    //       #        #        #        #
+// The 20 faces of the icosahedron (Bottom, Right, Left)
+static constexpr const uint8_t sc_icoTemplateNeighbors[20 * 3] {
+//  BB  RR  LL   BB  RR  LL   BB  RR  LL   BB  RR  LL   BB  RR  LL
+
 };
-// Make triangles out of the lines above. [bottom, left, right]
-// Lines have direction. Triangle sets always go clockwise.
-// Since some lines may go the wrong way, negative means not reversed.
-// Index starts at 1, not zero, because there is no negative zero.
-static constexpr const int8_t triangleSets_[60] {
-    //            #             #             #             #
-    -6, 2, -1,    -7, 3, -2,    -8, 4, -3,    -9, 5, -4,    -10, 1, -5,
-    6, -11, -12,  22, 13, 12,   7, -13, -14,  21, 15, 14,   8, -15, -16,
-    25, 17, 16,   9, -17, -18,  24, 19, 18,   10, -19, -20, 23, 11, 20,
-    -21, 27, -26, -22, 28, -27, -23, 29, -28, -24, 30, -29, -25, 26, -30
-    //            #             #             #             #
-};
+
+enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010 };
 
 typedef uint32_t trindex;
 typedef uint32_t buindex;
@@ -73,8 +64,10 @@ struct SubTriangle
     trindex m_children; // always has 4 children if subdivided
     trindex m_neighbors[3];
     buindex m_midVerts[3];
+    buindex m_verts[3];
+    buindex m_index;
     //bool subdivided;
-    uint8_t m_bitmask; // subdivided,
+    uint8_t m_bitmask; // 1: subdivided, 2: visible
     uint8_t m_depth;
 };
 
@@ -100,21 +93,27 @@ class PlanWren
     buindex m_vertCount;
 
     PODVector<SubTriangle> m_triangles;
-    PODVector<trindex> trianglesFree;
+    PODVector<trindex> m_trianglesFree;
 
 public:
 
     ushort birb_ = 4;
 
     //PlanWren();
-    bool IsReady();
+    bool is_ready() {return m_ready;}
 
-    void Initialize(Context* context, double size, Scene* scene, ResourceCache* cache);
+    void initialize(Context* context, double size, Scene* scene, ResourceCache* cache);
 
-    Model* GetModel();
+    Model* get_model();
 
 protected:
 
+    void subdivide(trindex t);
+    void unsubdivide(trindex t);
 
+    void set_side_recurse(SubTriangle* tri, uint8_t side, uint8_t to);
+    void set_visible(trindex t, bool visible);
+    void sub_recurse(trindex t, float something, uint8_t depth);
 
+    inline SubTriangle* get_triangle(trindex t) { return m_triangles.Buffer() + t; }
 };

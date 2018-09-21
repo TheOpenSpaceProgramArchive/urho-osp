@@ -19,7 +19,7 @@ void AstronomicalBody::RegisterObject(Context* context) {
 }
 
 void AstronomicalBody::FixedUpdate(float timeStep) {
-    if (planet_.IsReady()) {
+    if (planet_.is_ready()) {
         Vector3 dir(GetScene()->GetChild("Camera")->GetPosition() - GetScene()->GetChild("planet")->GetPosition());
         float dist = dir.Length();
         dir /= dist;
@@ -29,7 +29,7 @@ void AstronomicalBody::FixedUpdate(float timeStep) {
 
 void AstronomicalBody::Initialize(Context* context, double size) {
     ResourceCache* cache = GetSubsystem<ResourceCache>();
-    planet_.Initialize(context, size, GetScene(), cache);
+    planet_.initialize(context, size, GetScene(), cache);
     node_->SetPosition(Vector3(0,-size / 2, 0));
     node_->SetScale(Vector3(size / 2,size / 2,size / 2));
     collider_ = node_->CreateComponent<RigidBody>();

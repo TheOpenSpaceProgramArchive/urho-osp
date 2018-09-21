@@ -4,7 +4,7 @@
 * Initialize PlanWren, allocates buffers and calculates where the base verticies
 * should be
 */
-void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceCache* cache) {
+void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceCache* cache) {
 
     // calculate proper numbers later
     m_maxFaces = 5000;
@@ -29,10 +29,6 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
     m_geometry = new Geometry(context);
 
     float* vertInit = new float[m_maxVertice * 6];
-
-    for(int i = 0; i < m_maxVertice * 6; i ++) {
-        vertInit[i] = 0;
-    }
 
     // Set initial data for the normal icosahedron
     // There should be a better way to do this
@@ -74,9 +70,17 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
     vertInit[68] = 0;
 
     m_triangles.Reserve(180);
+    m_triangles.Resize(20);
 
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 20; i ++) {
         // Set trianglesz
+        SubTriangle* t = get_triangle(i);
+        t->m_parent = 0;
+        t->m_verts[0] = sc_icoTemplateTris[i * 3 + 0];
+        t->m_verts[1] = sc_icoTemplateTris[i * 3 + 1];
+        t->m_verts[2] = sc_icoTemplateTris[i * 3 + 2];
+        t->m_bitmask = 0;
+        t->m_depth = 1;
     }
 
     PODVector<VertexElement> elements;
@@ -113,4 +117,29 @@ void PlanWren::Initialize(Context* context, double size, Scene* scene, ResourceC
     //ready_ = true;
 
     delete[] vertInit;
+}
+
+void PlanWren::set_visible(trindex t, bool visible)
+{
+    SubTriangle* tri = get_triangle(t);
+    if (visible)
+    {
+        if (!(tri->m_bitmask & TriangleStats::E_VISIBLE))
+        {
+            m_indDomain[m_indCount] = t;
+            tri->m_index = m_indCount * 3;
+            uint xz[3];
+            xz[0] = tri->m_verts[0];
+            xz[1] = tri->m_verts[1];
+            xz[2] = tri->m_verts[2];
+            m_indBuf->SetDataRange(&xz, tri->m_index, 3);
+            m_indCount ++;
+            tri->m_bitmask ^= TriangleStats::E_VISIBLE;
+        }
+    } else {
+
+
+
+    }
+
 }
