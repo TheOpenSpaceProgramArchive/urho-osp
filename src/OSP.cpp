@@ -30,15 +30,19 @@ void AstronomicalBody::FixedUpdate(float timeStep) {
 void AstronomicalBody::Initialize(Context* context, double size) {
     ResourceCache* cache = GetSubsystem<ResourceCache>();
     planet_.initialize(context, size, GetScene(), cache);
-    node_->SetPosition(Vector3(0,-size / 2, 0));
-    node_->SetScale(Vector3(size / 2,size / 2,size / 2));
+    node_->SetPosition(Vector3(0, 4, 10));
+    //node_->SetScale(Vector3(size / 2, size / 2, size / 2));
     collider_ = node_->CreateComponent<RigidBody>();
     CollisionShape* sphere = node_->CreateComponent<CollisionShape>();
     //sphere->SetSphere(size / 2);
-    sphere->SetSphere(2);
+    sphere->SetSphere(size * 2);
     //collider_->SetMass(1.0f);
     collider_->SetFriction(0.75f);
-
+    StaticModel* planetModel = node_->CreateComponent<StaticModel>();
+    planetModel->SetModel(planet_.get_model());
+    //Material* m = cache->GetResource<Material>("Materials/Earth.xml");
+    //m->SetFillMode(FILL_WIREFRAME);
+    //planetModel->SetMaterial(m);
 }
 
 
@@ -104,4 +108,7 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
 void SystemOsp::make_craft(Node* node)
 {
     node->CreateComponent<Entity>();
+    Node* planet = node->GetScene()->CreateChild("Planet");
+    AstronomicalBody* ab = planet->CreateComponent<AstronomicalBody>();
+    ab->Initialize(node->GetContext(), 3.0f);
 }

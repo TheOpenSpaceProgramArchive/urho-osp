@@ -41,9 +41,9 @@ using namespace Urho3D;
 // Each number pointing to a vertex
 static constexpr const uint8_t sc_icoTemplateTris[20 * 3] {
 //  TT  LL  RR   TT  LL  RR   TT  LL  RR   TT  LL  RR   TT  LL  RR
-     0,  2,  1,   0,  3,  2,   0,  4,  3,   0,  5,  4,   0,  1,  5,
-     8,  1,  2,   2,  7,  8,   7,  2,  3,   3,  6,  7,   6,  3,  4,
-     4, 10,  6,  10,  4,  5,   5,  9, 10,   9,  5,  1,   1,  8,  9,
+     0,  1,  2,   0,  2,  3,   0,  3,  4,   0,  4,  5,   0,  5,  1,
+     8,  2,  1,   2,  8,  7,   7,  3,  2,   3,  7,  6,   6,  4,  3,
+     4,  6, 10,  10,  5,  4,   5,  10, 9,   9,  1,  5,   1,  9,  8,
     11,  6,  7,  11,  7,  8,  11,  8,  9,  11,  9, 10,  11, 10,  6
 };
 
@@ -85,7 +85,7 @@ class PlanWren
     Geometry* m_geometry;
 
     SharedPtr<IndexBuffer> m_indBuf;
-    trindex m_indDomain[];
+    trindex* m_indDomain;
     buindex m_indCount;
 
     SharedPtr<VertexBuffer> m_vertBuf;
@@ -99,12 +99,13 @@ public:
 
     ushort birb_ = 4;
 
-    //PlanWren();
+    PlanWren();
+    ~PlanWren();
     bool is_ready() {return m_ready;}
 
     void initialize(Context* context, double size, Scene* scene, ResourceCache* cache);
 
-    Model* get_model();
+    Model* get_model() { return m_model; }
 
 protected:
 
@@ -115,5 +116,5 @@ protected:
     void set_visible(trindex t, bool visible);
     void sub_recurse(trindex t, float something, uint8_t depth);
 
-    inline SubTriangle* get_triangle(trindex t) { return m_triangles.Buffer() + t; }
+    inline SubTriangle* get_triangle(trindex t) { return &(m_triangles[t]); }
 };

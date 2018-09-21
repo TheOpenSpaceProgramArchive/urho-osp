@@ -1,5 +1,18 @@
 #include "OSP.h"
 
+PlanWren::PlanWren() : m_triangles(), m_trianglesFree(), m_vertFree()
+{
+    m_indCount = 0;
+}
+
+PlanWren::~PlanWren()
+{
+    //m_vertBuf->Release();
+    //m_indBuf->Release();
+    printf("pppp %p;\n", m_indDomain);
+    delete[] m_indDomain;
+}
+
 /**
 * Initialize PlanWren, allocates buffers and calculates where the base verticies
 * should be
@@ -8,10 +21,8 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
 
     // calculate proper numbers later
     m_maxFaces = 5000;
-    m_maxIndices = 10000;
-    m_maxVertice = 10000;
-
-    m_model = new Model(context);
+    m_maxIndices = 1000;
+    m_maxVertice = 1000;
 
     float s = size / 280.43394944265;
     float h = 114.486680448;
@@ -23,10 +34,6 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
     float cb = 207.10835055999f;
     float sa = 243.47046817156f;
     float sb = 150.47302458687f;
-
-    m_indBuf = new IndexBuffer(context);
-    m_vertBuf = new VertexBuffer(context);
-    m_geometry = new Geometry(context);
 
     float* vertInit = new float[m_maxVertice * 6];
 
@@ -69,29 +76,38 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
     vertInit[67] = -256;
     vertInit[68] = 0;
 
-    m_triangles.Reserve(180);
-    m_triangles.Resize(20);
 
-    for (int i = 0; i < 20; i ++) {
-        // Set trianglesz
-        SubTriangle* t = get_triangle(i);
-        t->m_parent = 0;
-        t->m_verts[0] = sc_icoTemplateTris[i * 3 + 0];
-        t->m_verts[1] = sc_icoTemplateTris[i * 3 + 1];
-        t->m_verts[2] = sc_icoTemplateTris[i * 3 + 2];
-        t->m_bitmask = 0;
-        t->m_depth = 1;
+    double vx, vy, vz;
+    for (int i = 0; i < 68; i += 6) {
+
+        vx = vertInit[i + 0];
+        vy = vertInit[i + 1];
+        vz = vertInit[i + 2];
+        double mag = Sqrt(vx * vx
+                          + vy * vy
+                          + vz * vz);
+        vertInit[i + 0] = float(vx / mag * size);
+        vertInit[i + 1] = float(vy / mag * size);
+        vertInit[i + 2] = float(vz / mag * size);
+        vertInit[i + 3] = float(vx / mag);
+        vertInit[i + 4] = float(vy / mag);
+        vertInit[i + 5] = float(vz / mag);
     }
+
+    m_indBuf = new IndexBuffer(context);
+    m_vertBuf = new VertexBuffer(context);
+    m_geometry = new Geometry(context);
+    m_model = new Model(context);
 
     PODVector<VertexElement> elements;
     elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
     elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
 
-    m_vertBuf->SetSize(m_maxVertice * 3, elements);
+    m_vertBuf->SetSize(m_maxVertice * 6, elements);
     m_vertBuf->SetData(vertInit);
     m_vertBuf->SetShadowed(true);
 
-    m_indBuf->SetSize(m_maxVertice * 3, true, true);
+    m_indBuf->SetSize(m_maxFaces * 3, true, true);
     //indBuf_->SetData();
     m_indBuf->SetShadowed(true);
 
@@ -116,16 +132,36 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
 
     //ready_ = true;
 
+    m_indDomain = new trindex[m_maxIndices * 3];
+    m_triangles.Reserve(180);
+    //m_triangles.Resize(20);
+
+    for (int i = 0; i < 20; i ++) {
+        // Set trianglesz
+        SubTriangle tri;
+        //printf("Triangle: %p\n", t);
+        tri.m_parent = 0;
+        tri.m_verts[0] = sc_icoTemplateTris[i * 3 + 0];
+        tri.m_verts[1] = sc_icoTemplateTris[i * 3 + 1];
+        tri.m_verts[2] = sc_icoTemplateTris[i * 3 + 2];
+        tri.m_bitmask = 0;
+        tri.m_depth = 1;
+        m_triangles.Push(tri);
+        set_visible(i, true);
+    }
+
     delete[] vertInit;
 }
 
 void PlanWren::set_visible(trindex t, bool visible)
 {
+    printf("Setting visible: %u\n", t);
     SubTriangle* tri = get_triangle(t);
     if (visible)
     {
         if (!(tri->m_bitmask & TriangleStats::E_VISIBLE))
         {
+            printf("yea\n");
             m_indDomain[m_indCount] = t;
             tri->m_index = m_indCount * 3;
             uint xz[3];
