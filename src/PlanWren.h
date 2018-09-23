@@ -41,16 +41,19 @@ using namespace Urho3D;
 // Each number pointing to a vertex
 static constexpr const uint8_t sc_icoTemplateTris[20 * 3] {
 //  TT  LL  RR   TT  LL  RR   TT  LL  RR   TT  LL  RR   TT  LL  RR
-     0,  1,  2,   0,  2,  3,   0,  3,  4,   0,  4,  5,   0,  5,  1,
-     8,  2,  1,   2,  8,  7,   7,  3,  2,   3,  7,  6,   6,  4,  3,
-     4,  6, 10,  10,  5,  4,   5,  10, 9,   9,  1,  5,   1,  9,  8,
-    11,  6,  7,  11,  7,  8,  11,  8,  9,  11,  9, 10,  11, 10,  6
+     0,  2,  1,   0,  3,  2,   0,  4,  3,   0,  5,  4,   0,  1,  5,
+     8,  1,  2,   2,  7,  8,   7,  2,  3,   3,  6,  7,   6,  3,  4,
+     4,  10, 6,  10,  4,  5,   5,  9, 10,   9,  5,  1,   1,  8,  9,
+    11,  7,  6,  11,  8,  7,  11,  9,  8,  11, 10,  9,  11,  6, 10
 };
 
 // The 20 faces of the icosahedron (Bottom, Right, Left)
 static constexpr const uint8_t sc_icoTemplateNeighbors[20 * 3] {
 //  BB  RR  LL   BB  RR  LL   BB  RR  LL   BB  RR  LL   BB  RR  LL
-
+     5,  4,  1,   7,  0,  2,   9,  1,  3,  11,  2,  4,  13,  3,  0,
+     0,  6, 14,  16,  5,  7,   1,  8,  6,  15,  7,  9,   2, 10,  8,
+    19,  9, 11,   3, 12, 10,  18, 11, 13,   4, 14, 12,  17, 13,  5,
+     8, 19, 16,   6, 15, 17,  14, 16, 18,  12, 17, 19,  10, 18, 15
 };
 
 enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010 };
@@ -109,6 +112,10 @@ public:
 
 protected:
 
+    static inline void set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte);
+    static inline void set_neighbors(SubTriangle& tri, trindex bot, trindex rte, trindex lft);
+    static inline uint8_t neighboor_index(SubTriangle& tri, trindex lookingFor);
+
     void subdivide(trindex t);
     void unsubdivide(trindex t);
 
@@ -116,5 +123,6 @@ protected:
     void set_visible(trindex t, bool visible);
     void sub_recurse(trindex t, float something, uint8_t depth);
 
-    inline SubTriangle* get_triangle(trindex t) { return &(m_triangles[t]); }
+    inline SubTriangle* get_triangle(trindex t) { printf("Accessing Tri: %u \n", t); return &(m_triangles[t]); }
+
 };

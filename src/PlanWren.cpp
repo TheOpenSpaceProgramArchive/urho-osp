@@ -1,5 +1,33 @@
 #include "OSP.h"
 
+inline void PlanWren::set_neighbors(SubTriangle& tri, trindex bot, trindex rte, trindex lft)
+{
+    tri.m_neighbors[0] = bot;
+    tri.m_neighbors[1] = rte;
+    tri.m_neighbors[2] = lft;
+}
+
+inline void PlanWren::set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte)
+{
+    tri.m_verts[0] = top;
+    tri.m_verts[1] = lft;
+    tri.m_verts[2] = rte;
+}
+
+
+inline uint8_t PlanWren::neighboor_index(SubTriangle& tri, trindex lookingFor)
+{
+    if (tri.m_neighbors[0] == lookingFor)
+        return 0;
+    else if (tri.m_neighbors[1] == lookingFor)
+        return 1;
+    else if (tri.m_neighbors[2] == lookingFor)
+        return 2;
+    // this means there's an error
+    printf("Errrrorr \n");
+    return 255;
+}
+
 PlanWren::PlanWren() : m_triangles(), m_trianglesFree(), m_vertFree()
 {
     m_indCount = 0;
@@ -9,7 +37,7 @@ PlanWren::~PlanWren()
 {
     //m_vertBuf->Release();
     //m_indBuf->Release();
-    printf("pppp %p;\n", m_indDomain);
+    //printf("pppp %p;\n", m_indDomain);
     delete[] m_indDomain;
 }
 
@@ -19,16 +47,19 @@ PlanWren::~PlanWren()
 */
 void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceCache* cache) {
 
+    m_size = size;
+
     // calculate proper numbers later
     m_maxFaces = 5000;
     m_maxIndices = 1000;
     m_maxVertice = 1000;
 
+    // Pentagon stuff, from wolfram alpha
+    // This part is kind of messy and should be revised
+    // "X pointing" pentagon goes on the top
+
     float s = size / 280.43394944265;
     float h = 114.486680448;
-
-    // Pentagon stuff, from wolfram alpha
-    // "X pointing" pentagon goes on the top
 
     float ca = 79.108350559987f;
     float cb = 207.10835055999f;
@@ -37,6 +68,7 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
 
     float* vertInit = new float[m_maxVertice * 6];
 
+    // VERT XYZ, NORMAL XYZ, VERT XYZ, NORMAL XYZ, ...
     // Set initial data for the normal icosahedron
     // There should be a better way to do this
     vertInit[0] = 0; // Top vertex 0
@@ -76,7 +108,7 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
     vertInit[67] = -256;
     vertInit[68] = 0;
 
-
+    // Shape into the right sized sphere
     double vx, vy, vz;
     for (int i = 0; i < 68; i += 6) {
 
@@ -94,31 +126,39 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
         vertInit[i + 5] = float(vz / mag);
     }
 
+    // Urho3D specific, make buffers and stuff
     m_indBuf = new IndexBuffer(context);
     m_vertBuf = new VertexBuffer(context);
     m_geometry = new Geometry(context);
     m_model = new Model(context);
 
+    // This part is instuctions saying that position and normal data is interleved
     PODVector<VertexElement> elements;
     elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
     elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
 
+    // Set size and data of vertex data
     m_vertBuf->SetSize(m_maxVertice * 6, elements);
     m_vertBuf->SetData(vertInit);
     m_vertBuf->SetShadowed(true);
 
+    // Same but with index buffer
     m_indBuf->SetSize(m_maxFaces * 3, true, true);
     //indBuf_->SetData();
     m_indBuf->SetShadowed(true);
 
+    // Create the geometry, urho3d specific
     m_geometry->SetNumVertexBuffers(1);
     m_geometry->SetVertexBuffer(0, m_vertBuf);
     m_geometry->SetIndexBuffer(m_indBuf);
     m_geometry->SetDrawRange(TRIANGLE_LIST, 0, 20 * 3);
 
+    // Add geometry to model, urho3d specific
     m_model->SetNumGeometries(1);
     m_model->SetGeometry(0, 0, m_geometry);
     m_model->SetBoundingBox(BoundingBox(Sphere(Vector3(0, 0, 0), size * 2)));
+
+    // Not sure what this is doing, urho3d specific
     Vector<SharedPtr<VertexBuffer> > vrtBufs;
     Vector<SharedPtr<IndexBuffer> > indBufs;
     vrtBufs.Push(m_vertBuf);
@@ -132,50 +172,196 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
 
     //ready_ = true;
 
+    // Create index domain, and reserve some space on empty triangles array
     m_indDomain = new trindex[m_maxIndices * 3];
-    m_triangles.Reserve(180);
-    //m_triangles.Resize(20);
+    //m_triangles.Reserve(180);
+    m_triangles.Reserve(3000);
 
+    // Initialize triangles, indices from sc_icoTemplateTris
     for (int i = 0; i < 20; i ++) {
         // Set trianglesz
         SubTriangle tri;
         //printf("Triangle: %p\n", t);
         tri.m_parent = 0;
-        tri.m_verts[0] = sc_icoTemplateTris[i * 3 + 0];
-        tri.m_verts[1] = sc_icoTemplateTris[i * 3 + 1];
-        tri.m_verts[2] = sc_icoTemplateTris[i * 3 + 2];
+        set_verts(tri, sc_icoTemplateTris[i * 3 + 0], sc_icoTemplateTris[i * 3 + 1], sc_icoTemplateTris[i * 3 + 2]);
+        set_neighbors(tri, sc_icoTemplateNeighbors[i * 3 + 0], sc_icoTemplateNeighbors[i * 3 + 1], sc_icoTemplateNeighbors[i * 3 + 2]);
         tri.m_bitmask = 0;
         tri.m_depth = 1;
         m_triangles.Push(tri);
         set_visible(i, true);
     }
 
+    for (int i = 0; i < 20; i ++) {
+        subdivide(i);
+    }
+
+    // Not leaking memory
     delete[] vertInit;
 }
 
+/**
+ * Show or hide a triangle.
+ * @param t [in] Index to the triangle
+ * @param visible [in] To hide or to show
+ */
 void PlanWren::set_visible(trindex t, bool visible)
 {
     printf("Setting visible: %u\n", t);
     SubTriangle* tri = get_triangle(t);
     if (visible)
     {
-        if (!(tri->m_bitmask & TriangleStats::E_VISIBLE))
+        // Check if the triangle is already visible
+        if (!(tri->m_bitmask & E_VISIBLE))
         {
             printf("yea\n");
+
+            // Put new vertex indices into the end of the index buffer
+
+            // indDomain keeps track of which vertices belong to what triangle
             m_indDomain[m_indCount] = t;
             tri->m_index = m_indCount * 3;
+
+            // Put data into indBuf
             uint xz[3];
             xz[0] = tri->m_verts[0];
             xz[1] = tri->m_verts[1];
             xz[2] = tri->m_verts[2];
             m_indBuf->SetDataRange(&xz, tri->m_index, 3);
+
+            // Increment m_indCount as a new element was added to the end
             m_indCount ++;
-            tri->m_bitmask ^= TriangleStats::E_VISIBLE;
+
+            // Set visible bit
+            tri->m_bitmask ^= E_VISIBLE;
         }
     } else {
 
 
 
     }
+}
 
+void PlanWren::subdivide(trindex t)
+{
+    // if bottom triangle is deeper, use that vertex
+    // same with left and right
+
+    SubTriangle* tri = get_triangle(t);
+
+    // if visible, then hide
+    set_visible(t, false);
+
+    // Add the 4 new triangles
+    // Top Left Right Center
+    uint freeSize = m_trianglesFree.Size();
+    if (freeSize == 0) {
+        tri->m_children = m_triangles.Size();
+        m_triangles.Resize(tri->m_children + 4);
+        //tri->children[1] = freeSize + 1;
+        //tri->children[2] = freeSize + 2;
+        //tri->children[3] = freeSize + 3;
+    } else {
+        // Free triangles always come in groups of 4
+        // as triangles are always deleted in groups of 4
+        // pop doesn't return the value for some reason, get last element then pop
+        trindex j = m_trianglesFree[m_trianglesFree.Size() - 1];
+        m_trianglesFree.Pop();
+        tri->m_children = j;
+        //tri->children[1] = j + 1;
+        //tri->children[2] = j + 2;
+        //tri->children[3] = j + 3;
+    }
+
+    // Most of these constructors are useless, ignote comments below
+    // For example
+    // [tri.children[3], tri.sides[1], tri.sides[2]] means that the top triangle has the center triangle on it's bottom side, and it's left and right side are the same as the parent triangle
+    // [tri.verts[0], tri.midVerts[2], tri.midVerts[1] means that the top vertex of the parent triangle, and the left and right middle vertices make up the top triangle
+    //this.triangles[tri.children[0]] = new this.Triangle([-1, -1, -1], [-1, -1, -1], tri.myDepth + 1);
+    //this.triangles[tri.children[1]] = new this.Triangle([-1, -1, -1], [-1, -1, -1], tri.myDepth + 1);
+    //this.triangles[tri.children[2]] = new this.Triangle([-1, -1, -1], [-1, -1, -1], tri.myDepth + 1);
+    SubTriangle* children = get_triangle(tri->m_children);
+
+    set_neighbors(children[0], tri->m_children + 3, tri->m_neighbors[1], tri->m_neighbors[2]);
+    set_neighbors(children[1], tri->m_neighbors[0], tri->m_children + 3, tri->m_neighbors[2]);
+    set_neighbors(children[2], tri->m_neighbors[0], tri->m_neighbors[1], tri->m_children + 3);
+    set_neighbors(children[3], tri->m_children + 3, tri->m_children + 1, tri->m_children + 2);
+    children[0].m_depth = children[1].m_depth = children[2].m_depth = children[3].m_depth = tri->m_depth + 1;
+    // Subdivide lines and add verticies, or take from other triangles
+
+    // Preparation to write to vertex buffer
+    unsigned char* vertData = m_vertBuf->GetShadowData();
+    unsigned vertSize = m_vertBuf->GetVertexSize();
+    float writeMe[3];
+    printf("Vertex size: %u\n", vertSize);
+
+    // Loop through 3 sides of the triangle: Bottom, Right, Left
+    // tri.sides refers to an index of another triangle on that side
+    for (uint8_t i = 0; i < 3; i ++) {
+        SubTriangle* triB = get_triangle(tri->m_neighbors[i]);
+        // Check if the line is already subdivided, or if there is no triangle on the other side
+        if (!(tri->m_bitmask & E_SUBDIVIDED) || triB->m_depth != tri->m_depth) {
+            // A new vertex has to be created in the middle of the line
+            if (m_vertFree.Size() == 0) {
+                tri->m_midVerts[i] = m_vertCount * 2;
+                m_vertCount ++;
+            } else {
+                tri->m_midVerts[i] = m_vertFree[m_vertFree.Size() - 1];
+                m_vertFree.Pop();
+            }
+
+            // Technique taken from an urho3D example
+            //Vector3& vertM = (*reinterpret_cast<Vector3*>(&vertData[vertSize * tri.midVerts[i]]));
+            const Vector3& vertA = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_verts[(i + 1) % 3]));
+            const Vector3& vertB = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_verts[(i + 2) % 3]));
+
+            Vector3 vertM = (vertA / 2 + vertB / 2).Normalized() * m_size;
+
+            m_vertBuf->SetDataRange(vertM.Data(), tri->m_midVerts[i] * 6, 3);
+
+            //console.log(i + ": Created new vertex");
+        } else {
+            // Which side tri is on triB
+            trindex sideB = neighboor_index(triB[0], t);
+
+            // Instead of creating a new vertex, use the one from triB since it's already subdivided
+            tri->m_midVerts[i] = triB->m_midVerts[sideB];
+            //console.log(i + ": Used existing vertex");
+
+            // Set sides
+            // Side 0(bottom) corresponds to child 1(left), 2(right)
+            // Side 1(right) corresponds to child 2(right), 0(top)
+            // Side 2(left) corresponds to child 0(top), 1(left)
+
+            // triX/Y refers to the two triangles on the side of tri
+            // triBX/Y refers to the two triangles on the side of triB
+            trindex triX = tri->m_children + ((i + 1) % 3);
+            trindex triY = tri->m_children + ((i + 2) % 3);
+            trindex triBX = triB->m_children + ((sideB + 1) % 3);
+            trindex triBY = triB->m_children + ((sideB + 2) % 3);
+
+            // Assign the face of each triangle to the other triangle right beside it
+            m_triangles[triX].m_neighbors[i] = triBY;
+            m_triangles[triY].m_neighbors[i] = triBX;
+            m_triangles[triBX].m_neighbors[i] = triY;
+            m_triangles[triBY].m_neighbors[i] = triX;
+        }
+    }
+
+    set_verts(children[0], tri->m_verts[0], tri->m_midVerts[2], tri->m_midVerts[1]);
+    set_verts(children[1], tri->m_midVerts[2], tri->m_verts[1], tri->m_midVerts[0]);
+    set_verts(children[2], tri->m_midVerts[1], tri->m_midVerts[0], tri->m_verts[2]);
+
+    //console.log("MyDepth: " + tri.myDepth)
+    //console.log("Sides: B" + tri.sides[0] + ", R" + tri.sides[1] + ", L" + tri.sides[2]);
+    //console.log("MidVerts: B" + tri.midVerts[0] + ", R" + tri.midVerts[1] + ", L" + tri.midVerts[2]);
+
+    // Make them all visible
+    set_visible(tri->m_children + 0, true);
+    set_visible(tri->m_children + 1, true);
+    set_visible(tri->m_children + 2, true);
+    set_visible(tri->m_children + 3, true);
+    //tri.myDepth ++;
+
+    // Set subdivided bit
+    tri->m_bitmask ^= E_SUBDIVIDED;
 }

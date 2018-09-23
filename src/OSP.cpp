@@ -40,9 +40,10 @@ void AstronomicalBody::Initialize(Context* context, double size) {
     collider_->SetFriction(0.75f);
     StaticModel* planetModel = node_->CreateComponent<StaticModel>();
     planetModel->SetModel(planet_.get_model());
-    //Material* m = cache->GetResource<Material>("Materials/Earth.xml");
+    Material* m = cache->GetResource<Material>("Materials/Earth.xml");
+    m->SetCullMode(CULL_CW);
     //m->SetFillMode(FILL_WIREFRAME);
-    //planetModel->SetMaterial(m);
+    planetModel->SetMaterial(m);
 }
 
 

@@ -63,7 +63,7 @@
       //this.maxDepth = 0; // the deepest this thing goes
       this.subdivided = false; // whether it's subdivided or not
       this.myDepth = depth; // how deep it is in the tree, more ancestors = higher number
-      this.index = null; // Location in index buffer
+              this.index = null; // Location in index buffer
       this.verts = verts; // index of 3 vertices, [top, left, right] conterclockwise
       this.midVerts = [0, 0, 0]; // index of  Middle vertices when subdivided
       this.sides = sides; // Index of bottom, right, and left triangles
@@ -227,8 +227,8 @@
             // Assign the face of each triangle to the other triangle right beside it
             this.triangles[triX].sides[i] = triBY;
             this.triangles[triY].sides[i] = triBX;
-            this.triangles[triBX].sides[i] = triY;
-            this.triangles[triBY].sides[i] = triX;
+            this.triangles[triBX].sides[sideB] = triY;
+            this.triangles[triBY].sides[sideB] = triX;
           }
         }
 
@@ -316,7 +316,7 @@
     //  //this.vertexBuffer[vIndex];
     //  vertexFree.push(vIndex);
     //}
-
+  
     // trindex refers to the index of a triangle in the triangles array
     application.setVisible = function(trindex, v) {
       var tri = this.triangles[trindex];
@@ -336,7 +336,7 @@
           //console.log("removed!");
           // How to remove a triangle from the buffer: 
           // Move the last element of the buffer (3 ints) into the location of the triangle
-          // that is suppose o be removed. this keeps holes out of the index buffer so
+          // that is suppose o be this. removed keeps holes out of the index buffer so
           // the gpu doesn't have to deal with holes, and holes dont have to be seeked out
           // for a new triangle to be inserted in.
 

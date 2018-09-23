@@ -1,3 +1,4 @@
 <technique vs="Cubemap" ps="Cubemap">
-    <pass name="postopaque" depthwrite="true" />
+    <pass name="base" />
+    <pass name="litbase" psdefines="AMBIENT" />
 </technique>
