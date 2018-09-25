@@ -75,6 +75,7 @@ public:
     {
         AstronomicalBody::RegisterObject(context);
         Entity::RegisterObject(context);
+        PlanetTerrain::RegisterObject(context);
         MachineRocket::RegisterObject(context);
     }
 
@@ -125,6 +126,7 @@ public:
         RegisterObject<SystemOsp>(scriptEngine, "SystemOsp");
         scriptEngine->RegisterObjectMethod("SystemOsp", "Scene@+ get_hiddenScene() const", asMETHOD(SystemOsp, get_hidden_scene), asCALL_THISCALL);
         scriptEngine->RegisterObjectMethod("SystemOsp", "void make_craft(Node@+) const", asMETHOD(SystemOsp, make_craft), asCALL_THISCALL);
+        scriptEngine->RegisterObjectMethod("SystemOsp", "void debug_function(StringHash) const", asMETHOD(SystemOsp, debug_function), asCALL_THISCALL);
         // call GetOsp when osp is accessed from angelscript, see thing about singleton https://www.angelcode.com/angelscript/sdk/docs/manual/doc_register_func.html
         scriptEngine->RegisterGlobalFunction("SystemOsp@+ get_osp()", asMETHOD(OSPApplication, GetOsp), asCALL_THISCALL_ASGLOBAL, this);
 

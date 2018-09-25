@@ -106,7 +106,7 @@ public:
     ~PlanWren();
     bool is_ready() {return m_ready;}
 
-    void initialize(Context* context, double size, Scene* scene, ResourceCache* cache);
+    void initialize(Context* context, double size);
 
     Model* get_model() { return m_model; }
 
@@ -123,6 +123,6 @@ protected:
     void set_visible(trindex t, bool visible);
     void sub_recurse(trindex t, float something, uint8_t depth);
 
-    inline SubTriangle* get_triangle(trindex t) { printf("Accessing Tri: %u \n", t); return &(m_triangles[t]); }
+    inline SubTriangle* get_triangle(trindex t) { return &(m_triangles[t]); }
 
 };

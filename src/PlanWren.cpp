@@ -45,7 +45,7 @@ PlanWren::~PlanWren()
 * Initialize PlanWren, allocates buffers and calculates where the base verticies
 * should be
 */
-void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceCache* cache) {
+void PlanWren::initialize(Context* context, double size) {
 
     m_size = size;
 
@@ -53,6 +53,9 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
     m_maxFaces = 5000;
     m_maxIndices = 1000;
     m_maxVertice = 1000;
+
+    m_vertCount = 20;
+    m_indCount = 0;
 
     // Pentagon stuff, from wolfram alpha
     // This part is kind of messy and should be revised
@@ -139,8 +142,8 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
 
     // Set size and data of vertex data
     m_vertBuf->SetSize(m_maxVertice * 6, elements);
-    m_vertBuf->SetData(vertInit);
     m_vertBuf->SetShadowed(true);
+    m_vertBuf->SetData(vertInit);
 
     // Same but with index buffer
     m_indBuf->SetSize(m_maxFaces * 3, true, true);
@@ -188,12 +191,17 @@ void PlanWren::initialize(Context* context, double size, Scene* scene, ResourceC
         tri.m_bitmask = 0;
         tri.m_depth = 1;
         m_triangles.Push(tri);
+        //if (i != 0)
         set_visible(i, true);
     }
 
     for (int i = 0; i < 20; i ++) {
         subdivide(i);
     }
+
+    //for (int i = 20; i < 20 + 20 * 4; i ++) {
+    //    subdivide(i);
+    //}
 
     // Not leaking memory
     delete[] vertInit;
@@ -208,36 +216,60 @@ void PlanWren::set_visible(trindex t, bool visible)
 {
     printf("Setting visible: %u\n", t);
     SubTriangle* tri = get_triangle(t);
+
+    // Check if the triangle is already visible/invisible
+    if (bool(tri->m_bitmask & E_VISIBLE) == visible)
+    {
+        return;
+    }
+
     if (visible)
     {
-        // Check if the triangle is already visible
-        if (!(tri->m_bitmask & E_VISIBLE))
-        {
-            printf("yea\n");
 
-            // Put new vertex indices into the end of the index buffer
+        // Put new vertex indices into the end of the index buffer
 
-            // indDomain keeps track of which vertices belong to what triangle
-            m_indDomain[m_indCount] = t;
-            tri->m_index = m_indCount * 3;
+        // indDomain keeps track of which vertices belong to what triangle
+        m_indDomain[m_indCount] = t;
+        tri->m_index = m_indCount * 3;
 
-            // Put data into indBuf
-            uint xz[3];
-            xz[0] = tri->m_verts[0];
-            xz[1] = tri->m_verts[1];
-            xz[2] = tri->m_verts[2];
-            m_indBuf->SetDataRange(&xz, tri->m_index, 3);
+        // Put data into indBuf
+        uint xz[3];
+        xz[0] = tri->m_verts[0];
+        xz[1] = tri->m_verts[1];
+        xz[2] = tri->m_verts[2];
+        m_indBuf->SetDataRange(&xz, tri->m_index, 3);
+        printf("Showing: %u %u %u \n", xz[0], xz[1], xz[2]);
 
-            // Increment m_indCount as a new element was added to the end
-            m_indCount ++;
+        // Increment m_indCount as a new element was added to the end
+        m_indCount ++;
+        m_geometry->SetDrawRange(TRIANGLE_LIST, 0, m_indCount * 3);
 
-            // Set visible bit
-            tri->m_bitmask ^= E_VISIBLE;
-        }
+        // Set visible bit
+        tri->m_bitmask ^= E_VISIBLE;
     } else {
+        //console.log("removed!");
+        // How to remove a triangle from the buffer:
+        // Move the last element of the buffer (3 ints) into the location of the triangle
+        // that is suppose o be this. removed keeps holes out of the index buffer so
+        // the gpu doesn't have to deal with holes, and holes dont have to be seeked out
+        // for a new triangle to be inserted in.
 
+        // decrement the index count, this is now the index of the last triangle
+        m_indCount --;
+        // change the last triangle class's index to new location.
+        //console.log(this.indexDomain[this.indexCount]);
+        m_triangles[m_indDomain[m_indCount]].m_index = tri->m_index;
+        // move the location of the last element's domain to the new location
+        m_indDomain[tri->m_index / 3] = m_indDomain[m_indCount];
 
+        // get the index buffer data of the last triangle (last 3 ints), and put it into the new location
 
+        uint* xz = reinterpret_cast<uint*>(m_indBuf->GetShadowData() + (m_indCount * 3 * sizeof(uint)));
+        printf("Hiding: %u, %u, %u\n", xz[0], xz[1], xz[2]);
+        m_indBuf->SetDataRange(xz, tri->m_index, 3);
+        //this.indexBuffer.set(this.indexBuffer.slice(this.indexCount * 3, this.indexCount * 3 + 3), tri.index);
+        // indicates that tri is now invisible
+        tri->m_bitmask ^= E_VISIBLE;
     }
 }
 
@@ -286,23 +318,24 @@ void PlanWren::subdivide(trindex t)
     set_neighbors(children[2], tri->m_neighbors[0], tri->m_neighbors[1], tri->m_children + 3);
     set_neighbors(children[3], tri->m_children + 3, tri->m_children + 1, tri->m_children + 2);
     children[0].m_depth = children[1].m_depth = children[2].m_depth = children[3].m_depth = tri->m_depth + 1;
+    children[0].m_bitmask = children[1].m_bitmask = children[2].m_bitmask = children[3].m_bitmask = 0;
     // Subdivide lines and add verticies, or take from other triangles
 
     // Preparation to write to vertex buffer
     unsigned char* vertData = m_vertBuf->GetShadowData();
     unsigned vertSize = m_vertBuf->GetVertexSize();
     float writeMe[3];
-    printf("Vertex size: %u\n", vertSize);
+    //printf("Vertex size: %u\n", vertSize);
 
     // Loop through 3 sides of the triangle: Bottom, Right, Left
     // tri.sides refers to an index of another triangle on that side
     for (uint8_t i = 0; i < 3; i ++) {
         SubTriangle* triB = get_triangle(tri->m_neighbors[i]);
         // Check if the line is already subdivided, or if there is no triangle on the other side
-        if (!(tri->m_bitmask & E_SUBDIVIDED) || triB->m_depth != tri->m_depth) {
+        if (!(triB->m_bitmask & E_SUBDIVIDED) || (triB->m_depth != tri->m_depth)) {
             // A new vertex has to be created in the middle of the line
             if (m_vertFree.Size() == 0) {
-                tri->m_midVerts[i] = m_vertCount * 2;
+                tri->m_midVerts[i] = m_vertCount;
                 m_vertCount ++;
             } else {
                 tri->m_midVerts[i] = m_vertFree[m_vertFree.Size() - 1];
@@ -314,14 +347,19 @@ void PlanWren::subdivide(trindex t)
             const Vector3& vertA = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_verts[(i + 1) % 3]));
             const Vector3& vertB = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_verts[(i + 2) % 3]));
 
-            Vector3 vertM = (vertA / 2 + vertB / 2).Normalized() * m_size;
+            Vector3 vertM[2];
+            vertM[1] = ((vertA + vertB) / 2).Normalized();
+            vertM[0] = vertM[1] * m_size;
+            //printf("VA %s, VB: %s, \n", vertA.ToString().CString(), vertB.ToString().CString());
 
-            m_vertBuf->SetDataRange(vertM.Data(), tri->m_midVerts[i] * 6, 3);
+            printf("DataRange: %u\n", tri->m_midVerts[i]);
+            m_vertBuf->SetDataRange(vertM, tri->m_midVerts[i], 1);
 
             //console.log(i + ": Created new vertex");
         } else {
             // Which side tri is on triB
             trindex sideB = neighboor_index(triB[0], t);
+            printf("Vertex is being shared\n");
 
             // Instead of creating a new vertex, use the one from triB since it's already subdivided
             tri->m_midVerts[i] = triB->m_midVerts[sideB];
@@ -350,12 +388,15 @@ void PlanWren::subdivide(trindex t)
     set_verts(children[0], tri->m_verts[0], tri->m_midVerts[2], tri->m_midVerts[1]);
     set_verts(children[1], tri->m_midVerts[2], tri->m_verts[1], tri->m_midVerts[0]);
     set_verts(children[2], tri->m_midVerts[1], tri->m_midVerts[0], tri->m_verts[2]);
+    set_verts(children[3], tri->m_midVerts[0], tri->m_midVerts[1], tri->m_midVerts[2]);
 
     //console.log("MyDepth: " + tri.myDepth)
     //console.log("Sides: B" + tri.sides[0] + ", R" + tri.sides[1] + ", L" + tri.sides[2]);
     //console.log("MidVerts: B" + tri.midVerts[0] + ", R" + tri.midVerts[1] + ", L" + tri.midVerts[2]);
 
     // Make them all visible
+
+    printf("Children to show: %u\n", tri->m_children);
     set_visible(tri->m_children + 0, true);
     set_visible(tri->m_children + 1, true);
     set_visible(tri->m_children + 2, true);

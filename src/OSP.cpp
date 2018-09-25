@@ -1,6 +1,8 @@
+#include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/RigidBody.h>
+
 
 #include "OSP.h"
 #include "Machines.h"
@@ -19,31 +21,32 @@ void AstronomicalBody::RegisterObject(Context* context) {
 }
 
 void AstronomicalBody::FixedUpdate(float timeStep) {
-    if (planet_.is_ready()) {
-        Vector3 dir(GetScene()->GetChild("Camera")->GetPosition() - GetScene()->GetChild("planet")->GetPosition());
-        float dist = dir.Length();
-        dir /= dist;
+    //if (planet_.is_ready()) {
+    //    Vector3 dir(GetScene()->GetChild("Camera")->GetPosition() - GetScene()->GetChild("planet")->GetPosition());
+    //    float dist = dir.Length();
+    //    dir /= dist;
         //planet_.Update(dist, dir);
-    }
+    //}
 }
 
-void AstronomicalBody::Initialize(Context* context, double size) {
+void AstronomicalBody::Initialize(Context* context) {
     ResourceCache* cache = GetSubsystem<ResourceCache>();
-    planet_.initialize(context, size, GetScene(), cache);
-    node_->SetPosition(Vector3(0, 4, 10));
+    //planet_.initialize(context, size, GetScene(), cache);
+    //node_->SetPosition(Vector3(0, 4, 10));
     //node_->SetScale(Vector3(size / 2, size / 2, size / 2));
-    collider_ = node_->CreateComponent<RigidBody>();
-    CollisionShape* sphere = node_->CreateComponent<CollisionShape>();
+    //collider_ = node_->CreateComponent<RigidBody>();
+    //CollisionShape* sphere = node_->CreateComponent<CollisionShape>();
     //sphere->SetSphere(size / 2);
-    sphere->SetSphere(size * 2);
+    //sphere->SetSphere(size * 2);
     //collider_->SetMass(1.0f);
-    collider_->SetFriction(0.75f);
-    StaticModel* planetModel = node_->CreateComponent<StaticModel>();
-    planetModel->SetModel(planet_.get_model());
-    Material* m = cache->GetResource<Material>("Materials/Earth.xml");
-    m->SetCullMode(CULL_CW);
+    //collider_->SetFriction(0.75f);
+    //StaticModel* planetModel = node_->CreateComponent<StaticModel>();
+    //m_terrain = node_->CreateComponent<PlanetTerrain>();
+    //m_p->SetModel(planet_.get_model());
+    //Material* m = cache->GetResource<Material>("Materials/DefaultGrey.xml");
+    //m->SetCullMode(CULL_CW);
     //m->SetFillMode(FILL_WIREFRAME);
-    planetModel->SetMaterial(m);
+    //planetModel->SetMaterial(m);
 }
 
 
@@ -71,8 +74,30 @@ void Entity::FixedUpdate(float timeStep) {
     //printf("gravity: (%f, %f, %f)\n", gravity.x_, gravity.y_, gravity.z_);
     //a->SetGravityOverride(gravity);
     //printf("AAAA\n");
+}
+
+PlanetTerrain::PlanetTerrain(Context* context) : StaticModel(context), m_first(false)
+{
+    //SetUpdateEventMask(USE_FIXEDUPDATE);
 
 }
+
+void PlanetTerrain::Initialize()
+{
+
+    m_planet.initialize(context_, 1.0f);
+    Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/DefaultGrey.xml");
+    SetModel(m_planet.get_model());
+    m->SetCullMode(CULL_CW);
+    //m->SetFillMode(FILL_WIREFRAME);
+    SetMaterial(m);
+}
+
+void PlanetTerrain::RegisterObject(Context* context)
+{
+    context->RegisterFactory<PlanetTerrain>("PlanetTerrain");
+}
+
 
 SystemOsp::SystemOsp(Context* context) : Object(context)
 {
@@ -109,7 +134,27 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
 void SystemOsp::make_craft(Node* node)
 {
     node->CreateComponent<Entity>();
-    Node* planet = node->GetScene()->CreateChild("Planet");
-    AstronomicalBody* ab = planet->CreateComponent<AstronomicalBody>();
-    ab->Initialize(node->GetContext(), 3.0f);
+
+    //AstronomicalBody* ab = planet->CreateComponent<AstronomicalBody>();
+    //ab->Initialize(node->GetContext(), 3.0f);
+}
+
+void SystemOsp::debug_function(StringHash which)
+{
+    if (which == StringHash("make_planet"))
+    {
+        // Get scene
+        Scene* scene = GetSubsystem<Renderer>()->GetViewport(0)->GetScene();
+
+        // Make planet
+        //Node* planet = node->GetScene()->CreateChild("Planet");
+        //planet->CreateComponent<AstronomicalBody>();
+
+        // Make terrain
+        Node* terrain = scene->CreateChild("PlanetTerrain");
+        PlanetTerrain* component = terrain->CreateComponent<PlanetTerrain>();
+        terrain->SetPosition(Vector3(0, 0, 0));
+        component->Initialize();
+    }
+
 }

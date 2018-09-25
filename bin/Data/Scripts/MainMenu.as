@@ -118,6 +118,8 @@ void construct_apparatus()
     SubscribeToEvent(g_scene, "SceneUpdate", "construct_update");
 
     g_scene.CreateComponent("PhysicsWorld");
+    
+    osp.debug_function(StringHash("make_planet"));
 }
 
 void click_drop(StringHash eventType, VariantMap& eventData)

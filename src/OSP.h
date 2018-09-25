@@ -1,6 +1,8 @@
 #pragma once
 
+
 #include <Urho3D/Container/RefCounted.h>
+#include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/Scene/LogicComponent.h>
 #include <Urho3D/Physics/RigidBody.h>
 
@@ -11,6 +13,7 @@ using namespace Urho3D;
 namespace osp {
 
 class AstronomicalBody;
+class PlanetTerrain;
 
 class LongVector
 {
@@ -39,6 +42,7 @@ public:
 
 };
 
+// Planet stuff go
 class AstronomicalBody : public Sattelite
 {
     URHO3D_OBJECT(AstronomicalBody, Sattelite)
@@ -50,11 +54,11 @@ public:
 
     virtual void FixedUpdate(float timeStep);
 
-    void Initialize(Context* context, double size);
+    void Initialize(Context* context);
 
 private:
-    PlanWren planet_;
-    WeakPtr<RigidBody> collider_;
+
+    WeakPtr<PlanetTerrain> m_terrain;
 };
 
 class Entity : public Sattelite
@@ -76,6 +80,24 @@ public:
 
 };
 
+class PlanetTerrain : public StaticModel
+{
+    URHO3D_OBJECT(PlanetTerrain, StaticModel)
+
+public:
+    PlanetTerrain(Context* context);
+
+    static void RegisterObject(Context* context);
+
+    void Initialize();
+
+private:
+    bool m_first;
+    PlanWren m_planet;
+    WeakPtr<RigidBody> m_collider;
+};
+
+
 //class OspPart
 //{
 //    String m_id;
@@ -96,6 +118,7 @@ public:
     SystemOsp(Context* context);
 
     Scene* get_hidden_scene() { return m_hiddenScene; }
+    void debug_function(StringHash which);
     void make_craft(Node* node);
 };
 
