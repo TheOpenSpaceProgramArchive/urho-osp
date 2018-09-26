@@ -98,6 +98,11 @@ class PlanWren
     PODVector<SubTriangle> m_triangles;
     PODVector<trindex> m_trianglesFree;
 
+    PODVector<uint8_t> m_chunkProfile;
+
+    Vector3 m_offset;
+    Vector3 m_camera;
+
 public:
 
     ushort birb_ = 4;
@@ -121,7 +126,9 @@ protected:
 
     void set_side_recurse(SubTriangle* tri, uint8_t side, uint8_t to);
     void set_visible(trindex t, bool visible);
-    void sub_recurse(trindex t, float something, uint8_t depth);
+
+    void update(const Vector3& camera);
+    void sub_recurse(trindex t, uint8_t depth);
 
     inline SubTriangle* get_triangle(trindex t) { return &(m_triangles[t]); }
 

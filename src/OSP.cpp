@@ -89,7 +89,7 @@ void PlanetTerrain::Initialize()
     Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/DefaultGrey.xml");
     SetModel(m_planet.get_model());
     m->SetCullMode(CULL_CW);
-    //m->SetFillMode(FILL_WIREFRAME);
+    m->SetFillMode(FILL_WIREFRAME);
     SetMaterial(m);
 }
 

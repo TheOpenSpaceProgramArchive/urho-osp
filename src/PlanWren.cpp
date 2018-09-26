@@ -30,6 +30,16 @@ inline uint8_t PlanWren::neighboor_index(SubTriangle& tri, trindex lookingFor)
 
 PlanWren::PlanWren() : m_triangles(), m_trianglesFree(), m_vertFree()
 {
+    m_chunkProfile.Push(1);
+    m_chunkProfile.Push(1);
+    m_chunkProfile.Push(1);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
     m_indCount = 0;
 }
 
@@ -50,11 +60,11 @@ void PlanWren::initialize(Context* context, double size) {
     m_size = size;
 
     // calculate proper numbers later
-    m_maxFaces = 5000;
-    m_maxIndices = 1000;
-    m_maxVertice = 1000;
+    m_maxFaces = 8000;
+    m_maxIndices = 2000;
+    m_maxVertice = 2000;
 
-    m_vertCount = 20;
+    m_vertCount = 12;
     m_indCount = 0;
 
     // Pentagon stuff, from wolfram alpha
@@ -185,7 +195,7 @@ void PlanWren::initialize(Context* context, double size) {
         // Set trianglesz
         SubTriangle tri;
         //printf("Triangle: %p\n", t);
-        tri.m_parent = 0;
+        //tri.m_parent = 0;
         set_verts(tri, sc_icoTemplateTris[i * 3 + 0], sc_icoTemplateTris[i * 3 + 1], sc_icoTemplateTris[i * 3 + 2]);
         set_neighbors(tri, sc_icoTemplateNeighbors[i * 3 + 0], sc_icoTemplateNeighbors[i * 3 + 1], sc_icoTemplateNeighbors[i * 3 + 2]);
         tri.m_bitmask = 0;
@@ -198,6 +208,9 @@ void PlanWren::initialize(Context* context, double size) {
     for (int i = 0; i < 20; i ++) {
         subdivide(i);
     }
+
+    //subdivide(26);
+    //subdivide(21);
 
     //for (int i = 20; i < 20 + 20 * 4; i ++) {
     //    subdivide(i);
@@ -214,7 +227,7 @@ void PlanWren::initialize(Context* context, double size) {
  */
 void PlanWren::set_visible(trindex t, bool visible)
 {
-    printf("Setting visible: %u\n", t);
+    //printf("Setting visible: %u\n", t);
     SubTriangle* tri = get_triangle(t);
 
     // Check if the triangle is already visible/invisible
@@ -238,7 +251,7 @@ void PlanWren::set_visible(trindex t, bool visible)
         xz[1] = tri->m_verts[1];
         xz[2] = tri->m_verts[2];
         m_indBuf->SetDataRange(&xz, tri->m_index, 3);
-        printf("Showing: %u %u %u \n", xz[0], xz[1], xz[2]);
+        //printf("Showing: %u %u %u \n", xz[0], xz[1], xz[2]);
 
         // Increment m_indCount as a new element was added to the end
         m_indCount ++;
@@ -265,7 +278,7 @@ void PlanWren::set_visible(trindex t, bool visible)
         // get the index buffer data of the last triangle (last 3 ints), and put it into the new location
 
         uint* xz = reinterpret_cast<uint*>(m_indBuf->GetShadowData() + (m_indCount * 3 * sizeof(uint)));
-        printf("Hiding: %u, %u, %u\n", xz[0], xz[1], xz[2]);
+        //printf("Hiding: %u, %u, %u\n", xz[0], xz[1], xz[2]);
         m_indBuf->SetDataRange(xz, tri->m_index, 3);
         //this.indexBuffer.set(this.indexBuffer.slice(this.indexCount * 3, this.indexCount * 3 + 3), tri.index);
         // indicates that tri is now invisible
@@ -316,7 +329,7 @@ void PlanWren::subdivide(trindex t)
     set_neighbors(children[0], tri->m_children + 3, tri->m_neighbors[1], tri->m_neighbors[2]);
     set_neighbors(children[1], tri->m_neighbors[0], tri->m_children + 3, tri->m_neighbors[2]);
     set_neighbors(children[2], tri->m_neighbors[0], tri->m_neighbors[1], tri->m_children + 3);
-    set_neighbors(children[3], tri->m_children + 3, tri->m_children + 1, tri->m_children + 2);
+    set_neighbors(children[3], tri->m_children + 0, tri->m_children + 1, tri->m_children + 2);
     children[0].m_depth = children[1].m_depth = children[2].m_depth = children[3].m_depth = tri->m_depth + 1;
     children[0].m_bitmask = children[1].m_bitmask = children[2].m_bitmask = children[3].m_bitmask = 0;
     // Subdivide lines and add verticies, or take from other triangles
@@ -352,14 +365,14 @@ void PlanWren::subdivide(trindex t)
             vertM[0] = vertM[1] * m_size;
             //printf("VA %s, VB: %s, \n", vertA.ToString().CString(), vertB.ToString().CString());
 
-            printf("DataRange: %u\n", tri->m_midVerts[i]);
+            //printf("DataRange: %u\n", tri->m_midVerts[i]);
             m_vertBuf->SetDataRange(vertM, tri->m_midVerts[i], 1);
 
             //console.log(i + ": Created new vertex");
         } else {
             // Which side tri is on triB
             trindex sideB = neighboor_index(triB[0], t);
-            printf("Vertex is being shared\n");
+            //printf("Vertex is being shared\n");
 
             // Instead of creating a new vertex, use the one from triB since it's already subdivided
             tri->m_midVerts[i] = triB->m_midVerts[sideB];
@@ -380,8 +393,9 @@ void PlanWren::subdivide(trindex t)
             // Assign the face of each triangle to the other triangle right beside it
             m_triangles[triX].m_neighbors[i] = triBY;
             m_triangles[triY].m_neighbors[i] = triBX;
-            m_triangles[triBX].m_neighbors[i] = triY;
-            m_triangles[triBY].m_neighbors[i] = triX;
+            m_triangles[triBX].m_neighbors[sideB] = triY;
+            m_triangles[triBY].m_neighbors[sideB] = triX;
+            //printf("Set Tri%u %u to %u", triBX)
         }
     }
 
@@ -390,19 +404,53 @@ void PlanWren::subdivide(trindex t)
     set_verts(children[2], tri->m_midVerts[1], tri->m_midVerts[0], tri->m_verts[2]);
     set_verts(children[3], tri->m_midVerts[0], tri->m_midVerts[1], tri->m_midVerts[2]);
 
+    //printf("Midverts %u: (B%u, R%u, L%u)\n", t, tri->m_midVerts[0], tri->m_midVerts[1], tri->m_midVerts[2]);
+    //printf("Neighbors %u: (B%u, R%u, L%u)\n", t, tri->m_neighbors[0], tri->m_neighbors[1], tri->m_neighbors[2]);
+
     //console.log("MyDepth: " + tri.myDepth)
-    //console.log("Sides: B" + tri.sides[0] + ", R" + tri.sides[1] + ", L" + tri.sides[2]);
+    //console.log("Sides: B" + tri.sides[0] + ", R" + tri.sides[1] + ", L" + t  ri.sides[2]);
     //console.log("MidVerts: B" + tri.midVerts[0] + ", R" + tri.midVerts[1] + ", L" + tri.midVerts[2]);
 
-    // Make them all visible
+    tri->m_bitmask ^= E_SUBDIVIDED;
 
-    printf("Children to show: %u\n", tri->m_children);
-    set_visible(tri->m_children + 0, true);
-    set_visible(tri->m_children + 1, true);
-    set_visible(tri->m_children + 2, true);
-    set_visible(tri->m_children + 3, true);
+    //printf("Depth: %u\n", tri->m_depth);
+    if (m_chunkProfile[tri->m_depth - 1])
+    {
+
+        // Chunk profile says there should be more tringles
+        //printf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa %u\n", m_chunkProfile[tri->m_depth]);
+        subdivide(tri->m_children + 0);
+        subdivide(tri->m_children + 1);
+        subdivide(tri->m_children + 2);
+        subdivide(tri->m_children + 3);
+    } else {
+        // Make them all visible
+
+        //printf("Children to show: %u\n", tri->m_children);
+        set_visible(tri->m_children + 0, true);
+        set_visible(tri->m_children + 1, true);
+        set_visible(tri->m_children + 2, true);
+        set_visible(tri->m_children + 3, true);
+    }
+
+
     //tri.myDepth ++;
 
     // Set subdivided bit
-    tri->m_bitmask ^= E_SUBDIVIDED;
+
+}
+
+
+void PlanWren::update(const Vector3& camera)
+{
+    m_camera = camera;
+
+    for (int i = 0; i < 20; i ++) {
+        //sub_recurse;
+    }
+}
+
+void PlanWren::sub_recurse(trindex t, uint8_t depth)
+{
+
 }
