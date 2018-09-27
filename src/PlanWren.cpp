@@ -24,7 +24,7 @@ inline uint8_t PlanWren::neighboor_index(SubTriangle& tri, trindex lookingFor)
     else if (tri.m_neighbors[2] == lookingFor)
         return 2;
     // this means there's an error
-    printf("Errrrorr \n");
+    //printf("Errrrorr \n");
     return 255;
 }
 
@@ -52,9 +52,10 @@ PlanWren::~PlanWren()
 }
 
 /**
-* Initialize PlanWren, allocates buffers and calculates where the base verticies
-* should be
-*/
+ * @brief PlanWren::initialize
+ * @param context
+ * @param size
+ */
 void PlanWren::initialize(Context* context, double size) {
 
     m_size = size;
@@ -153,7 +154,7 @@ void PlanWren::initialize(Context* context, double size) {
     // Set size and data of vertex data
     m_vertBuf->SetSize(m_maxVertice * 6, elements);
     m_vertBuf->SetShadowed(true);
-    m_vertBuf->SetData(vertInit);
+    m_vertBuf->SetData(vertInit); // This line causes random sigsegvs sometimes, TODO: investigate
 
     // Same but with index buffer
     m_indBuf->SetSize(m_maxFaces * 3, true, true);
@@ -209,6 +210,12 @@ void PlanWren::initialize(Context* context, double size) {
         subdivide(i);
     }
 
+    unsubdivide(1);
+    //unsubdivide(0);
+    unsubdivide(5);
+    unsubdivide(7);
+    subdivide(5);
+    unsubdivide(25);
     //subdivide(26);
     //subdivide(21);
 
@@ -440,6 +447,70 @@ void PlanWren::subdivide(trindex t)
 
 }
 
+void PlanWren::unsubdivide(trindex t)
+{
+    SubTriangle* tri = get_triangle(t);
+
+    if (!(tri->m_bitmask & E_SUBDIVIDED)) {
+        return;
+    }
+
+    // unsubdiv children if subdivided, and hide if hidden
+    for (uint8_t i = 0; i < 4; i ++) {
+        if (m_triangles[tri->m_children + i].m_bitmask & E_SUBDIVIDED) {
+            unsubdivide(tri->m_children + i);
+        }
+        set_visible(tri->m_children + i, false);
+    }
+
+
+    // Loop through all sides but the middle
+    for (uint8_t i = 0; i < 3; i ++) {
+        SubTriangle* triB = get_triangle(tri->m_neighbors[i]);
+
+        // If the triangle on the other side is not subdivided, it means that the vertex will have no more users
+        if (!(triB->m_bitmask & E_SUBDIVIDED) || triB->m_depth != tri->m_depth) {
+            // Mark side vertex for replacement
+            m_vertFree.Push(tri->m_midVerts[i]);
+        }
+
+        // Some optimizing needed
+        uint8_t sideB = neighboor_index(triB[0], t);
+        //printf("Hopefully not error: %u\n", sideB);
+        if (sideB != 255)
+        {
+            set_side_recurse(triB[0], neighboor_index(triB[0], t), t);
+        }
+        // else leave it alone, the other triangle beside is still useing the vertex
+    }
+
+    // Now mark triangles for removal. they're always in groups of 4.
+    m_trianglesFree.Push(tri->m_children);
+    //this.triangles[tri.children[0]] = null;
+    //this.triangles[tri.children[1]] = null;
+    //this.triangles[tri.children[2]] = null;
+    //this.triangles[tri.children[3]] = null;
+
+    tri->m_bitmask ^= E_SUBDIVIDED;
+
+    set_visible(t, true);
+    //this.triangles.splice(tri.children[0], 4);
+}
+
+/**
+ * @brief PlanWren::set_side_recurse
+ * @param tri
+ * @param side
+ * @param to
+ */
+void PlanWren::set_side_recurse(SubTriangle& tri, uint8_t side, uint8_t to)
+{
+    tri.m_neighbors[side] = to;
+    if (tri.m_bitmask & E_SUBDIVIDED) {
+        set_side_recurse(m_triangles[tri.m_children + ((side + 1) % 3)], side, to);
+        set_side_recurse(m_triangles[tri.m_children + ((side + 2) % 3)], side, to);
+    }
+}
 
 void PlanWren::update(const Vector3& camera)
 {

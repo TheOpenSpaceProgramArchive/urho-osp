@@ -286,6 +286,7 @@
           this.vertexFree.push(tri.midVerts[i]);
         }
         if (triB != undefined) {
+          console.log( triB.sides.indexOf(trindex));
           this.setSideRecurse(triB, triB.sides.indexOf(trindex), trindex);
         }
         // else leave it alone, the other triangle beside is still useing the vertex

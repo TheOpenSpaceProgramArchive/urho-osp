@@ -124,7 +124,7 @@ protected:
     void subdivide(trindex t);
     void unsubdivide(trindex t);
 
-    void set_side_recurse(SubTriangle* tri, uint8_t side, uint8_t to);
+    void set_side_recurse(SubTriangle& tri, uint8_t side, uint8_t to);
     void set_visible(trindex t, bool visible);
 
     void update(const Vector3& camera);
