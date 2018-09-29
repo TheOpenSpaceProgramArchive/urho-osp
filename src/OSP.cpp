@@ -78,8 +78,8 @@ void Entity::FixedUpdate(float timeStep) {
 
 PlanetTerrain::PlanetTerrain(Context* context) : StaticModel(context), m_first(false)
 {
-    //SetUpdateEventMask(USE_FIXEDUPDATE);
-
+    //SetUpdateEventMask(USE_UPDATE);
+    //SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(PlanetTerrain, UpdatePlanet));
 }
 
 void PlanetTerrain::Initialize()

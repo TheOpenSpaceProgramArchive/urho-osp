@@ -90,6 +90,7 @@ public:
     static void RegisterObject(Context* context);
 
     void Initialize();
+    PlanWren* GetPlanet() { return &m_planet; }
 
 private:
     bool m_first;

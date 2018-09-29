@@ -229,23 +229,16 @@ public:
         float timeStep = eventData[Update::P_TIMESTEP].GetFloat();
         m_framecount ++;
         m_time += timeStep;
-        // Movement speed as world units per second
-        float MOVE_SPEED = 10.0f;
-        // Mouse sensitivity as degrees per pixel
-        const float MOUSE_SENSITIVITY = 0.1f;
 
-        //if (!eventData[E_RESOURCEBACKGROUNDLOADED]->IsEmpty())
-        //{
-        //    printf("Succ: %i\n", eventData[ResourceBackgroundLoaded::P_SUCCESS].GetBool());
-        //}
+        Scene* scene= m_scene;
 
-        //if (updatePlanet_) {
-        //    // Subtract
-        //    Vector3 dir(m_cameraNode->GetPosition() - m_scene->GetChild("planet")->GetPosition());
-        //    float dist = dir.Length();
-        //    dir /= dist;
-        //    planet_->Update(dist, dir);
-        //}
+        if (GetSubsystem<Renderer>()->GetNumViewports() != 0)
+        {
+            if (GetSubsystem<Renderer>()->GetViewport(0)->GetCamera() != NULL)
+            {
+                        scene = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetScene();
+            }
+        }
 
         // Quick and easy floating point origin
         /*Vector3 translateEverything(m_cameraNode->GetPosition());
@@ -261,28 +254,19 @@ public:
           
         }*/
 
-        if(m_time >= 0.2) {
+        auto planets = scene->GetChildrenWithComponent("PlanetTerrain");
+        if (planets.Size() != 0)
+        {
+            planets[0]->GetComponent<PlanetTerrain>()->GetPlanet()->update(GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetPosition());
+        }
+
+        if (m_time >= 0.2) {
 
             std::string str;
             str.append("OpenSpaceProgram " GIT_BRANCH "-" GIT_COMMIT_HASH ", too early\n"
                        "Tab: Toggle mouse, WASD: Move, Shift: Fast mode, Q: Toggle Wireframe\n"
                        "T: toggle planet update, R/F: LoD up/down, P: Show truth, Esc: quit\n"
                        "--------------------------------------------------------------------\n");
-            /*{
-                std::ostringstream ss;
-                ss<<framecount_;
-                std::string s(ss.str());
-                str.append(s.substr(0,6));
-            }
-            str.append(" frames in ");
-            {
-                std::ostringstream ss;
-                ss<<time_;
-                std::string s(ss.str());
-                str.append(s.substr(0,6));
-            }
-            str.append(" seconds = ");
-            */
             {
                 std::ostringstream ss;
                 ss<<(float)m_framecount/m_time;
@@ -299,16 +283,7 @@ public:
         }
 
         Input* input = GetSubsystem<Input>();
-        if(input->GetQualifierDown(1))  // 1 is shift, 2 is ctrl, 4 is alt
-            MOVE_SPEED*=100;
-        //if(input->GetKeyDown('W'))
-        //    m_cameraNode->Translate(Vector3(0,0, 1) * MOVE_SPEED * timeStep);
-        //if(input->GetKeyDown('S'))
-        //    m_cameraNode->Translate(Vector3(0,0,-1) * MOVE_SPEED * timeStep);
-        //if(input->GetKeyDown('A'))
-        //    m_cameraNode->Translate(Vector3(-1,0,0) * MOVE_SPEED * timeStep);
-        //if(input->GetKeyDown('D'))
-        //    m_cameraNode->Translate(Vector3( 1,0,0) * MOVE_SPEED * timeStep);
+
     }
     /**
     * Anything in the non-rendering logic that requires a second pass,

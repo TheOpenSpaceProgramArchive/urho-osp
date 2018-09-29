@@ -516,12 +516,13 @@ void PlanWren::update(const Vector3& camera)
 {
     m_camera = camera;
 
+    printf("update!\n");
     for (int i = 0; i < 20; i ++) {
-        //sub_recurse;
+        sub_recurse(i);
     }
 }
 
-void PlanWren::sub_recurse(trindex t, uint8_t depth)
+void PlanWren::sub_recurse(trindex t)
 {
 
 }

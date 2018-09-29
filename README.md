@@ -1,5 +1,9 @@
 # Urho3D Open Space Program
-An experiment by Capital-Asterisk, to see if Open Space Program can be made with Urho3D. The current state of this master branch is expected to be unusable for quite some time, checkout a previous commit.
+An experiment by Capital-Asterisk, to see if (another) Open Space Program can be made with Urho3D. This repository is at the point where 10N thrust rockets can be built out of different sized cubes, and brought to life with the physics engine. The code has some hidden things on the insides, such as a way of organizing usable parts and performance curves.
+
+[Watch this](http://www.youtube.com/watch?v=hFYCftKDFMg)
+
+For 6 months, this repository has actually been for a broken planet rendering algorithm.
 
 ##### Screenshots of things that previously happened on this repository:
 

@@ -112,8 +112,11 @@ public:
     bool is_ready() {return m_ready;}
 
     void initialize(Context* context, double size);
+    void update(const Vector3& camera);
+
 
     Model* get_model() { return m_model; }
+
 
 protected:
 
@@ -127,8 +130,7 @@ protected:
     void set_side_recurse(SubTriangle& tri, uint8_t side, uint8_t to);
     void set_visible(trindex t, bool visible);
 
-    void update(const Vector3& camera);
-    void sub_recurse(trindex t, uint8_t depth);
+    void sub_recurse(trindex t);
 
     inline SubTriangle* get_triangle(trindex t) { return &(m_triangles[t]); }
 
