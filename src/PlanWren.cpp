@@ -351,7 +351,7 @@ void PlanWren::subdivide(trindex t)
 
     // Loop through 3 sides of the triangle: Bottom, Right, Left
     // tri.sides refers to an index of another triangle on that side
-    for (uint8_t i = 0; i < 3; i ++) {
+    for (int i = 0; i < 3; i ++) {
         SubTriangle* triB = get_triangle(tri->m_neighbors[i]);
         // Check if the line is already subdivided, or if there is no triangle on the other side
         if (!(triB->m_bitmask & E_SUBDIVIDED) || (triB->m_depth != tri->m_depth)) {
@@ -460,9 +460,10 @@ void PlanWren::subdivide(trindex t)
 void PlanWren::find_refs(SubTriangle& tri)
 {
     //uint ohno = neighboor_index(tri, what);
+
     for (int i = 0; i < 3; i ++)
     {
-        uint whateven = m_trianglesFree.IndexOf(tri.m_neighbors[i]);
+        uint whateven = m_trianglesFree.IndexOf(int(tri.m_neighbors[i] / 4) * 4);
         if (whateven != m_trianglesFree.Size() )
         {
             printf("Deleted triangle %u referenced on side: %u\n", m_trianglesFree[whateven], i);
@@ -471,10 +472,17 @@ void PlanWren::find_refs(SubTriangle& tri)
 
 
     if (tri.m_bitmask & E_SUBDIVIDED) {
-        find_refs(m_triangles[tri.m_children + 0]);
-        find_refs(m_triangles[tri.m_children + 1]);
-        find_refs(m_triangles[tri.m_children + 2]);
-        find_refs(m_triangles[tri.m_children + 3]);
+
+        for (int i = 0; i < 4; i ++)
+        {
+            uint whateven = m_trianglesFree.IndexOf(tri.m_children + i);
+            if (whateven != m_trianglesFree.Size() )
+            {
+                printf("Deleted triangle %u referenced on child: %u\n", m_trianglesFree[whateven], i);
+            } else {
+                find_refs(m_triangles[tri.m_children + i]);
+            }
+        }
     }
 }
 
@@ -482,6 +490,8 @@ void PlanWren::find_refs(SubTriangle& tri)
 void PlanWren::unsubdivide(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
+
+    find_refs(m_triangles[t]);
 
     if (!(tri->m_bitmask & E_SUBDIVIDED))
     {
@@ -493,6 +503,8 @@ void PlanWren::unsubdivide(trindex t)
     {
         if (m_triangles[tri->m_children + i].m_bitmask & E_SUBDIVIDED) {
             unsubdivide(tri->m_children + i);
+        } else {
+            find_refs(m_triangles[tri->m_children + i]);
         }
         set_visible(tri->m_children + i, false);
     }
@@ -521,15 +533,17 @@ void PlanWren::unsubdivide(trindex t)
 
     // Now mark triangles for removal. they're always in groups of 4.
     m_trianglesFree.Push(tri->m_children);
-    //printf("Triangles Killed: %u - %u\n", tri->m_children, tri->m_children + 3);
+    printf("Triangles Killed: %u - %u\n", tri->m_children, tri->m_children + 3);
     //this.triangles[tri.children[0]] = null;
     //this.triangles[tri.children[1]] = null;
     //this.triangles[tri.children[2]] = null;
     //this.triangles[tri.children[3]] = null;
 
     tri->m_bitmask ^= E_SUBDIVIDED;
+    tri->m_children = -1;
 
     set_visible(t, true);
+
     //this.triangles.splice(tri.children[0], 4);
     for (int i = 0; i < 3; i ++)
     {
@@ -555,7 +569,7 @@ void PlanWren::calculate_center(SubTriangle &tri)
  * @param side
  * @param to
  */
-void PlanWren::set_side_recurse(SubTriangle& tri, uint8_t side, uint8_t to)
+void PlanWren::set_side_recurse(SubTriangle& tri, uint8_t side, trindex to)
 {
     tri.m_neighbors[side] = to;
     if (tri.m_bitmask & E_SUBDIVIDED) {
@@ -583,11 +597,11 @@ void PlanWren::sub_recurse(trindex t)
 
     float visible = false;
 
-    //if (tri->m_depth < 3)
-    //{
+    if (tri->m_depth < 5)
+    {
         float dot = tri->m_center.DotProduct(m_camera) / (m_cameraDist * tri->m_center.Length());
         visible = (dot > (m_threshold + 0.2 * tri->m_depth));
-    //}
+    }
     // Measure angle
     //printf("DOT: %f\n", dot);
     // calculate dot product thing
@@ -611,7 +625,7 @@ void PlanWren::sub_recurse(trindex t)
     } else {
         if (visible)
         {
-            if (tri->m_depth < 4)
+            if (tri->m_depth < 6)
             {
                 subdivide(t);
             }

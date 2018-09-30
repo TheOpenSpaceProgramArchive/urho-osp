@@ -131,7 +131,7 @@ protected:
     void unsubdivide(trindex t);
     void calculate_center(SubTriangle& tri);
 
-    void set_side_recurse(SubTriangle& tri, uint8_t side, uint8_t to);
+    void set_side_recurse(SubTriangle& tri, uint8_t side, trindex to);
     void set_visible(trindex t, bool visible);
 
     void sub_recurse(trindex t);
