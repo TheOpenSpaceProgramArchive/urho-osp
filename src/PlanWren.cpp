@@ -30,9 +30,9 @@ inline uint8_t PlanWren::neighboor_index(SubTriangle& tri, trindex lookingFor)
 
 PlanWren::PlanWren() : m_triangles(), m_trianglesFree(), m_vertFree()
 {
-    m_chunkProfile.Push(1);
-    m_chunkProfile.Push(1);
-    m_chunkProfile.Push(1);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
@@ -62,8 +62,8 @@ void PlanWren::initialize(Context* context, double size) {
 
     // calculate proper numbers later
     m_maxFaces = 8000;
-    m_maxIndices = 2000;
-    m_maxVertice = 2000;
+    m_maxIndices = 4000;
+    m_maxVertice = 4000;
 
     m_vertCount = 12;
     m_indCount = 0;
@@ -201,21 +201,22 @@ void PlanWren::initialize(Context* context, double size) {
         set_neighbors(tri, sc_icoTemplateNeighbors[i * 3 + 0], sc_icoTemplateNeighbors[i * 3 + 1], sc_icoTemplateNeighbors[i * 3 + 2]);
         tri.m_bitmask = 0;
         tri.m_depth = 1;
+        calculate_center(tri);
         m_triangles.Push(tri);
         //if (i != 0)
         set_visible(i, true);
     }
 
-    for (int i = 0; i < 20; i ++) {
-        subdivide(i);
-    }
+    //for (int i = 0; i < 20; i ++) {
+    //    subdivide(i);
+    //}
 
-    unsubdivide(1);
+    //unsubdivide(1);
     //unsubdivide(0);
-    unsubdivide(5);
-    unsubdivide(7);
-    subdivide(5);
-    unsubdivide(25);
+    //unsubdivide(5);
+    //unsubdivide(7);
+    //subdivide(5);
+    //unsubdivide(25);
     //subdivide(26);
     //subdivide(21);
 
@@ -264,8 +265,6 @@ void PlanWren::set_visible(trindex t, bool visible)
         m_indCount ++;
         m_geometry->SetDrawRange(TRIANGLE_LIST, 0, m_indCount * 3);
 
-        // Set visible bit
-        tri->m_bitmask ^= E_VISIBLE;
     } else {
         //console.log("removed!");
         // How to remove a triangle from the buffer:
@@ -289,8 +288,11 @@ void PlanWren::set_visible(trindex t, bool visible)
         m_indBuf->SetDataRange(xz, tri->m_index, 3);
         //this.indexBuffer.set(this.indexBuffer.slice(this.indexCount * 3, this.indexCount * 3 + 3), tri.index);
         // indicates that tri is now invisible
-        tri->m_bitmask ^= E_VISIBLE;
+
     }
+
+    // toggle visibility
+    tri->m_bitmask ^= E_VISIBLE;
 }
 
 void PlanWren::subdivide(trindex t)
@@ -406,10 +408,18 @@ void PlanWren::subdivide(trindex t)
         }
     }
 
+    // Set verticies
     set_verts(children[0], tri->m_verts[0], tri->m_midVerts[2], tri->m_midVerts[1]);
     set_verts(children[1], tri->m_midVerts[2], tri->m_verts[1], tri->m_midVerts[0]);
     set_verts(children[2], tri->m_midVerts[1], tri->m_midVerts[0], tri->m_verts[2]);
+    // The center triangle is made up of purely middle vertices.
     set_verts(children[3], tri->m_midVerts[0], tri->m_midVerts[1], tri->m_midVerts[2]);
+
+    // Calculate centers
+    calculate_center(children[0]);
+    calculate_center(children[1]);
+    calculate_center(children[2]);
+    calculate_center(children[3]);
 
     //printf("Midverts %u: (B%u, R%u, L%u)\n", t, tri->m_midVerts[0], tri->m_midVerts[1], tri->m_midVerts[2]);
     //printf("Neighbors %u: (B%u, R%u, L%u)\n", t, tri->m_neighbors[0], tri->m_neighbors[1], tri->m_neighbors[2]);
@@ -447,16 +457,40 @@ void PlanWren::subdivide(trindex t)
 
 }
 
+void PlanWren::find_refs(SubTriangle& tri)
+{
+    //uint ohno = neighboor_index(tri, what);
+    for (int i = 0; i < 3; i ++)
+    {
+        uint whateven = m_trianglesFree.IndexOf(tri.m_neighbors[i]);
+        if (whateven != m_trianglesFree.Size() )
+        {
+            printf("Deleted triangle %u referenced on side: %u\n", m_trianglesFree[whateven], i);
+        }
+    }
+
+
+    if (tri.m_bitmask & E_SUBDIVIDED) {
+        find_refs(m_triangles[tri.m_children + 0]);
+        find_refs(m_triangles[tri.m_children + 1]);
+        find_refs(m_triangles[tri.m_children + 2]);
+        find_refs(m_triangles[tri.m_children + 3]);
+    }
+}
+
+
 void PlanWren::unsubdivide(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
 
-    if (!(tri->m_bitmask & E_SUBDIVIDED)) {
+    if (!(tri->m_bitmask & E_SUBDIVIDED))
+    {
         return;
     }
 
     // unsubdiv children if subdivided, and hide if hidden
-    for (uint8_t i = 0; i < 4; i ++) {
+    for (int i = 0; i < 4; i ++)
+    {
         if (m_triangles[tri->m_children + i].m_bitmask & E_SUBDIVIDED) {
             unsubdivide(tri->m_children + i);
         }
@@ -465,7 +499,8 @@ void PlanWren::unsubdivide(trindex t)
 
 
     // Loop through all sides but the middle
-    for (uint8_t i = 0; i < 3; i ++) {
+    for (int i = 0; i < 3; i ++)
+    {
         SubTriangle* triB = get_triangle(tri->m_neighbors[i]);
 
         // If the triangle on the other side is not subdivided, it means that the vertex will have no more users
@@ -479,13 +514,14 @@ void PlanWren::unsubdivide(trindex t)
         //printf("Hopefully not error: %u\n", sideB);
         if (sideB != 255)
         {
-            set_side_recurse(triB[0], neighboor_index(triB[0], t), t);
+           set_side_recurse(triB[0], sideB, t);
         }
         // else leave it alone, the other triangle beside is still useing the vertex
     }
 
     // Now mark triangles for removal. they're always in groups of 4.
     m_trianglesFree.Push(tri->m_children);
+    //printf("Triangles Killed: %u - %u\n", tri->m_children, tri->m_children + 3);
     //this.triangles[tri.children[0]] = null;
     //this.triangles[tri.children[1]] = null;
     //this.triangles[tri.children[2]] = null;
@@ -495,6 +531,22 @@ void PlanWren::unsubdivide(trindex t)
 
     set_visible(t, true);
     //this.triangles.splice(tri.children[0], 4);
+    for (int i = 0; i < 3; i ++)
+    {
+        find_refs(m_triangles[tri->m_neighbors[i]]);
+    }
+}
+
+void PlanWren::calculate_center(SubTriangle &tri)
+{
+    const unsigned char* vertData = m_vertBuf->GetShadowData();
+    const unsigned vertSize = m_vertBuf->GetVertexSize();
+    const Vector3& vertA = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_verts[0]));
+    const Vector3& vertB = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_verts[1]));
+    const Vector3& vertC = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_verts[2]));
+
+    tri.m_center = (vertA + vertB + vertC) / 3.0f;
+    //printf("Center: %s\n", tri.m_center.ToString().CString());
 }
 
 /**
@@ -515,8 +567,11 @@ void PlanWren::set_side_recurse(SubTriangle& tri, uint8_t side, uint8_t to)
 void PlanWren::update(const Vector3& camera)
 {
     m_camera = camera;
+    m_cameraDist = camera.Length();
+    m_threshold = m_size / m_cameraDist;
 
-    printf("update!\n");
+    //printf("Camera! %s\n", camera.ToString().CString());
+    //printf("vert count: %ux\n", m_vertCount);
     for (int i = 0; i < 20; i ++) {
         sub_recurse(i);
     }
@@ -524,5 +579,47 @@ void PlanWren::update(const Vector3& camera)
 
 void PlanWren::sub_recurse(trindex t)
 {
+    SubTriangle* tri = get_triangle(t);
 
+    float visible = false;
+
+    //if (tri->m_depth < 3)
+    //{
+        float dot = tri->m_center.DotProduct(m_camera) / (m_cameraDist * tri->m_center.Length());
+        visible = (dot > (m_threshold + 0.2 * tri->m_depth));
+    //}
+    // Measure angle
+    //printf("DOT: %f\n", dot);
+    // calculate dot product thing
+    //if (dot > m_threshold)
+    //{
+    //    subdivide(t);
+    //}
+
+
+    if (tri->m_bitmask & E_SUBDIVIDED)
+    {
+        if (visible)
+        {
+            sub_recurse(tri->m_children + 0);
+            sub_recurse(tri->m_children + 1);
+            sub_recurse(tri->m_children + 2);
+            sub_recurse(tri->m_children + 3);
+        } else {
+            unsubdivide(t);
+        }
+    } else {
+        if (visible)
+        {
+            if (tri->m_depth < 4)
+            {
+                subdivide(t);
+            }
+        }
+    }
+
+    //if (m_chunkProfile[tri->m_depth])
+    //{
+    //    sub_recurse(tri->m_children + 3);
+    //}
 }

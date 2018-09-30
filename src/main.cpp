@@ -257,7 +257,9 @@ public:
         auto planets = scene->GetChildrenWithComponent("PlanetTerrain");
         if (planets.Size() != 0)
         {
-            planets[0]->GetComponent<PlanetTerrain>()->GetPlanet()->update(GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetPosition());
+            Vector3 cameraPos = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetWorldPosition();
+            Vector3 planetPos = planets[0]->GetWorldPosition();
+            planets[0]->GetComponent<PlanetTerrain>()->GetPlanet()->update(cameraPos - planetPos    );
         }
 
         if (m_time >= 0.2) {
