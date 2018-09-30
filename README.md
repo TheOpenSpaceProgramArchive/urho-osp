@@ -3,12 +3,10 @@ An experiment by Capital-Asterisk, to see if (another) Open Space Program can be
 
 [Watch this](http://www.youtube.com/watch?v=hFYCftKDFMg)
 
-For 6 months, this repository has actually been for a broken planet rendering algorithm.
-
 ## Building from source:
 
 ### Linux:
-**Pre-build requirements:** `git`, `cmake`, `make`
+**Requires packages used by Urho3D:** https://github.com/urho3d/Urho3D/wiki/Getting-started-in-Linux
 
 **1.** Let's create and enter a new directory for OSP:
 ```bash
