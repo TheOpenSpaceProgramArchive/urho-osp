@@ -5,7 +5,41 @@ An experiment by Capital-Asterisk, to see if (another) Open Space Program can be
 
 For 6 months, this repository has actually been for a broken planet rendering algorithm.
 
-##### Screenshots of things that previously happened on this repository:
+## Building from source:
+
+### Linux:
+**Pre-build requirements:** `git`, `cmake`, `make`
+
+**1.** Let's create and enter a new directory for OSP:
+```bash
+mkdir ~/OSP && cd ~/OSP
+```
+**2.** Clone `urho-osp` and the Urho3D game engine
+```bash
+git clone https://github.com/TheOpenSpaceProgram/urho-osp
+git clone https://github.com/urho3d/Urho3D
+```
+**3.** Build and install Urho3D
+```bash
+cd Urho3D
+cmake .
+sudo make install
+```
+**4.** Copy `CMake` folder to the `urho-osp` cloned repository:
+```bash
+cp -r CMake ../urho-osp/CMake
+```
+**5.** Set the `URHO3D_HOME` environment variable in `.bashrc`:
+```bash
+echo 'export URHO3D_HOME="~/OSP/Urho3D"' >> ~/.bashrc && source ~/.bashrc
+```
+**6.** Build `urho-osp`:
+```bash
+cmake .
+make
+```
+
+## Screenshots of things that previously happened on this repository:
 
 Tests on subdividing spheres
 ![alt text](https://cdn.discordapp.com/attachments/325425261069860875/415682532626137089/Screenshot_2018-02-20_17-32-48.png "It looks pretty but it's completely wrong.")
@@ -17,4 +51,3 @@ Cube in orbit
 
 More accurate model of our planet
 ![alt text](https://cdn.discordapp.com/attachments/425003724633669633/448727538706153472/Screenshot_2018-05-22_23-02-33.png "This the truth, don't let the goverment fool you.")
-
