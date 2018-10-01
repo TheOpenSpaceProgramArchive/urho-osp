@@ -6,24 +6,32 @@
 using namespace osp;
 
 MachineRocket::MachineRocket(Context* context) : Machine(context),
-    m_curveInputs(new HashMap<StringHash, float>()),
-    m_thrust(m_curveInputs, 0.0f, 10.0f),
-    m_efficiency(m_curveInputs, 0.0f, 10.0f)
+    m_curveInputs(),
+    m_thrust(&m_curveInputs, 0.0f, 10.0f),
+    m_efficiency(&m_curveInputs, 0.0f, 10.0f)
 {
     //m_curveInputs = new HashMap<StringHash, float>();
     //m_thrust(m_curveInputs, 0.0f, 10.0f);
     //m_efficiency(m_curveInputs, 0.0f, 10.0f);
-    m_curveInputs->operator[]("Throttle") = 0.0f;
+
+    // Add throttle as a curve input from 0.0-100.0 linear
+    m_curveInputs["Throttle"] = 0.0f;
     m_thrust.add_factor("Throttle", 100.0f, 0.0f);
     m_thrust.set_linear("Throttle", 0, 65535);
 
     // TODO: on activate event
 }
 
+MachineRocket::~MachineRocket()
+{
+    //delete m_curveInputs;
+}
+
 void MachineRocket::FixedUpdate(float timeStep)
 {
-    // Lots of trial and error happend in this function
-    //printf("aaaaa %f\n", m_curveInputs->operator[]("Throttle"));
+    // Most of the code in this function is temporary.
+    // Only here to fake a rocket game,
+
     RigidBody* rb = node_->GetParent()->GetComponent<RigidBody>();
     if (rb == NULL)
     {
@@ -52,11 +60,11 @@ void MachineRocket::FixedUpdate(float timeStep)
     //printf("COM: %s\n", rb->GetCenterOfMass().ToString().CString());
 
     Input* i = GetSubsystem<Input>();
+    m_curveInputs["Throttle"] = Clamp(m_curveInputs["Throttle"] + (int(i->GetKeyDown(KEY_F)) - i->GetKeyDown(KEY_G)) * 1.0f, 0.0f, 100.0f);
 
     // This is mostly temporary
-    m_curveInputs->operator[]("Throttle") = Clamp(m_curveInputs->operator[]("Throttle") + (int(i->GetKeyDown(KEY_F)) - i->GetKeyDown(KEY_G)) * 1.0f, 0.0f, 100.0f);
-    m_rocketSound->SetFrequency(44100.0f * (m_curveInputs->operator[]("Throttle") / 70.0f + 0.3f));
-    m_rocketSound->SetGain(m_curveInputs->operator[]("Throttle") / 100.0f);
+    m_rocketSound->SetFrequency(44100.0f * (m_curveInputs["Throttle"] / 70.0f + 0.3f));
+    m_rocketSound->SetGain(m_curveInputs["Throttle"] / 100.0f);
 
     // Thrust related things
     Vector3 what(collider->GetPosition());

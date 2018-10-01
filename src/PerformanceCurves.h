@@ -21,6 +21,10 @@ struct Curve
     StringHash m_factor;
 };
 
+/**
+ * @brief Inputs factors, like heat, pressure, or throttle, to scale a number
+ *
+ */
 class PerformanceCurves
 {
 

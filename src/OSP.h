@@ -21,6 +21,10 @@ class LongVector
     Vector3 m_fraction;
 };
 
+/**
+ * @brief Base class for anything orbiting or landed on an AstronomicalBody.
+ * This should contain orbital data.
+ */
 class Sattelite : public LogicComponent
 {
     URHO3D_OBJECT(Sattelite, LogicComponent)
@@ -33,6 +37,9 @@ public:
 
 };
 
+/**
+ * @brief Base class for adding functionality to parts, like rockets
+ */
 class Machine : public LogicComponent
 {
     URHO3D_OBJECT(Sattelite, LogicComponent)
@@ -42,7 +49,9 @@ public:
 
 };
 
-// Planet stuff go
+/**
+ * @brief Class containing data describing an astronomical body (star, planet, asteroid), and their properties (size, water level, mass)
+ */
 class AstronomicalBody : public Sattelite
 {
     URHO3D_OBJECT(AstronomicalBody, Sattelite)
@@ -61,6 +70,9 @@ private:
     WeakPtr<PlanetTerrain> m_terrain;
 };
 
+/**
+ * @brief Anything in the universe that has physics, like a space craft
+ */
 class Entity : public Sattelite
 {
 
@@ -80,6 +92,9 @@ public:
 
 };
 
+/**
+ * @brief LOD Planet terrain that could be rendered
+ */
 class PlanetTerrain : public StaticModel
 {
     URHO3D_OBJECT(PlanetTerrain, StaticModel)
@@ -99,14 +114,9 @@ private:
 };
 
 
-//class OspPart
-//{
-//    String m_id;
-//
-//    String m_name;
-//    String m_desc;
-//};
-
+/**
+ * @brief A (singleton) class that handles many in-game functions
+ */
 class SystemOsp : public Object
 {
     SharedPtr<Scene> m_hiddenScene;

@@ -16,12 +16,14 @@
 
 namespace osp {
 
-
+/**
+ * @brief Makes a part apply thrust according to a PerformanceCurve
+ */
 class MachineRocket : public Machine
 {
     URHO3D_OBJECT(MachineRocket, Machine)
 
-    HashMap<StringHash, float>* m_curveInputs;
+    HashMap<StringHash, float> m_curveInputs;
 
     PerformanceCurves m_thrust;
     PerformanceCurves m_efficiency;
@@ -30,6 +32,7 @@ class MachineRocket : public Machine
 
 public:
     MachineRocket(Context* context);
+    ~MachineRocket();
 
     static void RegisterObject(Context* context)
     {

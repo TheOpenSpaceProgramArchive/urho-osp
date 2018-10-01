@@ -491,8 +491,6 @@ void PlanWren::unsubdivide(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
 
-    find_refs(m_triangles[t]);
-
     if (!(tri->m_bitmask & E_SUBDIVIDED))
     {
         return;
@@ -504,7 +502,7 @@ void PlanWren::unsubdivide(trindex t)
         if (m_triangles[tri->m_children + i].m_bitmask & E_SUBDIVIDED) {
             unsubdivide(tri->m_children + i);
         } else {
-            find_refs(m_triangles[tri->m_children + i]);
+            //find_refs(m_triangles[tri->m_children + i]);
         }
         set_visible(tri->m_children + i, false);
     }
@@ -544,11 +542,6 @@ void PlanWren::unsubdivide(trindex t)
 
     set_visible(t, true);
 
-    //this.triangles.splice(tri.children[0], 4);
-    for (int i = 0; i < 3; i ++)
-    {
-        find_refs(m_triangles[tri->m_neighbors[i]]);
-    }
 }
 
 void PlanWren::calculate_center(SubTriangle &tri)

@@ -2,6 +2,6 @@
 #define CONFIG_H
 
 #define GIT_BRANCH "master"
-#define GIT_COMMIT_HASH "d11b70a"
+#define GIT_COMMIT_HASH "hahahaa"
 
 #endif

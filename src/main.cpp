@@ -30,7 +30,7 @@
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/RigidBody.h>
-#include "Urho3D/Resource/BackgroundLoader.h"
+#include <Urho3D/Resource/BackgroundLoader.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Resource/ResourceEvents.h>
 #include <Urho3D/Resource/XMLFile.h>
@@ -79,6 +79,9 @@ public:
         MachineRocket::RegisterObject(context);
     }
 
+    /**
+     * A function called only by AngelScript
+     */
     SystemOsp* GetOsp()
     {
         return m_osp.Get();
@@ -122,11 +125,11 @@ public:
 
         // Register "osp" as a global in AngelScript
         asIScriptEngine* scriptEngine = GetSubsystem<Script>()->GetScriptEngine();
-        // Copied from Urho3D/AngelScript/*API.cpp
         RegisterObject<SystemOsp>(scriptEngine, "SystemOsp");
         scriptEngine->RegisterObjectMethod("SystemOsp", "Scene@+ get_hiddenScene() const", asMETHOD(SystemOsp, get_hidden_scene), asCALL_THISCALL);
         scriptEngine->RegisterObjectMethod("SystemOsp", "void make_craft(Node@+) const", asMETHOD(SystemOsp, make_craft), asCALL_THISCALL);
         scriptEngine->RegisterObjectMethod("SystemOsp", "void debug_function(StringHash) const", asMETHOD(SystemOsp, debug_function), asCALL_THISCALL);
+
         // call GetOsp when osp is accessed from angelscript, see thing about singleton https://www.angelcode.com/angelscript/sdk/docs/manual/doc_register_func.html
         scriptEngine->RegisterGlobalFunction("SystemOsp@+ get_osp()", asMETHOD(OSPApplication, GetOsp), asCALL_THISCALL_ASGLOBAL, this);
 
@@ -254,14 +257,17 @@ public:
           
         }*/
 
+        // This part finds and accesses a planet if found,
+        // it then calls update with relative camera position as input
         auto planets = scene->GetChildrenWithComponent("PlanetTerrain");
         if (planets.Size() != 0)
         {
             Vector3 cameraPos = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetWorldPosition();
             Vector3 planetPos = planets[0]->GetWorldPosition();
-            planets[0]->GetComponent<PlanetTerrain>()->GetPlanet()->update(cameraPos - planetPos    );
+            planets[0]->GetComponent<PlanetTerrain>()->GetPlanet()->update(cameraPos - planetPos);
         }
 
+        // A part of the code that isn't visible
         if (m_time >= 0.2) {
 
             std::string str;

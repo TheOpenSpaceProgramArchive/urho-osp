@@ -9,18 +9,21 @@
 
 using namespace osp;
 
-AstronomicalBody::AstronomicalBody(Context* context) : Sattelite(context) {
+AstronomicalBody::AstronomicalBody(Context* context) : Sattelite(context)
+{
     SetUpdateEventMask(USE_FIXEDUPDATE);
 
 }
 
-void AstronomicalBody::RegisterObject(Context* context) {
+void AstronomicalBody::RegisterObject(Context* context)
+{
 
     context->RegisterFactory<AstronomicalBody>("AstronomicalBody");
 
 }
 
-void AstronomicalBody::FixedUpdate(float timeStep) {
+void AstronomicalBody::FixedUpdate(float timeStep)
+{
     //if (planet_.is_ready()) {
     //    Vector3 dir(GetScene()->GetChild("Camera")->GetPosition() - GetScene()->GetChild("planet")->GetPosition());
     //    float dist = dir.Length();
@@ -84,7 +87,6 @@ PlanetTerrain::PlanetTerrain(Context* context) : StaticModel(context), m_first(f
 
 void PlanetTerrain::Initialize()
 {
-
     m_planet.initialize(context_, 1.0f);
     Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/DefaultGrey.xml");
     SetModel(m_planet.get_model());
@@ -98,47 +100,73 @@ void PlanetTerrain::RegisterObject(Context* context)
     context->RegisterFactory<PlanetTerrain>("PlanetTerrain");
 }
 
-
 SystemOsp::SystemOsp(Context* context) : Object(context)
 {
+    // Create the hidden scene, accesible through angelscript with osp.hiddenScene
     m_hiddenScene = new Scene(context);
+
+    // Make sure no updates happen in this scene
     m_hiddenScene->SetUpdateEnabled(false);
     m_hiddenScene->SetEnabled(false);
-    // Parts holds
+
+    // Make a node that holds parts
     m_parts = m_hiddenScene->CreateChild("Parts");
+
+    // Create a category of parts, dbg
     Node* category = m_parts->CreateChild("dbg");
     category->SetVar("DisplayName", "Debug Parts");
+
+    // Make 20 rocket cubes
     for (uint i = 0; i < 20; i ++)
     {
+        // Make a new child in the dbg category
         Node* aPart = category->CreateChild("dbg_" + String(i));
+
+        // Set some information about it
         aPart->SetVar("Country", "Canarda");
         aPart->SetVar("Description", "A simple oddly shaped cube");
         aPart->SetVar("Manufacturer", "Gotzietec Industries");
         aPart->SetVar("DisplayName", "Cube "  + String(i));
+
+        // Tweakscale it based on i
         aPart->SetScale(0.05f * (i + 1));
+
+        // Make sure it doesn't move when placed
         aPart->SetEnabled(false);
 
+        // Give it a generic box model
         StaticModel* model = aPart->CreateComponent<StaticModel>();
         model->SetCastShadows(true);
         model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
 
+        // Give it physics, and set it's mass to size^3
         RigidBody* rb = aPart->CreateComponent<RigidBody>();
         rb->SetMass(Pow(0.05f * (i + 1), 3.0f));
         rb->SetEnabled(false);
+
+        // Give it collisions, default shape is already a unit cube
+        // and is affected by scale
         CollisionShape* shape = aPart->CreateComponent<CollisionShape>();
 
+        // Make the part into a functioning rocket
         MachineRocket* rocket = aPart->CreateComponent<MachineRocket>();
     }
 }
 
+/**
+ * @brief SystemOsp::make_craft A function that adds Entity and some functionality to a node made of disabled parts. currently just adds Entity
+ * @param node Node to turn into a craft
+ */
 void SystemOsp::make_craft(Node* node)
 {
     node->CreateComponent<Entity>();
 
-    //AstronomicalBody* ab = planet->CreateComponent<AstronomicalBody>();
-    //ab->Initialize(node->GetContext(), 3.0f);
 }
 
+/**
+ * @brief SystemOsp::debug_function Intended to be called from angelscript to perform various functions in c++
+ * @param which
+ */
 void SystemOsp::debug_function(StringHash which)
 {
     if (which == StringHash("make_planet"))
