@@ -1,3 +1,4 @@
+// "PlanetRenderer is a little too boring" -- Capital Asterisk, 2018
 #pragma once
 
 #include <cstdint>
@@ -75,7 +76,7 @@ struct SubTriangle
     Vector3 m_center;
 };
 
-class PlanWren
+class PlanetWrenderer
 {
 
     bool m_ready = false;
@@ -110,8 +111,8 @@ public:
 
     ushort birb_ = 4;
 
-    PlanWren();
-    ~PlanWren();
+    PlanetWrenderer();
+    ~PlanetWrenderer();
     bool is_ready() {return m_ready;}
 
     void initialize(Context* context, double size);

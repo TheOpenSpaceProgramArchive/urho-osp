@@ -6,7 +6,7 @@
 #include <Urho3D/Scene/LogicComponent.h>
 #include <Urho3D/Physics/RigidBody.h>
 
-#include "PlanWren.h"
+#include "PlanetWrenderer.h"
 
 using namespace Urho3D;
 
@@ -105,11 +105,11 @@ public:
     static void RegisterObject(Context* context);
 
     void Initialize();
-    PlanWren* GetPlanet() { return &m_planet; }
+    PlanetWrenderer* GetPlanet() { return &m_planet; }
 
 private:
     bool m_first;
-    PlanWren m_planet;
+    PlanetWrenderer m_planet;
     WeakPtr<RigidBody> m_collider;
 };
 
