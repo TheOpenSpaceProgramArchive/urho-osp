@@ -1,13 +1,14 @@
+// "PlanetRenderer is a little too boring" -- Capital Asterisk, 2018
 #include "OSP.h"
 
-inline void PlanWren::set_neighbors(SubTriangle& tri, trindex bot, trindex rte, trindex lft)
+inline void PlanetWrenderer::set_neighbors(SubTriangle& tri, trindex bot, trindex rte, trindex lft)
 {
     tri.m_neighbors[0] = bot;
     tri.m_neighbors[1] = rte;
     tri.m_neighbors[2] = lft;
 }
 
-inline void PlanWren::set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte)
+inline void PlanetWrenderer::set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte)
 {
     tri.m_verts[0] = top;
     tri.m_verts[1] = lft;
@@ -15,7 +16,7 @@ inline void PlanWren::set_verts(SubTriangle& tri, trindex top, trindex lft, trin
 }
 
 
-inline uint8_t PlanWren::neighboor_index(SubTriangle& tri, trindex lookingFor)
+inline uint8_t PlanetWrenderer::neighboor_index(SubTriangle& tri, trindex lookingFor)
 {
     if (tri.m_neighbors[0] == lookingFor)
         return 0;
@@ -28,7 +29,7 @@ inline uint8_t PlanWren::neighboor_index(SubTriangle& tri, trindex lookingFor)
     return 255;
 }
 
-PlanWren::PlanWren() : m_triangles(), m_trianglesFree(), m_vertFree()
+PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFree()
 {
     m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
@@ -43,7 +44,7 @@ PlanWren::PlanWren() : m_triangles(), m_trianglesFree(), m_vertFree()
     m_indCount = 0;
 }
 
-PlanWren::~PlanWren()
+PlanetWrenderer::~PlanetWrenderer()
 {
     //m_vertBuf->Release();
     //m_indBuf->Release();
@@ -52,11 +53,11 @@ PlanWren::~PlanWren()
 }
 
 /**
- * @brief PlanWren::initialize
+ * @brief PlanetWrenderer::initialize
  * @param context
  * @param size
  */
-void PlanWren::initialize(Context* context, double size) {
+void PlanetWrenderer::initialize(Context* context, double size) {
 
     m_size = size;
 
@@ -233,7 +234,7 @@ void PlanWren::initialize(Context* context, double size) {
  * @param t [in] Index to the triangle
  * @param visible [in] To hide or to show
  */
-void PlanWren::set_visible(trindex t, bool visible)
+void PlanetWrenderer::set_visible(trindex t, bool visible)
 {
     //printf("Setting visible: %u\n", t);
     SubTriangle* tri = get_triangle(t);
@@ -295,7 +296,7 @@ void PlanWren::set_visible(trindex t, bool visible)
     tri->m_bitmask ^= E_VISIBLE;
 }
 
-void PlanWren::subdivide(trindex t)
+void PlanetWrenderer::subdivide(trindex t)
 {
     // if bottom triangle is deeper, use that vertex
     // same with left and right
@@ -457,7 +458,7 @@ void PlanWren::subdivide(trindex t)
 
 }
 
-void PlanWren::find_refs(SubTriangle& tri)
+void PlanetWrenderer::find_refs(SubTriangle& tri)
 {
     //uint ohno = neighboor_index(tri, what);
 
@@ -487,7 +488,7 @@ void PlanWren::find_refs(SubTriangle& tri)
 }
 
 
-void PlanWren::unsubdivide(trindex t)
+void PlanetWrenderer::unsubdivide(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
 
@@ -544,7 +545,7 @@ void PlanWren::unsubdivide(trindex t)
 
 }
 
-void PlanWren::calculate_center(SubTriangle &tri)
+void PlanetWrenderer::calculate_center(SubTriangle &tri)
 {
     const unsigned char* vertData = m_vertBuf->GetShadowData();
     const unsigned vertSize = m_vertBuf->GetVertexSize();
@@ -557,12 +558,12 @@ void PlanWren::calculate_center(SubTriangle &tri)
 }
 
 /**
- * @brief PlanWren::set_side_recurse
+ * @brief PlanetWrenderer::set_side_recurse
  * @param tri
  * @param side
  * @param to
  */
-void PlanWren::set_side_recurse(SubTriangle& tri, uint8_t side, trindex to)
+void PlanetWrenderer::set_side_recurse(SubTriangle& tri, uint8_t side, trindex to)
 {
     tri.m_neighbors[side] = to;
     if (tri.m_bitmask & E_SUBDIVIDED) {
@@ -571,7 +572,7 @@ void PlanWren::set_side_recurse(SubTriangle& tri, uint8_t side, trindex to)
     }
 }
 
-void PlanWren::update(const Vector3& camera)
+void PlanetWrenderer::update(const Vector3& camera)
 {
     m_camera = camera;
     m_cameraDist = camera.Length();
@@ -584,7 +585,7 @@ void PlanWren::update(const Vector3& camera)
     }
 }
 
-void PlanWren::sub_recurse(trindex t)
+void PlanetWrenderer::sub_recurse(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
 
