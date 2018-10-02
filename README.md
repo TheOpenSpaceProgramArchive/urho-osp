@@ -33,6 +33,7 @@ echo 'export URHO3D_HOME="~/OSP/Urho3D"' >> ~/.bashrc && source ~/.bashrc
 ```
 **6.** Build `urho-osp`:
 ```bash
+cd ../urho-osp
 cmake .
 make
 ```
