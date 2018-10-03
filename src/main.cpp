@@ -46,10 +46,10 @@
 #include <Urho3D/UI/UI.h>
 #include <Urho3D/AngelScript/APITemplates.h>
 
-
-#include "OSP.h"
-#include "Machines.h"
 #include "config.h"
+#include "GLTFFile.h"
+#include "Machines.h"
+#include "OSP.h"
 
 using namespace Urho3D;
 using namespace osp;
@@ -75,8 +75,9 @@ public:
     {
         AstronomicalBody::RegisterObject(context);
         Entity::RegisterObject(context);
-        PlanetTerrain::RegisterObject(context);
+        GLTFFile::RegisterObject(context);
         MachineRocket::RegisterObject(context);
+        PlanetTerrain::RegisterObject(context);
     }
 
     /**
