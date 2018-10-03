@@ -9,7 +9,7 @@
 
 using namespace osp;
 
-AstronomicalBody::AstronomicalBody(Context* context) : Sattelite(context)
+AstronomicalBody::AstronomicalBody(Context* context) : Satellite(context)
 {
     SetUpdateEventMask(USE_FIXEDUPDATE);
 
@@ -54,7 +54,7 @@ void AstronomicalBody::Initialize(Context* context) {
 
 
 
-Entity::Entity(Context* context) : Sattelite(context) {
+Entity::Entity(Context* context) : Satellite(context) {
     SetUpdateEventMask(USE_FIXEDUPDATE);
 }
 

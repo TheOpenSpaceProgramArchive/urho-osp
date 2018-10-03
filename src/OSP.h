@@ -25,12 +25,12 @@ class LongVector
  * @brief Base class for anything orbiting or landed on an AstronomicalBody.
  * This should contain orbital data.
  */
-class Sattelite : public LogicComponent
+class Satellite : public LogicComponent
 {
-    URHO3D_OBJECT(Sattelite, LogicComponent)
+    URHO3D_OBJECT(Satellite, LogicComponent)
 
 public:
-    Sattelite(Context* context) : LogicComponent(context) {}
+    Satellite(Context* context) : LogicComponent(context) {}
 
     LongVector m_position;
     WeakPtr<AstronomicalBody> orbiting;
@@ -42,7 +42,7 @@ public:
  */
 class Machine : public LogicComponent
 {
-    URHO3D_OBJECT(Sattelite, LogicComponent)
+    URHO3D_OBJECT(Satellite, LogicComponent)
 
 public:
     Machine(Context* context) : LogicComponent(context) {}
@@ -52,9 +52,9 @@ public:
 /**
  * @brief Class containing data describing an astronomical body (star, planet, asteroid), and their properties (size, water level, mass)
  */
-class AstronomicalBody : public Sattelite
+class AstronomicalBody : public Satellite
 {
-    URHO3D_OBJECT(AstronomicalBody, Sattelite)
+    URHO3D_OBJECT(AstronomicalBody, Satellite)
 
 public:
     AstronomicalBody(Context* context);
@@ -73,10 +73,10 @@ private:
 /**
  * @brief Anything in the universe that has physics, like a space craft
  */
-class Entity : public Sattelite
+class Entity : public Satellite
 {
 
-    URHO3D_OBJECT(Entity, Sattelite)
+    URHO3D_OBJECT(Entity, Satellite)
 
 public:
     Entity(Context* context);
