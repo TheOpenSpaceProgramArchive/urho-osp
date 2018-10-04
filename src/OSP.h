@@ -42,7 +42,7 @@ public:
  */
 class Machine : public LogicComponent
 {
-    URHO3D_OBJECT(Satellite, LogicComponent)
+    URHO3D_OBJECT(Machine, LogicComponent)
 
 public:
     Machine(Context* context) : LogicComponent(context) {}
