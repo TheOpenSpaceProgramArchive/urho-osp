@@ -1,4 +1,5 @@
 {
+    // Comments like this shouldn't be on normal json
     "accessors" : [
         {
             "bufferView" : 0,

@@ -2,13 +2,14 @@
 
 #include <Urho3D/Core/Context.h>
 #include <Urho3D/Resource/Resource.h>
+#include <Urho3D/Resource/JSONFile.h>
 
 using namespace Urho3D;
 
-class GLTFFile : public Resource
+class GLTFFile : public JSONFile
 {
 
-    URHO3D_OBJECT(GLTFFile, Resource)
+    URHO3D_OBJECT(GLTFFile, JSONFile)
 
 public:
 

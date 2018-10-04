@@ -138,6 +138,9 @@ public:
         m_runImmediately.Push("Scripts/MainMenu.as");
         cache->BackgroundLoadResource<ScriptFile>("Scripts/MainMenu.as", true);
 
+        // A test
+        GLTFFile* f = cache->GetResource<GLTFFile>("/Gotzietek/F9/f9.sturdy.gltf");
+
         //m_scene->CreateComponent<Octree>();
         //m_scene->CreateComponent<DebugRenderer>();
         //PhysicsWorld* world = m_scene->CreateComponent<PhysicsWorld>();
