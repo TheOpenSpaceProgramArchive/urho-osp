@@ -1,8 +1,11 @@
 #pragma once
 
 #include <Urho3D/Core/Context.h>
+#include <Urho3D/Container/Vector.h>
+#include <Urho3D/Graphics/Texture.h>
 #include <Urho3D/Resource/Resource.h>
 #include <Urho3D/Resource/JSONFile.h>
+
 
 using namespace Urho3D;
 
@@ -20,5 +23,8 @@ public:
 
     virtual bool BeginLoad(Deserializer& source);
 
+private:
+    Vector<SharedArrayPtr<unsigned char>> buffers_;
+    Vector<WeakPtr<Texture>> textures_;
 };
 
