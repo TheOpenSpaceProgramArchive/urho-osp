@@ -117,7 +117,7 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
     category->SetVar("DisplayName", "Debug Parts");
 
     // Make 20 rocket cubes
-    for (uint i = 0; i < 20; i ++)
+    for (int i = 0; i < 20; i ++)
     {
         // Make a new child in the dbg category
         Node* aPart = category->CreateChild("dbg_" + String(i));

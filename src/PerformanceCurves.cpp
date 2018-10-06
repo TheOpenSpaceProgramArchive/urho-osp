@@ -12,7 +12,7 @@ PerformanceCurves::PerformanceCurves(HashMap<StringHash, float> *inputs, float r
 float PerformanceCurves::get_float(float f)
 {
     float value = f;
-    for (uint i = 0; i < m_curves.Size(); i ++)
+    for (int i = 0; i < m_curves.Size(); i ++)
     {
         Curve* curve = &(m_curves[i]);
         // get the number, then scale to array index
@@ -41,7 +41,7 @@ void PerformanceCurves::add_factor(StringHash factor, float range, float minimum
     curve.m_factor = factor;
 
     // Put curve into the array in ascending order
-    for (uint i = 0; i < m_curves.Size(); i ++)
+    for (int i = 0; i < m_curves.Size(); i ++)
     {
         if (m_curves[i].m_factor > factor)
         {
@@ -55,7 +55,7 @@ void PerformanceCurves::add_factor(StringHash factor, float range, float minimum
 
 void PerformanceCurves::set_linear(StringHash factor, uint16_t low, uint16_t high)
 {
-    for (uint i = 0; i < m_curves.Size(); i ++)
+    for (int i = 0; i < m_curves.Size(); i ++)
     {
         if (m_curves[i].m_factor == factor)
         {
