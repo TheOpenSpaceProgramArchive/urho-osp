@@ -31,7 +31,7 @@ inline uint8_t PlanetWrenderer::neighboor_index(SubTriangle& tri, trindex lookin
 
 PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFree()
 {
-    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(1);
     m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
@@ -42,6 +42,8 @@ PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFre
     m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
     m_indCount = 0;
+    m_maxDepth = 5;
+    m_hqDepth = 4;
 }
 
 PlanetWrenderer::~PlanetWrenderer()
@@ -63,8 +65,8 @@ void PlanetWrenderer::initialize(Context* context, double size) {
 
     // calculate proper numbers later
     m_maxFaces = 8000;
-    m_maxIndices = 4000;
-    m_maxVertice = 4000;
+    m_maxIndices = 9000;
+    m_maxVertice = 6000;
 
     m_vertCount = 12;
     m_indCount = 0;
@@ -208,9 +210,9 @@ void PlanetWrenderer::initialize(Context* context, double size) {
         set_visible(i, true);
     }
 
-    //for (int i = 0; i < 20; i ++) {
-    //    subdivide(i);
-    //}
+    for (int i = 0; i < 20; i ++) {
+        subdivide(i);
+    }
 
     //unsubdivide(1);
     //unsubdivide(0);
@@ -432,7 +434,7 @@ void PlanetWrenderer::subdivide(trindex t)
     tri->m_bitmask ^= E_SUBDIVIDED;
 
     //printf("Depth: %u\n", tri->m_depth);
-    if (m_chunkProfile[tri->m_depth - 1])
+    if (m_chunkProfile[tri->m_depth + 1])
     {
 
         // Chunk profile says there should be more tringles
@@ -532,7 +534,7 @@ void PlanetWrenderer::unsubdivide(trindex t)
 
     // Now mark triangles for removal. they're always in groups of 4.
     m_trianglesFree.Push(tri->m_children);
-    printf("Triangles Killed: %u - %u\n", tri->m_children, tri->m_children + 3);
+    //printf("Triangles Killed: %u - %u\n", tri->m_children, tri->m_children + 3);
     //this.triangles[tri.children[0]] = null;
     //this.triangles[tri.children[1]] = null;
     //this.triangles[tri.children[2]] = null;
@@ -576,12 +578,29 @@ void PlanetWrenderer::update(const Vector3& camera)
 {
     m_camera = camera;
     m_cameraDist = camera.Length();
-    m_threshold = m_size / m_cameraDist;
+
+    // size/distance is equal to the dot product between the camera position vector, and the surface normal at the viewd edge of a perfect sphere
+    // 0.45f is added because the triangles at the edge of the spehere are curved, and are still visible even when they point away from the camera.
+    m_threshold = m_size / m_cameraDist - 0.45f;
 
     //printf("Camera! %s\n", camera.ToString().CString());
     //printf("vert count: %ux\n", m_vertCount);
     for (int i = 0; i < 20; i ++) {
         sub_recurse(i);
+    }
+
+    // TODO: find a better way to handle these
+    if (m_indCount >= m_maxIndices)
+    {
+        printf("Error: Indices exceeded limit\n");
+    }
+    if (m_vertCount >= m_maxVertice)
+    {
+        printf("Error: Vertices exceeded limit\n");
+    }
+    if (m_triangles.Size() >= m_maxFaces)
+    {
+        printf("Error: Triangles exceeded limit\n");
     }
 }
 
@@ -589,12 +608,17 @@ void PlanetWrenderer::sub_recurse(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
 
-    float visible = false;
+    bool shouldSubdivide = false;
 
-    if (tri->m_depth < 5)
+    if (tri->m_depth < m_hqDepth)
     {
+        // Test to see if this part of the sphere is visible, using the face normal's dot product with the camera
         float dot = tri->m_center.DotProduct(m_camera) / (m_cameraDist * tri->m_center.Length());
-        visible = (dot > (m_threshold + 0.2 * tri->m_depth));
+        shouldSubdivide = (dot > m_threshold / tri->m_depth);
+        //shouldBeSubdivided = (dot > m_threshold + 0.2f * (float(tri->m_depth) + 3.0f));
+    } else {
+        // Measure distance instead of using angles, again more temporary code
+        shouldSubdivide = ((tri->m_center - m_camera).LengthSquared() < Pow(7.4f, 2.0f));
     }
     // Measure angle
     //printf("DOT: %f\n", dot);
@@ -607,19 +631,19 @@ void PlanetWrenderer::sub_recurse(trindex t)
 
     if (tri->m_bitmask & E_SUBDIVIDED)
     {
-        if (visible)
+        if (shouldSubdivide)
         {
             sub_recurse(tri->m_children + 0);
             sub_recurse(tri->m_children + 1);
             sub_recurse(tri->m_children + 2);
             sub_recurse(tri->m_children + 3);
-        } else {
+        } else if (!bool(m_chunkProfile[tri->m_depth])) {
             unsubdivide(t);
         }
     } else {
-        if (visible)
+        if (shouldSubdivide)
         {
-            if (tri->m_depth < 6)
+            if (tri->m_depth < m_maxDepth)
             {
                 subdivide(t);
             }

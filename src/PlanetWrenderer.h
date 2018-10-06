@@ -81,6 +81,8 @@ class PlanetWrenderer
 
     bool m_ready = false;
     double m_size;
+    unsigned m_maxDepth;
+    unsigned m_hqDepth;
 
     buindex m_maxFaces;
     buindex m_maxVertice;
