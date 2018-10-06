@@ -255,7 +255,7 @@ void PlanetWrenderer::set_visible(trindex t, bool visible)
         tri->m_index = m_indCount * 3;
 
         // Put data into indBuf
-        uint xz[3];
+        unsigned xz[3];
         xz[0] = tri->m_verts[0];
         xz[1] = tri->m_verts[1];
         xz[2] = tri->m_verts[2];
@@ -284,7 +284,7 @@ void PlanetWrenderer::set_visible(trindex t, bool visible)
 
         // get the index buffer data of the last triangle (last 3 ints), and put it into the new location
 
-        uint* xz = reinterpret_cast<uint*>(m_indBuf->GetShadowData() + (m_indCount * 3 * sizeof(uint)));
+        unsigned* xz = reinterpret_cast<unsigned*>(m_indBuf->GetShadowData() + (m_indCount * 3 * sizeof(unsigned)));
         //printf("Hiding: %u, %u, %u\n", xz[0], xz[1], xz[2]);
         m_indBuf->SetDataRange(xz, tri->m_index, 3);
         //this.indexBuffer.set(this.indexBuffer.slice(this.indexCount * 3, this.indexCount * 3 + 3), tri.index);
@@ -308,7 +308,7 @@ void PlanetWrenderer::subdivide(trindex t)
 
     // Add the 4 new triangles
     // Top Left Right Center
-    uint freeSize = m_trianglesFree.Size();
+    unsigned freeSize = m_trianglesFree.Size();
     if (freeSize == 0) {
         tri->m_children = m_triangles.Size();
         m_triangles.Resize(tri->m_children + 4);
@@ -464,7 +464,7 @@ void PlanetWrenderer::find_refs(SubTriangle& tri)
 
     for (int i = 0; i < 3; i ++)
     {
-        uint whateven = m_trianglesFree.IndexOf(int(tri.m_neighbors[i] / 4) * 4);
+        unsigned whateven = m_trianglesFree.IndexOf(int(tri.m_neighbors[i] / 4) * 4);
         if (whateven != m_trianglesFree.Size() )
         {
             printf("Deleted triangle %u referenced on side: %u\n", m_trianglesFree[whateven], i);
@@ -476,7 +476,7 @@ void PlanetWrenderer::find_refs(SubTriangle& tri)
 
         for (int i = 0; i < 4; i ++)
         {
-            uint whateven = m_trianglesFree.IndexOf(tri.m_children + i);
+            unsigned whateven = m_trianglesFree.IndexOf(tri.m_children + i);
             if (whateven != m_trianglesFree.Size() )
             {
                 printf("Deleted triangle %u referenced on child: %u\n", m_trianglesFree[whateven], i);
