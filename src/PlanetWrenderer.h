@@ -109,8 +109,6 @@ class PlanetWrenderer
 
 public:
 
-    ushort birb_ = 4;
-
     PlanetWrenderer();
     ~PlanetWrenderer();
     bool is_ready() {return m_ready;}
