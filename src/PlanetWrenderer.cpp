@@ -1,13 +1,27 @@
 // "PlanetRenderer is a little too boring" -- Capital Asterisk, 2018
 #include "OSP.h"
 
-inline void PlanetWrenderer::set_neighbors(SubTriangle& tri, trindex bot, trindex rte, trindex lft)
+/**
+ * @brief A quick way to set neighbours
+ * @param tri Reference to triangle
+ * @param bot Bottom
+ * @param rte Right
+ * @param lft Left
+ */
+inline void PlanetWrenderer::set_neighbours(SubTriangle& tri, trindex bot, trindex rte, trindex lft)
 {
-    tri.m_neighbors[0] = bot;
-    tri.m_neighbors[1] = rte;
-    tri.m_neighbors[2] = lft;
+    tri.m_neighbours[0] = bot;
+    tri.m_neighbours[1] = rte;
+    tri.m_neighbours[2] = lft;
 }
 
+/**
+ * @brief A quick way to set vertices
+ * @param tri Reference to triangle
+ * @param top Top
+ * @param lft Left
+ * @param rte Right
+ */
 inline void PlanetWrenderer::set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte)
 {
     tri.m_verts[0] = top;
@@ -15,23 +29,33 @@ inline void PlanetWrenderer::set_verts(SubTriangle& tri, trindex top, trindex lf
     tri.m_verts[2] = rte;
 }
 
-
+/**
+ * @brief Find which side a triangle is on another triangle
+ * @param tri Reference to triangle to be searched
+ * @param lookingFor Index of triangle to search for
+ * @return Neighbour index (0 - 2), or bottom, left, or right
+ */
 inline uint8_t PlanetWrenderer::neighboor_index(SubTriangle& tri, trindex lookingFor)
 {
-    if (tri.m_neighbors[0] == lookingFor)
-        return 0;
-    else if (tri.m_neighbors[1] == lookingFor)
-        return 1;
-    else if (tri.m_neighbors[2] == lookingFor)
-        return 2;
+    // Loop through neighbours on the edges. child 4 (center) is not considered as all it's neighbours are its siblings
+    for (int i = 0; i < 3; i ++)
+    {
+        if (tri.m_neighbours[i] == lookingFor)
+        {
+            return i;
+        }
+    }
     // this means there's an error
-    //printf("Errrrorr \n");
+    assert(0);
     return 255;
 }
 
 PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFree()
 {
-    m_chunkProfile.Push(1);
+    // Chunk profile determines which triangles should be subdivided multiple times after a single subdivide call
+    // as if the triangle can subdivide into 64 triangles instead of just 4
+    // This is intended to reduce the number of distance checks
+    m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
@@ -42,7 +66,7 @@ PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFre
     m_chunkProfile.Push(0);
     m_chunkProfile.Push(0);
     m_indCount = 0;
-    m_maxDepth = 5;
+    m_maxDepth = 6;
     m_hqDepth = 4;
 }
 
@@ -65,8 +89,8 @@ void PlanetWrenderer::initialize(Context* context, double size) {
 
     // calculate proper numbers later
     m_maxFaces = 8000;
-    m_maxIndices = 9000;
-    m_maxVertice = 6000;
+    m_maxIndices = 10000;
+    m_maxVertice = 10000;
 
     m_vertCount = 12;
     m_indCount = 0;
@@ -195,13 +219,13 @@ void PlanetWrenderer::initialize(Context* context, double size) {
     m_triangles.Reserve(3000);
 
     // Initialize triangles, indices from sc_icoTemplateTris
-    for (int i = 0; i < 20; i ++) {
+    for (int i = 0; i < sc_icosahedronFaceCount; i ++) {
         // Set trianglesz
         SubTriangle tri;
         //printf("Triangle: %p\n", t);
         //tri.m_parent = 0;
         set_verts(tri, sc_icoTemplateTris[i * 3 + 0], sc_icoTemplateTris[i * 3 + 1], sc_icoTemplateTris[i * 3 + 2]);
-        set_neighbors(tri, sc_icoTemplateNeighbors[i * 3 + 0], sc_icoTemplateNeighbors[i * 3 + 1], sc_icoTemplateNeighbors[i * 3 + 2]);
+        set_neighbours(tri, sc_icoTemplateneighbours[i * 3 + 0], sc_icoTemplateneighbours[i * 3 + 1], sc_icoTemplateneighbours[i * 3 + 2]);
         tri.m_bitmask = 0;
         tri.m_depth = 1;
         calculate_center(tri);
@@ -210,7 +234,7 @@ void PlanetWrenderer::initialize(Context* context, double size) {
         set_visible(i, true);
     }
 
-    for (int i = 0; i < 20; i ++) {
+    for (int i = 0; i < sc_icosahedronFaceCount; i ++) {
         subdivide(i);
     }
 
@@ -298,6 +322,10 @@ void PlanetWrenderer::set_visible(trindex t, bool visible)
     tri->m_bitmask ^= E_VISIBLE;
 }
 
+/**
+ * @brief Subdivide a triangle into 4 more
+ * @param Triangle to subdivide
+ */
 void PlanetWrenderer::subdivide(trindex t)
 {
     // if bottom triangle is deeper, use that vertex
@@ -338,10 +366,10 @@ void PlanetWrenderer::subdivide(trindex t)
     //this.triangles[tri.children[2]] = new this.Triangle([-1, -1, -1], [-1, -1, -1], tri.myDepth + 1);
     SubTriangle* children = get_triangle(tri->m_children);
 
-    set_neighbors(children[0], tri->m_children + 3, tri->m_neighbors[1], tri->m_neighbors[2]);
-    set_neighbors(children[1], tri->m_neighbors[0], tri->m_children + 3, tri->m_neighbors[2]);
-    set_neighbors(children[2], tri->m_neighbors[0], tri->m_neighbors[1], tri->m_children + 3);
-    set_neighbors(children[3], tri->m_children + 0, tri->m_children + 1, tri->m_children + 2);
+    set_neighbours(children[0], tri->m_children + 3, tri->m_neighbours[1], tri->m_neighbours[2]);
+    set_neighbours(children[1], tri->m_neighbours[0], tri->m_children + 3, tri->m_neighbours[2]);
+    set_neighbours(children[2], tri->m_neighbours[0], tri->m_neighbours[1], tri->m_children + 3);
+    set_neighbours(children[3], tri->m_children + 0, tri->m_children + 1, tri->m_children + 2);
     children[0].m_depth = children[1].m_depth = children[2].m_depth = children[3].m_depth = tri->m_depth + 1;
     children[0].m_bitmask = children[1].m_bitmask = children[2].m_bitmask = children[3].m_bitmask = 0;
     // Subdivide lines and add verticies, or take from other triangles
@@ -355,7 +383,7 @@ void PlanetWrenderer::subdivide(trindex t)
     // Loop through 3 sides of the triangle: Bottom, Right, Left
     // tri.sides refers to an index of another triangle on that side
     for (int i = 0; i < 3; i ++) {
-        SubTriangle* triB = get_triangle(tri->m_neighbors[i]);
+        SubTriangle* triB = get_triangle(tri->m_neighbours[i]);
         // Check if the line is already subdivided, or if there is no triangle on the other side
         if (!(triB->m_bitmask & E_SUBDIVIDED) || (triB->m_depth != tri->m_depth)) {
             // A new vertex has to be created in the middle of the line
@@ -383,7 +411,7 @@ void PlanetWrenderer::subdivide(trindex t)
             //console.log(i + ": Created new vertex");
         } else {
             // Which side tri is on triB
-            trindex sideB = neighboor_index(triB[0], t);
+            int sideB = neighboor_index(*triB, t);
             //printf("Vertex is being shared\n");
 
             // Instead of creating a new vertex, use the one from triB since it's already subdivided
@@ -397,18 +425,22 @@ void PlanetWrenderer::subdivide(trindex t)
 
             // triX/Y refers to the two triangles on the side of tri
             // triBX/Y refers to the two triangles on the side of triB
-            trindex triX = tri->m_children + ((i + 1) % 3);
-            trindex triY = tri->m_children + ((i + 2) % 3);
-            trindex triBX = triB->m_children + ((sideB + 1) % 3);
-            trindex triBY = triB->m_children + ((sideB + 2) % 3);
+            trindex triX = tri->m_children + trindex((i + 1) % 3);
+            trindex triY = tri->m_children + trindex((i + 2) % 3);
+            trindex triBX = triB->m_children + trindex((sideB + 1) % 3);
+            trindex triBY = triB->m_children + trindex((sideB + 2) % 3);
 
             // Assign the face of each triangle to the other triangle right beside it
-            m_triangles[triX].m_neighbors[i] = triBY;
-            m_triangles[triY].m_neighbors[i] = triBX;
-            m_triangles[triBX].m_neighbors[sideB] = triY;
-            m_triangles[triBY].m_neighbors[sideB] = triX;
+            m_triangles[triX].m_neighbours[i] = triBY;
+            m_triangles[triY].m_neighbours[i] = triBX;
+            //m_triangles[triBX].m_neighbours[sideB] = triY;
+            //m_triangles[triBY].m_neighbours[sideB] = triX;
+            set_side_recurse(m_triangles[triBX], sideB, triY);
+            set_side_recurse(m_triangles[triBY], sideB, triX);
+
             //printf("Set Tri%u %u to %u", triBX)
         }
+
     }
 
     // Set verticies
@@ -425,7 +457,7 @@ void PlanetWrenderer::subdivide(trindex t)
     calculate_center(children[3]);
 
     //printf("Midverts %u: (B%u, R%u, L%u)\n", t, tri->m_midVerts[0], tri->m_midVerts[1], tri->m_midVerts[2]);
-    //printf("Neighbors %u: (B%u, R%u, L%u)\n", t, tri->m_neighbors[0], tri->m_neighbors[1], tri->m_neighbors[2]);
+    //printf("neighbours %u: (B%u, R%u, L%u)\n", t, tri->m_neighbours[0], tri->m_neighbours[1], tri->m_neighbours[2]);
 
     //console.log("MyDepth: " + tri.myDepth)
     //console.log("Sides: B" + tri.sides[0] + ", R" + tri.sides[1] + ", L" + t  ri.sides[2]);
@@ -433,12 +465,9 @@ void PlanetWrenderer::subdivide(trindex t)
 
     tri->m_bitmask ^= E_SUBDIVIDED;
 
-    //printf("Depth: %u\n", tri->m_depth);
-    if (m_chunkProfile[tri->m_depth + 1])
+    // If the triangle is non-zero in the chunk profile, this means that it should be divided more
+    if (m_chunkProfile[tri->m_depth - 1])
     {
-
-        // Chunk profile says there should be more tringles
-        //printf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa %u\n", m_chunkProfile[tri->m_depth]);
         subdivide(tri->m_children + 0);
         subdivide(tri->m_children + 1);
         subdivide(tri->m_children + 2);
@@ -460,13 +489,17 @@ void PlanetWrenderer::subdivide(trindex t)
 
 }
 
+/**
+ * @brief A debug function to search for use of deleted triangles
+ * @param tri
+ */
 void PlanetWrenderer::find_refs(SubTriangle& tri)
 {
     //uint ohno = neighboor_index(tri, what);
 
     for (int i = 0; i < 3; i ++)
     {
-        unsigned whateven = m_trianglesFree.IndexOf(int(tri.m_neighbors[i] / 4) * 4);
+        unsigned whateven = m_trianglesFree.IndexOf(int(tri.m_neighbours[i] / 4) * 4);
         if (whateven != m_trianglesFree.Size() )
         {
             printf("Deleted triangle %u referenced on side: %u\n", m_trianglesFree[whateven], i);
@@ -489,7 +522,10 @@ void PlanetWrenderer::find_refs(SubTriangle& tri)
     }
 }
 
-
+/**
+ * @brief Unsubdivide a triangle. Removes children and sets neighbours of neighbours
+ * @param t Index of triangle to unsubdivide
+ */
 void PlanetWrenderer::unsubdivide(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
@@ -514,22 +550,22 @@ void PlanetWrenderer::unsubdivide(trindex t)
     // Loop through all sides but the middle
     for (int i = 0; i < 3; i ++)
     {
-        SubTriangle* triB = get_triangle(tri->m_neighbors[i]);
+        SubTriangle* triB = get_triangle(tri->m_neighbours[i]);
 
         // If the triangle on the other side is not subdivided, it means that the vertex will have no more users
         if (!(triB->m_bitmask & E_SUBDIVIDED) || triB->m_depth != tri->m_depth) {
             // Mark side vertex for replacement
             m_vertFree.Push(tri->m_midVerts[i]);
-        }
 
-        // Some optimizing needed
-        uint8_t sideB = neighboor_index(triB[0], t);
-        //printf("Hopefully not error: %u\n", sideB);
-        if (sideB != 255)
-        {
-           set_side_recurse(triB[0], sideB, t);
         }
         // else leave it alone, the other triangle beside is still useing the vertex
+
+        // Set neighbours, so that they don't reference deleted triangles
+        if (triB->m_depth == tri->m_depth)
+        {
+            uint8_t sideB = neighboor_index(triB[0], t);
+            set_side_recurse(triB[0], sideB, t);
+        }
     }
 
     // Now mark triangles for removal. they're always in groups of 4.
@@ -547,6 +583,10 @@ void PlanetWrenderer::unsubdivide(trindex t)
 
 }
 
+/**
+ * @brief Calculates and sets m_center
+ * @param tri Reference to triangle
+ */
 void PlanetWrenderer::calculate_center(SubTriangle &tri)
 {
     const unsigned char* vertData = m_vertBuf->GetShadowData();
@@ -560,20 +600,24 @@ void PlanetWrenderer::calculate_center(SubTriangle &tri)
 }
 
 /**
- * @brief PlanetWrenderer::set_side_recurse
- * @param tri
- * @param side
- * @param to
+ * @brief Set a single neighbour of a triangle, and apply for all of it's children's
+ * @param tri Reference to triangle
+ * @param side Side to set
+ * @param to Neighbour to set side to
  */
 void PlanetWrenderer::set_side_recurse(SubTriangle& tri, uint8_t side, trindex to)
 {
-    tri.m_neighbors[side] = to;
+    tri.m_neighbours[side] = to;
     if (tri.m_bitmask & E_SUBDIVIDED) {
         set_side_recurse(m_triangles[tri.m_children + ((side + 1) % 3)], side, to);
         set_side_recurse(m_triangles[tri.m_children + ((side + 2) % 3)], side, to);
     }
 }
 
+/**
+ * @brief Recalculates camera positiona and sub_recurses the main 20 triangles. Call this when the camera moves.
+ * @param camera
+ */
 void PlanetWrenderer::update(const Vector3& camera)
 {
     m_camera = camera;
@@ -585,25 +629,20 @@ void PlanetWrenderer::update(const Vector3& camera)
 
     //printf("Camera! %s\n", camera.ToString().CString());
     //printf("vert count: %ux\n", m_vertCount);
-    for (int i = 0; i < 20; i ++) {
+    printf("TriangleCount: %u\n", m_triangles.Size());
+    for (int i = 0; i < sc_icosahedronFaceCount; i ++) {
         sub_recurse(i);
     }
 
-    // TODO: find a better way to handle these
-    if (m_indCount >= m_maxIndices)
-    {
-        printf("Error: Indices exceeded limit\n");
-    }
-    if (m_vertCount >= m_maxVertice)
-    {
-        printf("Error: Vertices exceeded limit\n");
-    }
-    if (m_triangles.Size() >= m_maxFaces)
-    {
-        printf("Error: Triangles exceeded limit\n");
-    }
+    assert(m_indCount < m_maxIndices);
+    assert(m_vertCount < m_maxVertice);
+    assert(m_triangles.Size() < m_maxFaces);
 }
 
+/**
+ * @brief Recursively check every triangle for which ones need (un)subdividing
+ * @param t Triangle to start with
+ */
 void PlanetWrenderer::sub_recurse(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
@@ -618,7 +657,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
         //shouldBeSubdivided = (dot > m_threshold + 0.2f * (float(tri->m_depth) + 3.0f));
     } else {
         // Measure distance instead of using angles, again more temporary code
-        shouldSubdivide = ((tri->m_center - m_camera).LengthSquared() < Pow(7.4f, 2.0f));
+        shouldSubdivide = ((tri->m_center - m_camera).LengthSquared() < Pow(7.05f, 2.0f));
     }
     // Measure angle
     //printf("DOT: %f\n", dot);
@@ -629,6 +668,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
     //}
 
 
+    // If already subdivided
     if (tri->m_bitmask & E_SUBDIVIDED)
     {
         if (shouldSubdivide)
@@ -638,7 +678,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
             sub_recurse(tri->m_children + 2);
             sub_recurse(tri->m_children + 3);
         } else if (!bool(m_chunkProfile[tri->m_depth])) {
-            unsubdivide(t);
+             unsubdivide(t);
         }
     } else {
         if (shouldSubdivide)
@@ -649,6 +689,8 @@ void PlanetWrenderer::sub_recurse(trindex t)
             }
         }
     }
+
+    //find_refs(*tri);
 
     //if (m_chunkProfile[tri->m_depth])
     //{

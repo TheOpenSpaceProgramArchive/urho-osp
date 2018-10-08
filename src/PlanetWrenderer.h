@@ -49,7 +49,7 @@ static constexpr const uint8_t sc_icoTemplateTris[20 * 3] {
 };
 
 // The 20 faces of the icosahedron (Bottom, Right, Left)
-static constexpr const uint8_t sc_icoTemplateNeighbors[20 * 3] {
+static constexpr const uint8_t sc_icoTemplateneighbours[20 * 3] {
 //  BB  RR  LL   BB  RR  LL   BB  RR  LL   BB  RR  LL   BB  RR  LL
      5,  4,  1,   7,  0,  2,   9,  1,  3,  11,  2,  4,  13,  3,  0,
      0,  6, 14,  16,  5,  7,   1,  8,  6,  15,  7,  9,   2, 10,  8,
@@ -57,16 +57,21 @@ static constexpr const uint8_t sc_icoTemplateNeighbors[20 * 3] {
      8, 19, 16,   6, 15, 17,  14, 16, 18,  12, 17, 19,  10, 18, 15
 };
 
+static const int sc_icosahedronFaceCount = 20;
+
 enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010 };
 
+// Index to a triangle
 typedef uint32_t trindex;
+
+// Index to a buffer
 typedef uint32_t buindex;
 
 struct SubTriangle
 {
     trindex m_parent;
     trindex m_children; // always has 4 children if subdivided
-    trindex m_neighbors[3];
+    trindex m_neighbours[3];
     buindex m_midVerts[3];
     buindex m_verts[3];
     buindex m_index;
@@ -125,7 +130,7 @@ public:
 protected:
 
     static inline void set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte);
-    static inline void set_neighbors(SubTriangle& tri, trindex bot, trindex rte, trindex lft);
+    static inline void set_neighbours(SubTriangle& tri, trindex bot, trindex rte, trindex lft);
     static inline uint8_t neighboor_index(SubTriangle& tri, trindex lookingFor);
 
     void subdivide(trindex t);
