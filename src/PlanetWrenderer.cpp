@@ -88,9 +88,9 @@ void PlanetWrenderer::initialize(Context* context, double size) {
     m_size = size;
 
     // calculate proper numbers later
-    m_maxFaces = 8000;
-    m_maxIndices = 10000;
-    m_maxVertice = 10000;
+    m_maxTriangles = 50000;
+    m_maxIndices = 18000;
+    m_maxVertice = 17000;
 
     m_vertCount = 12;
     m_indCount = 0;
@@ -184,7 +184,7 @@ void PlanetWrenderer::initialize(Context* context, double size) {
     m_vertBuf->SetData(vertInit); // This line causes random sigsegvs sometimes, TODO: investigate
 
     // Same but with index buffer
-    m_indBuf->SetSize(m_maxFaces * 3, true, true);
+    m_indBuf->SetSize(m_maxIndices * 3, true, true);
     //indBuf_->SetData();
     m_indBuf->SetShadowed(true);
 
@@ -290,9 +290,10 @@ void PlanetWrenderer::set_visible(trindex t, bool visible)
 
         // Increment m_indCount as a new element was added to the end
         m_indCount ++;
-        m_geometry->SetDrawRange(TRIANGLE_LIST, 0, m_indCount * 3);
+
 
     } else {
+
         //console.log("removed!");
         // How to remove a triangle from the buffer:
         // Move the last element of the buffer (3 ints) into the location of the triangle
@@ -318,6 +319,8 @@ void PlanetWrenderer::set_visible(trindex t, bool visible)
 
     }
 
+    m_geometry->SetDrawRange(TRIANGLE_LIST, 0, m_indCount * 3);
+
     // toggle visibility
     tri->m_bitmask ^= E_VISIBLE;
 }
@@ -340,8 +343,12 @@ void PlanetWrenderer::subdivide(trindex t)
     // Top Left Right Center
     unsigned freeSize = m_trianglesFree.Size();
     if (freeSize == 0) {
+        // Make new triangles
         tri->m_children = m_triangles.Size();
         m_triangles.Resize(tri->m_children + 4);
+
+        // Reassign pointer in case of reallocation
+        tri = get_triangle(t);
         //tri->children[1] = freeSize + 1;
         //tri->children[2] = freeSize + 2;
         //tri->children[3] = freeSize + 3;
@@ -468,10 +475,12 @@ void PlanetWrenderer::subdivide(trindex t)
     // If the triangle is non-zero in the chunk profile, this means that it should be divided more
     if (m_chunkProfile[tri->m_depth - 1])
     {
-        subdivide(tri->m_children + 0);
-        subdivide(tri->m_children + 1);
-        subdivide(tri->m_children + 2);
-        subdivide(tri->m_children + 3);
+        // in case a reallocation happens during a subdivide, this trindex doesn't change
+        trindex childs = tri->m_children;
+        subdivide(childs + 0);
+        subdivide(childs + 1);
+        subdivide(childs + 2);
+        subdivide(childs + 3);
     } else {
         // Make them all visible
 
@@ -629,14 +638,14 @@ void PlanetWrenderer::update(const Vector3& camera)
 
     //printf("Camera! %s\n", camera.ToString().CString());
     //printf("vert count: %ux\n", m_vertCount);
-    printf("TriangleCount: %u\n", m_triangles.Size());
+    //printf("Triangle count: %u Visible: %u\n", m_triangles.Size(), m_indCount);
     for (int i = 0; i < sc_icosahedronFaceCount; i ++) {
         sub_recurse(i);
     }
 
     assert(m_indCount < m_maxIndices);
     assert(m_vertCount < m_maxVertice);
-    assert(m_triangles.Size() < m_maxFaces);
+    assert(m_triangles.Size() < m_maxTriangles);
 }
 
 /**

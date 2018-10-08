@@ -89,7 +89,7 @@ class PlanetWrenderer
     unsigned m_maxDepth;
     unsigned m_hqDepth;
 
-    buindex m_maxFaces;
+    buindex m_maxTriangles;
     buindex m_maxVertice;
     buindex m_maxIndices;
 
