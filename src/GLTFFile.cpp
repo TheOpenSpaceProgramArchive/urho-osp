@@ -105,5 +105,113 @@ bool GLTFFile::BeginLoad(Deserializer& source)
         }
     }
 
+    // Start loading meshes
+    if (rootObj.Contains("meshes"))
+    {
+        if (!rootObj["meshes"]->IsArray())
+        {
+            URHO3D_LOGERROR("Mesh section must be an array");
+            return false;
+        }
 
+        // Put accessors into it's own variable for ParsePrimitive later
+        if (rootObj.Contains("accessors"))
+        {
+            if (!rootObj["accessors"]->IsArray())
+            {
+                URHO3D_LOGERROR("Mesh section must be an array");
+                return false;
+            }
+
+            accessors_ = rootObj["accessors"]->GetArray();
+        }
+
+
+        const JSONArray& meshs = rootObj["meshes"]->GetArray();
+
+        // Loop through meshs array
+        for (int i = 0; i < meshs.Size(); i ++)
+        {
+            URHO3D_LOGINFO("now loading a mesh...");
+
+            //
+            SharedPtr<Model> model(new Model(context_));
+
+            if (!meshs[i].IsObject())
+            {
+                URHO3D_LOGERROR("Incorrect definition of mesh");
+                return false;
+            }
+
+            const JSONObject& mesh = meshs[i].GetObject();
+
+            if (mesh.Contains("name"))
+            {
+                model->SetName(mesh["name"]->GetString());
+            }
+
+            if (!mesh.Contains("primitives"))
+            {
+                URHO3D_LOGERROR("Mesh has no primetives");
+                return false;
+            }
+
+            if (!mesh["primitives"]->IsArray())
+            {
+                URHO3D_LOGERROR("Primitives section must be an array");
+                return false;
+            }
+
+            const JSONArray& primitives = mesh["primitives"]->GetArray();
+
+            for (int j = 0; j < primitives.Size(); j ++)
+            {
+                if (!primitives[j].IsObject())
+                {
+                    URHO3D_LOGERROR("Primitives must be an object");
+                    return false;
+                }
+
+                // Call ParsePrimitive because there are too many code blocks
+                if (!ParsePrimitive(primitives[j].GetObject(), *model))
+                {
+                    return false;
+                }
+
+            }
+
+            meshs_.Push(model);
+        }
+
+    }
+
+}
+
+
+bool GLTFFile::ParsePrimitive(const JSONObject &object, const Model &model)
+{
+    // Start parsing attributes
+    if (!object.Contains("attributes"))
+    {
+        URHO3D_LOGERROR("Missing attributes");
+        return false;
+    }
+
+    if (!object["attributes"]->IsObject())
+    {
+        URHO3D_LOGERROR("Attributes must be an object");
+        return false;
+    }
+
+    const JSONObject& attributes = object["attributes"]->GetObject();
+
+    if (attributes.Contains("POSITION"))
+    {
+        if (attributes["POSITION"]->IsNumber())
+        {
+            URHO3D_LOGINFO("This part of the code has been reached!");
+        } else {
+            URHO3D_LOGERROR("Positions attribute must be a number. Model will be messed up, this is not fatal.");
+        }
+    }
 }
