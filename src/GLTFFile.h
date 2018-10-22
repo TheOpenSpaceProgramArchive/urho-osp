@@ -7,7 +7,6 @@
 #include <Urho3D/Resource/Resource.h>
 #include <Urho3D/Resource/JSONFile.h>
 
-
 using namespace Urho3D;
 
 // Refer to:
@@ -18,6 +17,7 @@ struct BufferAccessor
 {
     unsigned count; // How many elements
     unsigned components; // How many in each element
+    unsigned componentType; // What datatype the elements are
 
     unsigned buffer; // Index to buffers_
     unsigned bufferLength; // in bytes
@@ -36,18 +36,21 @@ public:
     virtual ~GLTFFile();
 
     static void RegisterObject(Context* context);
+    static void ComponentTypeByteSize(unsigned componentType);
+    static unsigned TypeComponentCount(const String& type);
 
     virtual bool BeginLoad(Deserializer& source);
 
 private:
 
-    JSONArray accessors_;
+    JSONValue accessors_;
+    JSONValue views_;
 
     Vector<SharedArrayPtr<unsigned char>> buffers_;
     Vector<SharedPtr<Model>> meshs_;
     //Vector<WeakPtr<Texture>> textures_;
 
     bool ParsePrimitive(const JSONObject& object, const Model& model);
-    BufferAccessor ParseAccessor();
+    BufferAccessor ParseAccessor(unsigned index);
 };
 

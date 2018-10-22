@@ -22,6 +22,39 @@ void GLTFFile::RegisterObject(Context* context)
     context->RegisterFactory<GLTFFile>("GLTFFile");
 }
 
+unsigned GLTFFile::TypeComponentCount(const String& type)
+{
+    // no type is less than 4 characters
+    if (type.Length() <= 4)
+    {
+        return 0;
+    }
+    // only SCALAR starts with S
+    if (type.StartsWith("S"))
+    {
+        return 1;
+    }
+    // VEC
+    else if (type.StartsWith("V"))
+    {
+        // either VEC2, VEC3, VEC4
+        // Use the ASCII code of the number
+        unsigned length = type[3] - 48;
+        // Check if in range
+        if (length <= 4)
+        {
+            return length;
+        } else {
+            return 0;
+        }
+    }
+    // MAT
+    else if (type.StartsWith("M"))
+    {
+
+    }
+}
+
 bool GLTFFile::BeginLoad(Deserializer& source)
 {
 
@@ -89,14 +122,19 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             SharedPtr<File> binFile = GetSubsystem<ResourceCache>()->GetFile(binPath, false);
 
             if (!binFile)
-                {
-                    URHO3D_LOGERROR("Failed to load GLTF binary file: " + binPath);
-                }
+            {
+                URHO3D_LOGERROR("Failed to load GLTF binary file: " + binPath);
+            }
 
             URHO3D_LOGINFOF("Binary Data Size: %u bytes", binFile->GetSize());
             //FileSystem* fileSystem = GetSubsystem<FileSystem>();
 
+            // Loading the the same way as Urho3D source code
+
+            // Allocate
             SharedArrayPtr<unsigned char> binData(new unsigned char[binFile->GetSize()]);
+
+            // Then put binary file data into it
             source.Read(binData.Get(), binFile->GetSize());
 
             // Buffer has been loaded!
@@ -114,16 +152,22 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             return false;
         }
 
-        // Put accessors into it's own variable for ParsePrimitive later
-        if (rootObj.Contains("accessors"))
+        // Put accessors and bufferViews into their own variables for ParseAccessor to access later
+        if (rootObj.Contains("accessors") && rootObj.Contains("bufferViews"))
         {
             if (!rootObj["accessors"]->IsArray())
             {
-                URHO3D_LOGERROR("Mesh section must be an array");
+                URHO3D_LOGERROR("accessors must be an array");
+                return false;
+            }
+            if (!rootObj["bufferViews"]->IsArray())
+            {
+                URHO3D_LOGERROR("bufferViews must be an array");
                 return false;
             }
 
-            accessors_ = rootObj["accessors"]->GetArray();
+            accessors_ = *(rootObj["accessors"]);
+            views_ = *(rootObj["bufferViews"]);
         }
 
 
@@ -187,6 +231,65 @@ bool GLTFFile::BeginLoad(Deserializer& source)
 
 }
 
+BufferAccessor GLTFFile::ParseAccessor(unsigned index)
+{
+    BufferAccessor result;
+    // Let's just say that an out of range buffer means invalid
+    result.buffer = buffers_.Size();
+
+    //const JSONArray& accessors = accessors_.GetArray();
+
+    // An error check
+    if (accessors_.Size() <= index)
+    {
+        URHO3D_LOGERROR("Accessor index out of range");
+        return result;
+    }
+
+    if (!accessors_[index].IsObject())
+    {
+        URHO3D_LOGERROR("Accessor must be an object");
+        return result;
+    }
+
+    const JSONObject& accessor = accessors_[index].GetObject();
+
+    // TODO: do checks on these
+    result.components = TypeComponentCount(accessor["type"]->GetString());
+    result.componentType = accessor["componentType"]->GetUInt();
+    result.count = accessor["count"]->GetUInt();
+
+    // Parse the buffer view
+
+    if (!accessor.Contains("bufferView"))
+    {
+        URHO3D_LOGERROR("Missing bufferView");
+        return result;
+    }
+
+    if (!accessor["bufferView"]->IsNumber())
+    {
+        URHO3D_LOGERROR("Accessor's bufferView must be a number");
+        return result;
+    }
+
+    unsigned viewIndex = accessor["bufferView"]->GetUInt();
+
+    if (views_.Size() <= viewIndex)
+    {
+        URHO3D_LOGERROR("bufferView index out of range");
+        return result;
+    }
+
+    const JSONObject& bufferView = views_[viewIndex].GetObject();
+
+    // TODO: got even more lazy, do checks for all these
+    result.bufferLength = bufferView["byteLength"]->GetUInt();
+    result.bufferOffset = bufferView["byteOffset"]->GetUInt();
+    result.buffer = bufferView["buffer"]->GetUInt();
+
+    return result;
+}
 
 bool GLTFFile::ParsePrimitive(const JSONObject &object, const Model &model)
 {
@@ -210,8 +313,11 @@ bool GLTFFile::ParsePrimitive(const JSONObject &object, const Model &model)
         if (attributes["POSITION"]->IsNumber())
         {
             URHO3D_LOGINFO("This part of the code has been reached!");
+
+            BufferAccessor a(ParseAccessor(attributes["POSITION"]->GetUInt()));
+            URHO3D_LOGINFOF("Some buffer thing: %u", a.bufferLength);
         } else {
-            URHO3D_LOGERROR("Positions attribute must be a number. Model will be messed up, this is not fatal.");
+            URHO3D_LOGERROR("Positions attribute must be a number. Model will be messed up.");
         }
     }
 }
