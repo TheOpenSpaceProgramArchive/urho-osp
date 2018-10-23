@@ -1,13 +1,15 @@
-#include <Urho3D/IO/File.h>
+#include <Urho3D/Graphics/Geometry.h>
+#include <Urho3D/Graphics/IndexBuffer.h>
+#include <Urho3D/Graphics/VertexBuffer.h>
 #include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/IO/Log.h>
+#include <Urho3D/Math/Sphere.h>
 #include <Urho3D/Resource/ResourceCache.h>
-
 
 #include "GLTFFile.h"
 
 GLTFFile::GLTFFile(Context* context) :
-    JSONFile(context)
+    JSONFile(context), meshs_()
 {
 
 }
@@ -25,7 +27,7 @@ void GLTFFile::RegisterObject(Context* context)
 unsigned GLTFFile::TypeComponentCount(const String& type)
 {
     // no type is less than 4 characters
-    if (type.Length() <= 4)
+    if (type.Length() < 4)
     {
         return 0;
     }
@@ -55,17 +57,18 @@ unsigned GLTFFile::TypeComponentCount(const String& type)
     }
 }
 
+/**
+ * Called by Urho3D. Real loading begins here
+ */
 bool GLTFFile::BeginLoad(Deserializer& source)
 {
-
+    // Load the JSON
     JSONFile::BeginLoad(source);
 
-    //URHO3D_LOGINFO("A file that might be a GLTF has been loaded.");
-
-    // See this for more information
+    // See this for more information, very important to understanding this
     // https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
 
-    //root_.GetObject().operator []()
+    // Get root object
     const JSONObject& rootObj = GetRoot().GetObject();
 
     // Check if the GLTF file defines any buffers
@@ -127,18 +130,22 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             }
 
             URHO3D_LOGINFOF("Binary Data Size: %u bytes", binFile->GetSize());
+
+            // Push the binFile into the buffers_ array
+            buffers_.Push(binFile);
+
             //FileSystem* fileSystem = GetSubsystem<FileSystem>();
 
             // Loading the the same way as Urho3D source code
 
             // Allocate
-            SharedArrayPtr<unsigned char> binData(new unsigned char[binFile->GetSize()]);
+            //SharedArrayPtr<unsigned char> binData(new unsigned char[binFile->GetSize()]);
 
             // Then put binary file data into it
-            source.Read(binData.Get(), binFile->GetSize());
+            //source.Read(binData.Get(), binFile->GetSize());
 
             // Buffer has been loaded!
-            buffers_.Push(binData);
+            //buffers_.Push(binData);
 
         }
     }
@@ -170,7 +177,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             views_ = *(rootObj["bufferViews"]);
         }
 
-
+        // Meshs section in the GLTF file
         const JSONArray& meshs = rootObj["meshes"]->GetArray();
 
         // Loop through meshs array
@@ -178,7 +185,6 @@ bool GLTFFile::BeginLoad(Deserializer& source)
         {
             URHO3D_LOGINFO("now loading a mesh...");
 
-            //
             SharedPtr<Model> model(new Model(context_));
 
             if (!meshs[i].IsObject())
@@ -208,6 +214,9 @@ bool GLTFFile::BeginLoad(Deserializer& source)
 
             const JSONArray& primitives = mesh["primitives"]->GetArray();
 
+            Vector<SharedPtr<VertexBuffer> > vertList;
+            Vector<SharedPtr<IndexBuffer> > indList;
+
             for (int j = 0; j < primitives.Size(); j ++)
             {
                 if (!primitives[j].IsObject())
@@ -217,19 +226,182 @@ bool GLTFFile::BeginLoad(Deserializer& source)
                 }
 
                 // Call ParsePrimitive because there are too many code blocks
-                if (!ParsePrimitive(primitives[j].GetObject(), *model))
+                if (!ParsePrimitive(primitives[j].GetObject(), *model, vertList, indList))
                 {
                     return false;
                 }
 
             }
 
+            model->SetBoundingBox(BoundingBox(Sphere(Vector3(0, 0, 0), 4)));
+
+            PODVector<unsigned> morphRangeStarts;
+            PODVector<unsigned> morphRangeCounts;
+            morphRangeStarts.Push(0);
+            morphRangeCounts.Push(0);
+            model->SetVertexBuffers(vertList, morphRangeStarts, morphRangeCounts);
+            model->SetIndexBuffers(indList);
+
+
+            URHO3D_LOGINFO("AAAAAASDSADASDASd");
+            GetSubsystem<ResourceCache>()->AddManualResource(model);
             meshs_.Push(model);
         }
 
     }
 
+    return true;
+
 }
+
+bool GLTFFile::ParsePrimitive(const JSONObject &object, Model &model, Vector<SharedPtr<VertexBuffer> >& vertList, Vector<SharedPtr<IndexBuffer> >& indList)
+{
+    // Index of new geometry to add
+    unsigned index = model.GetNumGeometries();
+
+    // Start parsing attributes
+
+    if (!object.Contains("attributes"))
+    {
+        URHO3D_LOGERROR("Missing attributes");
+        return false;
+    }
+
+    if (!object["attributes"]->IsObject())
+    {
+        URHO3D_LOGERROR("Attributes must be an object");
+        return false;
+    }
+
+    const JSONObject& attributes = object["attributes"]->GetObject();
+
+    PODVector<VertexElement> elements;
+    PODVector<BufferAccessor> bufferAccessors;
+    BufferAccessor indBuffAcc;
+    Geometry* geometry = new Geometry(context_);
+    unsigned vertexByteSize = 0;
+    unsigned vertexCount = 0;
+
+    // Gather information on vertex buffer
+
+    // Load position data
+    if (attributes.Contains("POSITION"))
+    {
+        if (attributes["POSITION"]->IsNumber())
+        {
+            // Read from JSON and into this BufferAccessor
+            BufferAccessor bufAcc(ParseAccessor(attributes["POSITION"]->GetUInt()));
+
+            // Check if ParseAccessor was succesful
+            // See the line that reads "result.buffer = buffers_.Size();"
+            if (bufAcc.buffer == buffers_.Size())
+            {
+                return false;
+            }
+
+            bufAcc.vertexElement = VertexElement(TYPE_VECTOR3, SEM_POSITION);
+            elements.Push(bufAcc.vertexElement);
+
+            bufAcc.vertexOffset = vertexByteSize;
+            vertexByteSize += bufAcc.componentType * bufAcc.components;
+            vertexCount = bufAcc.count;
+
+            bufferAccessors.Push(bufAcc);
+
+        } else {
+            URHO3D_LOGERROR("Positions attribute must be a number");
+            return false;
+        }
+    }
+
+    // Load data for other attributes
+    if (attributes.Contains("SOMETHINGELSE"))
+    {
+        if (attributes["POSITION"]->IsNumber())
+        {
+            URHO3D_LOGINFO("Loading whatever data");
+        }
+    }
+
+    // Get Index buffer
+
+    if (object.Contains("indices"))
+    {
+        if (object["indices"]->IsNumber())
+        {
+
+            indBuffAcc = ParseAccessor(object["indices"]->GetUInt());
+
+            if (indBuffAcc.buffer == buffers_.Size())
+            {
+                // Index buffer loading error
+                return false;
+            }
+
+        }
+    }
+
+    VertexBuffer* vertBuff = new VertexBuffer(context_);
+    IndexBuffer* indBuff = new IndexBuffer(context_);
+    vertBuff->SetShadowed(true);
+    indBuff->SetShadowed(true);
+
+    unsigned totalByteSize = vertexCount * vertexByteSize;
+
+    // Create an Urho-compatible Vertex buffer
+
+    {
+        // Allocate buffer that's large enough to fit all the vertex data
+        SharedArrayPtr<unsigned char> vertData(new unsigned char[totalByteSize]);
+
+        // This loop adds each vertex element
+        for (unsigned i = 0; i < vertexCount; i ++)
+        {
+            for (unsigned j = 0; j < bufferAccessors.Size(); j ++)
+            {
+                const BufferAccessor& bufAcc = bufferAccessors[j];
+                File& file = *(buffers_[bufAcc.buffer]);
+                file.Seek(bufAcc.bufferOffset + i * bufAcc.components * bufAcc.componentType);
+                file.Read(vertData.Get() + i * vertexByteSize + bufAcc.vertexOffset, bufAcc.components * bufAcc.componentType);
+                URHO3D_LOGINFOF("Somevertex: %s", reinterpret_cast<const Vector3&>(vertData[i * vertexByteSize + bufAcc.vertexOffset]).ToString().CString());
+            }
+        }
+        vertBuff->SetSize(vertexCount, elements);
+        vertBuff->SetData(vertData.Get());
+        vertList.Push(SharedPtr<VertexBuffer>(vertBuff));
+    }
+
+    // Load the index buffer
+
+    {
+        // maybe try converting to CW from CCW triangles
+        // for now, just load directly
+
+        // Allocate large enough buffer
+        SharedArrayPtr<unsigned char> indData(new unsigned char[indBuffAcc.bufferLength]);
+
+        File& file = *(buffers_[indBuffAcc.buffer]);
+        file.Seek(indBuffAcc.bufferOffset);
+        file.Read(indData.Get(), indBuffAcc.bufferLength);
+
+        indBuff->SetSize(indBuffAcc.count, indBuffAcc.componentType == 4);
+        indBuff->SetData(indData.Get());
+        indList.Push(SharedPtr<IndexBuffer>(indBuff));
+    }
+
+    model.SetNumGeometries(index + 1);
+    model.SetGeometry(index, 0, geometry);
+
+    geometry->SetNumVertexBuffers(1);
+    geometry->SetVertexBuffer(0, vertBuff);
+    geometry->SetIndexBuffer(indBuff);
+    geometry->SetDrawRange(TRIANGLE_LIST, 0, indBuffAcc.count);
+
+    //vertList.Push(SharedPtr<VertexBuffer>(vertBuff));
+
+    return true; // success!
+}
+
 
 BufferAccessor GLTFFile::ParseAccessor(unsigned index)
 {
@@ -256,8 +428,27 @@ BufferAccessor GLTFFile::ParseAccessor(unsigned index)
 
     // TODO: do checks on these
     result.components = TypeComponentCount(accessor["type"]->GetString());
-    result.componentType = accessor["componentType"]->GetUInt();
     result.count = accessor["count"]->GetUInt();
+
+    // Set result.componentType to the byte size of what componentType describes
+    switch(accessor["componentType"]->GetUInt())
+    {
+        case 5102: // BYTE
+        case 5121: // UNSIGNED_BYTE
+            result.componentType = 1; // 1 byte, duh
+            break;
+        case 5122: // SHORT
+        case 5123: // UNSIGNED_SHORT
+            result.componentType = 2; // 2 byte
+            break;
+        case 5125: // UNSIGNED_INT
+        case 5126: // FLOAT
+            result.componentType = 4; // 4 byte
+        break;
+        default:
+            // this means error
+            return result;
+    }
 
     // Parse the buffer view
 
@@ -289,35 +480,4 @@ BufferAccessor GLTFFile::ParseAccessor(unsigned index)
     result.buffer = bufferView["buffer"]->GetUInt();
 
     return result;
-}
-
-bool GLTFFile::ParsePrimitive(const JSONObject &object, const Model &model)
-{
-    // Start parsing attributes
-    if (!object.Contains("attributes"))
-    {
-        URHO3D_LOGERROR("Missing attributes");
-        return false;
-    }
-
-    if (!object["attributes"]->IsObject())
-    {
-        URHO3D_LOGERROR("Attributes must be an object");
-        return false;
-    }
-
-    const JSONObject& attributes = object["attributes"]->GetObject();
-
-    if (attributes.Contains("POSITION"))
-    {
-        if (attributes["POSITION"]->IsNumber())
-        {
-            URHO3D_LOGINFO("This part of the code has been reached!");
-
-            BufferAccessor a(ParseAccessor(attributes["POSITION"]->GetUInt()));
-            URHO3D_LOGINFOF("Some buffer thing: %u", a.bufferLength);
-        } else {
-            URHO3D_LOGERROR("Positions attribute must be a number. Model will be messed up.");
-        }
-    }
 }

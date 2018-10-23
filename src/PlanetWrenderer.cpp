@@ -179,7 +179,7 @@ void PlanetWrenderer::initialize(Context* context, double size) {
     elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
 
     // Set size and data of vertex data
-    m_vertBuf->SetSize(m_maxVertice * 6, elements);
+    m_vertBuf->SetSize(m_maxVertice, elements);
     m_vertBuf->SetShadowed(true);
     m_vertBuf->SetData(vertInit); // This line causes random sigsegvs sometimes, TODO: investigate
 
@@ -638,7 +638,7 @@ void PlanetWrenderer::update(const Vector3& camera)
 
     //printf("Camera! %s\n", camera.ToString().CString());
     //printf("vert count: %ux\n", m_vertCount);
-    //printf("Triangle count: %u Visible: %u\n", m_triangles.Size(), m_indCount);
+    // printf("Triangle count: %u Visible: %u\n", m_triangles.Size(), m_indCount);
     for (int i = 0; i < sc_icosahedronFaceCount; i ++) {
         sub_recurse(i);
     }

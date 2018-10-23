@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Urho3D/Core/Context.h>
 #include <Urho3D/Container/Vector.h>
+#include <Urho3D/Core/Context.h>
+#include <Urho3D/IO/File.h>
 #include <Urho3D/Graphics/Model.h>
 #include <Urho3D/Graphics/Texture.h>
-#include <Urho3D/Resource/Resource.h>
 #include <Urho3D/Resource/JSONFile.h>
 
 using namespace Urho3D;
@@ -17,12 +17,18 @@ struct BufferAccessor
 {
     unsigned count; // How many elements
     unsigned components; // How many in each element
-    unsigned componentType; // What datatype the elements are
+    unsigned componentType; // Size of each component
 
     unsigned buffer; // Index to buffers_
     unsigned bufferLength; // in bytes
     unsigned bufferOffset; // also in bytes
     unsigned bufferTarget; // not sure if this is needed
+
+    unsigned vertexOffset; // Used when assembling VertexBuffer
+
+    VertexElement vertexElement;
+    //VertexElementSemantic vertexSemantic;
+    //VertexElementType vertexType;
 };
 
 class GLTFFile : public JSONFile
@@ -40,17 +46,19 @@ public:
     static unsigned TypeComponentCount(const String& type);
 
     virtual bool BeginLoad(Deserializer& source);
+    const Vector<SharedPtr<Model>>& GetMeshs() { return meshs_; }
 
 private:
 
     JSONValue accessors_;
     JSONValue views_;
 
-    Vector<SharedArrayPtr<unsigned char>> buffers_;
+    //Vector<SharedArrayPtr<unsigned char>> buffers_;
+    Vector<SharedPtr<File>> buffers_;
     Vector<SharedPtr<Model>> meshs_;
     //Vector<WeakPtr<Texture>> textures_;
 
-    bool ParsePrimitive(const JSONObject& object, const Model& model);
+    bool ParsePrimitive(const JSONObject& object, Model& model, Vector<SharedPtr<VertexBuffer> >& vertList, Vector<SharedPtr<IndexBuffer> >& indList);
     BufferAccessor ParseAccessor(unsigned index);
 };
 

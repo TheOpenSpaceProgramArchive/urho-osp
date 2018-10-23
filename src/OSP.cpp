@@ -2,8 +2,10 @@
 #include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/RigidBody.h>
+#include <Urho3D/Resource/ResourceCache.h>
 
 
+#include "GLTFFile.h"
 #include "OSP.h"
 #include "Machines.h"
 
@@ -137,7 +139,11 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         // Give it a generic box model
         StaticModel* model = aPart->CreateComponent<StaticModel>();
         model->SetCastShadows(true);
-        model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
+        //model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
+        // A test
+        GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("/Gotzietek/F9/f9.sturdy.gltf");
+        model->SetModel(f->GetMeshs()[0]);
+
 
         // Give it physics, and set it's mass to size^3
         RigidBody* rb = aPart->CreateComponent<RigidBody>();
