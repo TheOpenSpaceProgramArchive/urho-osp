@@ -314,6 +314,66 @@ bool GLTFFile::ParsePrimitive(const JSONObject &object, Model &model, Vector<Sha
         }
     }
 
+    // Load normal data
+    if (attributes.Contains("NORMAL"))
+    {
+        if (attributes["NORMAL"]->IsNumber())
+        {
+            // Read from JSON and into this BufferAccessor
+            BufferAccessor bufAcc(ParseAccessor(attributes["NORMAL"]->GetUInt()));
+
+            // Check if ParseAccessor was succesful
+            // See the line that reads "result.buffer = buffers_.Size();"
+            if (bufAcc.buffer == buffers_.Size())
+            {
+                return false;
+            }
+
+            bufAcc.vertexElement = VertexElement(TYPE_VECTOR3, SEM_NORMAL);
+            elements.Push(bufAcc.vertexElement);
+
+            bufAcc.vertexOffset = vertexByteSize;
+            vertexByteSize += bufAcc.componentType * bufAcc.components;
+            vertexCount = bufAcc.count;
+
+            bufferAccessors.Push(bufAcc);
+
+        } else {
+            URHO3D_LOGERROR("Normals attribute must be a number");
+            return false;
+        }
+    }
+
+    // Load normal data
+    if (attributes.Contains("TEXCOORD_0"))
+    {
+        if (attributes["TEXCOORD_0"]->IsNumber())
+        {
+            // Read from JSON and into this BufferAccessor
+            BufferAccessor bufAcc(ParseAccessor(attributes["TEXCOORD_0"]->GetUInt()));
+
+            // Check if ParseAccessor was succesful
+            // See the line that reads "result.buffer = buffers_.Size();"
+            if (bufAcc.buffer == buffers_.Size())
+            {
+                return false;
+            }
+
+            bufAcc.vertexElement = VertexElement(TYPE_VECTOR2, SEM_TEXCOORD);
+            elements.Push(bufAcc.vertexElement);
+
+            bufAcc.vertexOffset = vertexByteSize;
+            vertexByteSize += bufAcc.componentType * bufAcc.components;
+            vertexCount = bufAcc.count;
+
+            bufferAccessors.Push(bufAcc);
+
+        } else {
+            URHO3D_LOGERROR("Texcoord attribute must be a number");
+            return false;
+        }
+    }
+
     // Load data for other attributes
     if (attributes.Contains("SOMETHINGELSE"))
     {

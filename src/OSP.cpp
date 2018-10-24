@@ -141,9 +141,10 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         model->SetCastShadows(true);
         //model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
         // A test
-        GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("/Gotzietek/F9/f9.sturdy.gltf");
+        GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("Gotzietek/TestFan/testfan.sturdy.gltf");
         model->SetModel(f->GetMeshs()[0]);
 
+        model->SetMaterial(GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Floor0.json"));
 
         // Give it physics, and set it's mass to size^3
         RigidBody* rb = aPart->CreateComponent<RigidBody>();
