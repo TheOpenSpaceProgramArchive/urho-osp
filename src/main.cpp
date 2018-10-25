@@ -46,6 +46,7 @@
 #include <Urho3D/UI/UI.h>
 #include <Urho3D/AngelScript/APITemplates.h>
 
+#include "ActiveArea.h"
 #include "config.h"
 #include "GLTFFile.h"
 #include "Machines.h"
@@ -73,11 +74,13 @@ public:
     */
     OSPApplication(Context * context) : Application(context), m_framecount(0), m_time(0)
     {
+        ActiveArea::RegisterObject(context);
         AstronomicalBody::RegisterObject(context);
         Entity::RegisterObject(context);
         GLTFFile::RegisterObject(context);
-        MachineRocket::RegisterObject(context);
         PlanetTerrain::RegisterObject(context);
+
+        MachineRocket::RegisterObject(context);
     }
 
     /**

@@ -1,6 +1,7 @@
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/Physics/CollisionShape.h>
+#include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/RigidBody.h>
 #include <Urho3D/Resource/ResourceCache.h>
 
@@ -176,10 +177,11 @@ void SystemOsp::make_craft(Node* node)
  */
 void SystemOsp::debug_function(StringHash which)
 {
+    // Get scene
+    Scene* scene = GetSubsystem<Renderer>()->GetViewport(0)->GetScene();
+
     if (which == StringHash("make_planet"))
     {
-        // Get scene
-        Scene* scene = GetSubsystem<Renderer>()->GetViewport(0)->GetScene();
 
         // Make planet
         //Node* planet = node->GetScene()->CreateChild("Planet");
@@ -190,6 +192,11 @@ void SystemOsp::debug_function(StringHash which)
         PlanetTerrain* component = terrain->CreateComponent<PlanetTerrain>();
         terrain->SetPosition(Vector3(0, 0, 0));
         component->Initialize();
+    }
+    else if (which == StringHash("create_universe"))
+    {
+        PhysicsWorld* pw = scene->CreateComponent<PhysicsWorld>();
+
     }
 
 }

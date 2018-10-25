@@ -7,6 +7,7 @@
 #include <Urho3D/Physics/RigidBody.h>
 
 #include "PlanetWrenderer.h"
+#include "LongVector3.h"
 
 using namespace Urho3D;
 
@@ -14,12 +15,6 @@ namespace osp {
 
 class AstronomicalBody;
 class PlanetTerrain;
-
-class LongVector
-{
-    int64_t m_x, m_y, m_z;
-    Vector3 m_fraction;
-};
 
 /**
  * @brief Base class for anything orbiting or landed on an AstronomicalBody.
@@ -32,7 +27,7 @@ class Satellite : public LogicComponent
 public:
     Satellite(Context* context) : LogicComponent(context) {}
 
-    LongVector m_position;
+    LongVector3 m_position;
     WeakPtr<AstronomicalBody> orbiting;
 
 };
@@ -67,7 +62,7 @@ public:
 
 private:
 
-    WeakPtr<PlanetTerrain> m_terrain;
+
 };
 
 /**
@@ -111,8 +106,8 @@ private:
     bool m_first;
     PlanetWrenderer m_planet;
     WeakPtr<RigidBody> m_collider;
+    WeakPtr<AstronomicalBody> m_body;
 };
-
 
 /**
  * @brief A (singleton) class that handles many in-game functions
@@ -121,6 +116,7 @@ class SystemOsp : public Object
 {
     SharedPtr<Scene> m_hiddenScene;
     SharedPtr<Node> m_parts;
+    Vector<SharedPtr<Scene>> m_activeScenes;
     //Vector<OspPart>
     // list of countried, manufacturers, and other stuff
 
