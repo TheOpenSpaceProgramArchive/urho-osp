@@ -37,7 +37,7 @@ void play_pressed()
 }
 
 
-
+// Yeah, it's called MainMenu but the rocket building code is here too.
 
 Node@ cameraCenter;
 Node@ cursor;
@@ -117,7 +117,6 @@ void construct_apparatus()
     SubscribeToEvent("RenderUpdate", "test_update");
     SubscribeToEvent(g_scene, "SceneUpdate", "construct_update");
 
-    osp.debug_function(StringHash("create_universe"));
 }
 
 void click_drop(StringHash eventType, VariantMap& eventData)
@@ -202,6 +201,8 @@ void construct_keydown(StringHash eventType, VariantMap& eventData)
         ui.root.RemoveAllChildren();
         
         cast<SoundSource>(g_scene.GetComponent("SoundSource")).Stop();
+        
+        osp.debug_function(StringHash("create_universe"));
     }
     else if (eventData["Key"].GetInt() == KEY_R)
     {

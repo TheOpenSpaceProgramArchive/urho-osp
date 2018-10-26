@@ -5,7 +5,7 @@
 #include <Urho3D/Physics/RigidBody.h>
 #include <Urho3D/Resource/ResourceCache.h>
 
-
+#include "ActiveArea.h"
 #include "GLTFFile.h"
 #include "OSP.h"
 #include "Machines.h"
@@ -15,7 +15,7 @@ using namespace osp;
 AstronomicalBody::AstronomicalBody(Context* context) : Satellite(context)
 {
     SetUpdateEventMask(USE_FIXEDUPDATE);
-
+    m_radius = 4000.0f;
 }
 
 void AstronomicalBody::RegisterObject(Context* context)
@@ -34,28 +34,6 @@ void AstronomicalBody::FixedUpdate(float timeStep)
         //planet_.Update(dist, dir);
     //}
 }
-
-void AstronomicalBody::Initialize(Context* context) {
-    ResourceCache* cache = GetSubsystem<ResourceCache>();
-    //planet_.initialize(context, size, GetScene(), cache);
-    //node_->SetPosition(Vector3(0, 4, 10));
-    //node_->SetScale(Vector3(size / 2, size / 2, size / 2));
-    //collider_ = node_->CreateComponent<RigidBody>();
-    //CollisionShape* sphere = node_->CreateComponent<CollisionShape>();
-    //sphere->SetSphere(size / 2);
-    //sphere->SetSphere(size * 2);
-    //collider_->SetMass(1.0f);
-    //collider_->SetFriction(0.75f);
-    //StaticModel* planetModel = node_->CreateComponent<StaticModel>();
-    //m_terrain = node_->CreateComponent<PlanetTerrain>();
-    //m_p->SetModel(planet_.get_model());
-    //Material* m = cache->GetResource<Material>("Materials/DefaultGrey.xml");
-    //m->SetCullMode(CULL_CW);
-    //m->SetFillMode(FILL_WIREFRAME);
-    //planetModel->SetMaterial(m);
-}
-
-
 
 Entity::Entity(Context* context) : Satellite(context) {
     SetUpdateEventMask(USE_FIXEDUPDATE);
@@ -88,9 +66,9 @@ PlanetTerrain::PlanetTerrain(Context* context) : StaticModel(context), m_first(f
     //SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(PlanetTerrain, UpdatePlanet));
 }
 
-void PlanetTerrain::Initialize()
+void PlanetTerrain::initialize(AstronomicalBody* body)
 {
-    m_planet.initialize(context_, 1.0f);
+    m_planet.initialize(context_, body->get_radius());
     Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/DefaultGrey.xml");
     SetModel(m_planet.get_model());
     m->SetCullMode(CULL_NONE);
@@ -101,6 +79,23 @@ void PlanetTerrain::Initialize()
 void PlanetTerrain::RegisterObject(Context* context)
 {
     context->RegisterFactory<PlanetTerrain>("PlanetTerrain");
+}
+
+/**
+ * @brief PlanetTerrain::UpdatePosition
+ * @param activePosition Center of the ActiveArea relative to this planet
+ */
+void PlanetTerrain::UpdatePosition(const LongVector3& activePosition)
+{
+    // negative activePosition is where the planet should be relative to the urho origin
+
+    Vector3 newPos(activePosition.x_, activePosition.y_, activePosition.z_);
+
+    // negate and divide by 1000, since localBodyPos is in millimeters
+    node_->SetPosition(newPos * -0.001f);
+
+    //URHO3D_LOGINFOF("Updated position %s", node_->GetPosition().ToString().CString());
+
 }
 
 SystemOsp::SystemOsp(Context* context) : Object(context)
@@ -191,11 +186,26 @@ void SystemOsp::debug_function(StringHash which)
         Node* terrain = scene->CreateChild("PlanetTerrain");
         PlanetTerrain* component = terrain->CreateComponent<PlanetTerrain>();
         terrain->SetPosition(Vector3(0, 0, 0));
-        component->Initialize();
+        //component->Initialize();
     }
     else if (which == StringHash("create_universe"))
     {
-        PhysicsWorld* pw = scene->CreateComponent<PhysicsWorld>();
+        PhysicsWorld* pw = scene->GetComponent<PhysicsWorld>();//scene->CreateComponent<PhysicsWorld>();
+        pw->SetGravity(Vector3::ZERO);
+
+
+        // Create "solar system" of just 1 planet
+        m_solarSystem = m_hiddenScene->CreateChild("SolarSystem");
+        AstronomicalBody* ab = m_solarSystem->CreateComponent<AstronomicalBody>();
+
+        // Create a planet with terrain
+        Node* planet = scene->CreateChild("PlanetTerrain");
+        PlanetTerrain* terrain = planet->CreateComponent<PlanetTerrain>();
+        terrain->initialize(ab);
+
+        ActiveArea* area = scene->CreateComponent<ActiveArea>();
+        area->relocate(ab, LongVector3(0, 4000 * 1000, 0));
+        area->set_terrain(terrain);
 
     }
 

@@ -666,7 +666,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
         //shouldBeSubdivided = (dot > m_threshold + 0.2f * (float(tri->m_depth) + 3.0f));
     } else {
         // Measure distance instead of using angles, again more temporary code
-        shouldSubdivide = ((tri->m_center - m_camera).LengthSquared() < Pow(7.05f, 2.0f));
+        shouldSubdivide = ((tri->m_center - m_camera).LengthSquared() < Pow(float(m_size * 7.05), 2.0f));
     }
     // Measure angle
     //printf("DOT: %f\n", dot);

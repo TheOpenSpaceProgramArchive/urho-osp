@@ -263,13 +263,13 @@ public:
 
         // This part finds and accesses a planet if found,
         // it then calls update with relative camera position as input
-        auto planets = scene->GetChildrenWithComponent("PlanetTerrain");
-        if (!GetSubsystem<Input>()->IsMouseVisible() && planets.Size() != 0)
-        {
-            Vector3 cameraPos = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetWorldPosition();
-            Vector3 planetPos = planets[0]->GetWorldPosition();
-            planets[0]->GetComponent<PlanetTerrain>()->GetPlanet()->update(cameraPos - planetPos);
-        }
+        //auto planets = scene->GetChildrenWithComponent("PlanetTerrain");
+        //if (!GetSubsystem<Input>()->IsMouseVisible() && planets.Size() != 0)
+        //{
+        //    Vector3 cameraPos = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetWorldPosition();
+        //    Vector3 planetPos = planets[0]->GetWorldPosition();
+        //    planets[0]->GetComponent<PlanetTerrain>()->GetPlanet()->update(cameraPos - planetPos);
+        //}
 
         // A part of the code that isn't visible
         if (m_time >= 0.2) {

@@ -2,6 +2,7 @@
 
 
 #include <Urho3D/Container/RefCounted.h>
+#include <Urho3D/Container/Str.h>
 #include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/Scene/LogicComponent.h>
 #include <Urho3D/Physics/RigidBody.h>
@@ -55,13 +56,14 @@ public:
     AstronomicalBody(Context* context);
 
     static void RegisterObject(Context* context);
-
     virtual void FixedUpdate(float timeStep);
 
-    void Initialize(Context* context);
+    float get_radius() { return m_radius; }
 
 private:
 
+    float m_radius; // sea level
+    WeakPtr<AstronomicalBody> m_orbiting;
 
 };
 
@@ -99,7 +101,8 @@ public:
 
     static void RegisterObject(Context* context);
 
-    void Initialize();
+    void initialize(AstronomicalBody* body);
+    void UpdatePosition(const LongVector3& activePosition);
     PlanetWrenderer* GetPlanet() { return &m_planet; }
 
 private:
@@ -116,6 +119,7 @@ class SystemOsp : public Object
 {
     SharedPtr<Scene> m_hiddenScene;
     SharedPtr<Node> m_parts;
+    SharedPtr<Node> m_solarSystem;
     Vector<SharedPtr<Scene>> m_activeScenes;
     //Vector<OspPart>
     // list of countried, manufacturers, and other stuff
