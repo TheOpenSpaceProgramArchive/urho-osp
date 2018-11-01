@@ -1,3 +1,7 @@
+#include <Urho3D/Physics/PhysicsWorld.h>
+#include <Urho3D/Physics/CollisionShape.h>
+
+
 #include "ActiveArea.h"
 
 using namespace osp;
@@ -21,6 +25,20 @@ void ActiveArea::FixedUpdate(float timeStep)
         Vector3 planetPos = m_terrain->GetNode()->GetPosition();
         m_terrain->GetPlanet()->update(cameraPos - planetPos);
         m_terrain->UpdatePosition(m_localBodyPos);
+        //CollisionShape* cs = m_terrain->GetNode()->GetComponent<CollisionShape>();
+        //cs->SetTriangleMesh(m_terrain->GetPlanet()->get_model(), 0, Vector3::ONE);
+
+        PhysicsWorld* pw = node_->GetScene()->GetComponent<PhysicsWorld>();//scene->CreateComponent<PhysicsWorld>();
+        //pw->SetGravity(Vector3::ZERO);
+
+        // some gravity for temporary fun
+        float moon = 88200000;
+        Vector3 gravity = (m_terrain->GetNode()->GetPosition() - node_->GetChild("CameraCenter")->GetPosition());
+        float r = gravity.Length();
+        gravity = gravity / r;
+        gravity *= moon / (r * r);
+        //printf("gravity: (%f, %f, %f)\n", gravity.x_, gravity.y_, gravity.z_);
+        pw->SetGravity(gravity);
     }
 }
 

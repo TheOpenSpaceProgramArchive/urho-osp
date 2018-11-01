@@ -3,6 +3,7 @@
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/RigidBody.h>
+#include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Resource/ResourceCache.h>
 
 #include "ActiveArea.h"
@@ -135,10 +136,10 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         // Give it a generic box model
         StaticModel* model = aPart->CreateComponent<StaticModel>();
         model->SetCastShadows(true);
-        //model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
+        model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
         // A test
-        GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("Gotzietek/TestFan/testfan.sturdy.gltf");
-        model->SetModel(f->GetMeshs()[0]);
+        //GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("Gotzietek/TestFan/testfan.sturdy.gltf");
+        //model->SetModel(f->GetMeshs()[0]);
 
         model->SetMaterial(GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Floor0.json"));
 
@@ -190,8 +191,8 @@ void SystemOsp::debug_function(StringHash which)
     }
     else if (which == StringHash("create_universe"))
     {
-        PhysicsWorld* pw = scene->GetComponent<PhysicsWorld>();//scene->CreateComponent<PhysicsWorld>();
-        pw->SetGravity(Vector3::ZERO);
+        //PhysicsWorld* pw = scene->GetComponent<PhysicsWorld>();//scene->CreateComponent<PhysicsWorld>();
+        //pw->SetGravity(Vector3::ZERO);
 
 
         // Create "solar system" of just 1 planet
@@ -203,8 +204,14 @@ void SystemOsp::debug_function(StringHash which)
         PlanetTerrain* terrain = planet->CreateComponent<PlanetTerrain>();
         terrain->initialize(ab);
 
+        RigidBody* rb = planet->CreateComponent<RigidBody>();
+        CollisionShape* shape = planet->CreateComponent<CollisionShape>();
+        shape->SetSphere(4000.0f * 2.0f);
+        //terrain->GetPlanet()->update(Vector3(0, 4002, 0));
+        //shape->SetTriangleMesh(terrain->GetPlanet()->get_model(), 0, Vector3::ONE);
+
         ActiveArea* area = scene->CreateComponent<ActiveArea>();
-        area->relocate(ab, LongVector3(0, 4000 * 1000, 0));
+        area->relocate(ab, LongVector3(0, 4002 * 1000, 0));
         area->set_terrain(terrain);
 
     }
