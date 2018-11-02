@@ -140,10 +140,10 @@ void clickpart(StringHash eventType, VariantMap& eventData)
     Node@ part = cast<Node@>(cast<UIElement@>(eventData["Element"].GetPtr()).vars["N"].GetPtr());
     Print("Part clicked");
     
-    Print("Display Name : " + part.vars["DisplayName"].GetString());
-    Print("Description  : " + part.vars["Description"].GetString());
-    Print("Manufacturer : " + part.vars["Manufacturer"].GetString());
-    Print("Country      : " + part.vars["Country"].GetString());
+    Print("Display Name : " + part.vars["name"].GetString());
+    Print("Description  : " + part.vars["description"].GetString());
+    Print("Manufacturer : " + part.vars["manufacturer"].GetString());
+    Print("Country      : " + part.vars["country"].GetString());
     
     Node@ clone = part.Clone();
     clone.enabled = true;

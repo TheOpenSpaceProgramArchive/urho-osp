@@ -250,6 +250,24 @@ bool GLTFFile::BeginLoad(Deserializer& source)
 
     }
 
+    if (rootObj.Contains("nodes"))
+    {
+        nodes_ = *(rootObj["nodes"]);
+        if (!nodes_.IsArray()) {
+            URHO3D_LOGERROR("Nodes must be an array");
+            return false;
+        }
+    }
+
+    if (rootObj.Contains("scenes"))
+    {
+        scenes_ = *(rootObj["scenes"]);
+        if (!scenes_.IsArray()) {
+            URHO3D_LOGERROR("Scenes must be an array");
+            return false;
+        }
+    }
+
     return true;
 
 }
@@ -423,7 +441,7 @@ bool GLTFFile::ParsePrimitive(const JSONObject &object, Model &model, Vector<Sha
                 File& file = *(buffers_[bufAcc.buffer]);
                 file.Seek(bufAcc.bufferOffset + i * bufAcc.components * bufAcc.componentType);
                 file.Read(vertData.Get() + i * vertexByteSize + bufAcc.vertexOffset, bufAcc.components * bufAcc.componentType);
-                URHO3D_LOGINFOF("Somevertex: %s", reinterpret_cast<const Vector3&>(vertData[i * vertexByteSize + bufAcc.vertexOffset]).ToString().CString());
+                //URHO3D_LOGINFOF("Somevertex: %s", reinterpret_cast<const Vector3&>(vertData[i * vertexByteSize + bufAcc.vertexOffset]).ToString().CString());
             }
         }
         vertBuff->SetSize(vertexCount, elements);
@@ -540,4 +558,137 @@ BufferAccessor GLTFFile::ParseAccessor(unsigned index)
     result.buffer = bufferView["buffer"]->GetUInt();
 
     return result;
+}
+
+/**
+ *
+ * @param index
+ * @return
+ */
+SharedPtr<Scene> GLTFFile::GetScene(unsigned index) const
+{
+    SharedPtr<Scene> returnValue(new Scene(context_));
+    GetScene(index, returnValue.Get());
+    return returnValue;
+}
+
+/**
+ * Add members of a GLTF scene to an existing node
+ * @param index
+ * @param addTo
+ */
+void GLTFFile::GetScene(unsigned index, Node* addTo) const
+{
+    const JSONArray& scenes = scenes_.GetArray();
+
+    if (scenes.Size() <= index)
+    {
+        URHO3D_LOGERROR("Scene index out of range");
+        return;
+    }
+
+    if (!scenes[index].IsObject())
+    {
+        URHO3D_LOGERROR("Scene must be an object");
+        return;
+    }
+
+    const JSONObject& scene = scenes[index].GetObject();
+
+    // Set name of scene
+    if (scene.Contains("name"))
+    {
+        const JSONValue* name = scene["name"];
+        if (name->IsString()) {
+            addTo->SetName(name->GetString());
+        }
+    }
+
+    if (scene.Contains("nodes"))
+    {
+        if (!scene["nodes"]->IsArray()) {
+            URHO3D_LOGERROR("Scene.Nodes must be an array");
+            return;
+        }
+        const JSONArray& sceneNodes = scene["nodes"]->GetArray();
+        for (int i = 0; i < sceneNodes.Size(); i ++)
+        {
+            if (sceneNodes[i].IsNumber())
+            {
+                SharedPtr<Node> n = GetNode(sceneNodes[i].GetUInt());
+                if (n.NotNull())
+                {
+                    addTo->AddChild(n.Get());
+                } else {
+                    URHO3D_LOGERROR("Scene has an invalid node");
+                }
+            }
+        }
+    }
+}
+
+
+SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
+{
+    SharedPtr<Node> node(new Node(context_));
+
+    const JSONArray& nodes = nodes_.GetArray();
+
+    if (nodes.Size() <= index)
+    {
+        URHO3D_LOGERROR("Node index out of range");
+        return node;
+    }
+
+    if (!nodes[index].IsObject()) {
+        URHO3D_LOGERROR("Node must be an object");
+        return node;
+    }
+
+    const JSONObject& nodeObject = nodes[index].GetObject();
+
+    if (nodeObject.Contains("name"))
+    {
+        const JSONValue& name = nodeObject["name"];
+        if (name.IsString()) {
+            node->SetName(name.GetString());
+        }
+    }
+
+    // Set node vars to extras
+    if (nodeObject.Contains("extras"))
+    {
+        //JSONValue* extrasValues = nodeObject["extras"];
+        //if (extrasValues->IsObject()) {
+            //const JSONObject& extras = extrasValues->GetObject();
+            //for (JSONObject::ConstIterator i = extras.Begin(); i != extras.End(); i ++)
+            //{
+                //Variant value = i->second_.GetVariantValue(Variant::GetTypeFromName(i->second_.GetValueTypeName()));
+                //URHO3D_LOGINFO("what " + value.ToString());
+                //node->SetVar(i->first_, value);
+            //}
+        //}
+        node->SetVar("extras", Variant(nodeObject["extras"]));
+    }
+
+    URHO3D_LOGINFO("Node!");
+
+    if (nodeObject.Contains("children"))
+    {
+        if (!nodeObject["children"]->IsArray()) {
+            URHO3D_LOGERROR("Node's children must be an array");
+            return node;
+        }
+        const JSONArray& children = nodeObject["children"]->GetArray();
+        for (int i = 0; i < children.Size(); i ++)
+        {
+            if (children[i].IsNumber())
+            {
+                URHO3D_LOGINFO("Child!");
+                node->AddChild(GetNode(children[i].GetUInt()));
+            }
+        }
+    }
+
+    return node;
 }

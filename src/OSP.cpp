@@ -115,6 +115,10 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
     Node* category = m_parts->CreateChild("dbg");
     category->SetVar("DisplayName", "Debug Parts");
 
+    // A test
+    GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("Gotzietek/TestFan/testfan.sturdy.gltf");
+    f->GetScene(0, category);
+
     // Make 20 rocket cubes
     for (int i = 0; i < 20; i ++)
     {
@@ -122,10 +126,10 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         Node* aPart = category->CreateChild("dbg_" + String(i));
 
         // Set some information about it
-        aPart->SetVar("Country", "Canarda");
-        aPart->SetVar("Description", "A simple oddly shaped cube");
-        aPart->SetVar("Manufacturer", "Gotzietec Industries");
-        aPart->SetVar("DisplayName", "Cube "  + String(i));
+        aPart->SetVar("country", "Canarda");
+        aPart->SetVar("description", "A simple oddly shaped cube");
+        aPart->SetVar("manufacturer", "Gotzietec Industries");
+        aPart->SetVar("name", "Cube "  + String(i));
 
         // Tweakscale it based on i
         aPart->SetScale(0.05f * (i + 1));
@@ -137,8 +141,6 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         StaticModel* model = aPart->CreateComponent<StaticModel>();
         model->SetCastShadows(true);
         model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
-        // A test
-        //GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("Gotzietek/TestFan/testfan.sturdy.gltf");
         //model->SetModel(f->GetMeshs()[0]);
 
         model->SetMaterial(GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Floor0.json"));

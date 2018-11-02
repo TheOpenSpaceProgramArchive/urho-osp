@@ -2,9 +2,10 @@
 
 #include <Urho3D/Container/Vector.h>
 #include <Urho3D/Core/Context.h>
-#include <Urho3D/IO/File.h>
 #include <Urho3D/Graphics/Model.h>
 #include <Urho3D/Graphics/Texture.h>
+#include <Urho3D/IO/File.h>
+#include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Resource/JSONFile.h>
 
 using namespace Urho3D;
@@ -46,11 +47,17 @@ public:
     static unsigned TypeComponentCount(const String& type);
 
     virtual bool BeginLoad(Deserializer& source);
-    const Vector<SharedPtr<Model>>& GetMeshs() { return meshs_; }
+
+    SharedPtr<Node> GetNode(unsigned index) const;
+    SharedPtr<Scene> GetScene(unsigned index) const;
+    void GetScene(unsigned index, Node* addTo) const;
+    const Vector<SharedPtr<Model>>& GetMeshs() const { return meshs_; }
 
 private:
 
     JSONValue accessors_;
+    JSONValue nodes_;
+    JSONValue scenes_;
     JSONValue views_;
 
     //Vector<SharedArrayPtr<unsigned char>> buffers_;
