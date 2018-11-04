@@ -25,6 +25,7 @@
 #include <Urho3D/Graphics/Texture2D.h>
 #include <Urho3D/Input/InputEvents.h>
 #include <Urho3D/Input/Input.h>
+#include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/IO/Log.h>
 #include <Urho3D/Math/MathDefs.h>
 #include <Urho3D/Physics/CollisionShape.h>
@@ -111,7 +112,10 @@ public:
         // Get the subsystem that is used to load resources
         ResourceCache* cache = GetSubsystem<ResourceCache>();
 
-        // Use Default Urho3D style
+        // and the one that
+        FileSystem* fileSystem = GetSubsystem<FileSystem>();
+
+        // Use Default Urho3D UI style
         UIElement* root = GetSubsystem<UI>()->GetRoot();
         root->SetDefaultStyle(cache->GetResource<XMLFile>("UI/DefaultStyle.xml"));
 
@@ -138,28 +142,40 @@ public:
         scriptEngine->RegisterGlobalFunction("SystemOsp@+ get_osp()", asMETHOD(OSPApplication, GetOsp), asCALL_THISCALL_ASGLOBAL, this);
 
         // Run main menu script once it's loaded
-        m_runImmediately.Push("Scripts/MainMenu.as");
-        cache->BackgroundLoadResource<ScriptFile>("Scripts/MainMenu.as", true);
+        //m_runImmediately.Push("Scripts/MainMenu.as");
+        //cache->BackgroundLoadResource<ScriptFile>("Scripts/MainMenu.as", true);
 
-        //m_scene->CreateComponent<Octree>();
-        //m_scene->CreateComponent<DebugRenderer>();
-        //PhysicsWorld* world = m_scene->CreateComponent<PhysicsWorld>();
-        //world->SetGravity(Vector3::ZERO);
+        //Vector<String> files;
+        //fileSystem->ScanDir(files, cache->GetResourceDirs()[2], String("*"), SCAN_FILES, false);
 
-        // Let's put some sky in there.
-        //Node* skyNode=m_scene->CreateChild("Sky");
-        //skyNode->SetScale(500.0f); // The scale actually does not matter
-        //Skybox* skybox = skyNode->CreateComponent<Skybox>();
-        //skybox->SetModel(cache->GetResource<Model>("Models/Box.mdl"));
-        //skybox->SetMaterial(cache->GetResource<Material>("Materials/Skybox.xml"));
+        // OSPData directory
+        String ospDir = cache->GetResourceDirs()[2];
+
+        // List files in it
+        Vector<String> subDirs;
+        fileSystem->ScanDir(subDirs, ospDir, String("*"), SCAN_DIRS, false);
+
+        // Remove invalid folders
+        {
+            Vector<String>::Iterator pathIterator = subDirs.Begin();
+            while (pathIterator != subDirs.End())
+            {
+                // Test to remove, put more conditions here
+                if ((*pathIterator == ".") || (*pathIterator == "..")) {
+                    pathIterator = subDirs.Erase(pathIterator);
+                } else {
+                    pathIterator ++;
+                }
+            }
+        }
+
+        for(String name : subDirs)
+        {
+            m_osp->process_directory(ospDir + name);
+        }
 
         // Create empty scene
         m_scene = new Scene(context_);
-
-        // Add camera node and component
-        //m_cameraNode = m_scene->CreateChild("Camera");
-        //m_cameraNode->CreateComponent<Camera>();
-        //m_cameraNode->SetPosition(Vector3(0, 0, 0));
 
         // Add a single viewport
         Renderer* renderer = GetSubsystem<Renderer>();
@@ -337,19 +353,20 @@ public:
 
         if (eventData[ResourceBackgroundLoaded::P_SUCCESS].GetBool())
         {
-            printf("Succ: %s %s\n", eventData[ResourceBackgroundLoaded::P_RESOURCENAME].GetString().CString(), m_runImmediately[0].CString());
+            //printf("Succ: %s %s\n", eventData[ResourceBackgroundLoaded::P_RESOURCENAME].GetString().CString(), m_runImmediately[0].CString());
 
             // Check if the the resource is in the run run immediately list
-            unsigned i = m_runImmediately.IndexOf(eventData[ResourceBackgroundLoaded::P_RESOURCENAME].GetString());
-            if (i != -1)
-            {
-                // Run the thing, probably a script
-                m_runImmediately.Erase(i);
-                ScriptFile* script = reinterpret_cast<ScriptFile*>(eventData[ResourceBackgroundLoaded::P_RESOURCE].GetVoidPtr());
-                VariantVector params;
-                params.Push(Variant(m_scene));
-                script->Execute("void main(Scene&)", params);
-            }
+
+            //unsigned i = m_runImmediately.IndexOf(eventData[ResourceBackgroundLoaded::P_RESOURCENAME].GetString());
+            //if (i != -1)
+            //{
+            //    // Run the thing, probably a script
+            //    m_runImmediately.Erase(i);
+            //    ScriptFile* script = reinterpret_cast<ScriptFile*>(eventData[ResourceBackgroundLoaded::P_RESOURCE].GetVoidPtr());
+            //    VariantVector params;
+            //    params.Push(Variant(m_scene));
+            //    script->Execute("void main(Scene&)", params);
+            //}
 
 
         } else {

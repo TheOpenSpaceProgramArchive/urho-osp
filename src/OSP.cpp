@@ -1,5 +1,6 @@
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Graphics/StaticModel.h>
+#include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/RigidBody.h>
@@ -7,7 +8,6 @@
 #include <Urho3D/Resource/ResourceCache.h>
 
 #include "ActiveArea.h"
-#include "GLTFFile.h"
 #include "OSP.h"
 #include "Machines.h"
 
@@ -84,7 +84,7 @@ void PlanetTerrain::RegisterObject(Context* context)
 
 /**
  * @brief PlanetTerrain::UpdatePosition
- * @param activePosition Center of the ActiveArea relative to this planet
+ * @param activePosition [in] Center of the ActiveArea relative to this planet
  */
 void PlanetTerrain::UpdatePosition(const LongVector3& activePosition)
 {
@@ -116,8 +116,8 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
     category->SetVar("DisplayName", "Debug Parts");
 
     // A test
-    GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("Gotzietek/TestFan/testfan.sturdy.gltf");
-    f->GetScene(0, category);
+    //GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("Gotzietek/TestFan/testfan.sturdy.gltf");
+    //f->GetScene(0, category);
 
     // Make 20 rocket cubes
     for (int i = 0; i < 20; i ++)
@@ -160,20 +160,10 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
 }
 
 /**
- * @brief SystemOsp::make_craft A function that adds Entity and some functionality to a node made of disabled parts. currently just adds Entity
- * @param node Node to turn into a craft
+ * @brief Performs many other functions
+ * @param which [in] Hash for which function to call
  */
-void SystemOsp::make_craft(Node* node)
-{
-    node->CreateComponent<Entity>();
-
-}
-
-/**
- * @brief SystemOsp::debug_function Intended to be called from angelscript to perform various functions in c++
- * @param which
- */
-void SystemOsp::debug_function(StringHash which)
+void SystemOsp::debug_function(const StringHash which)
 {
     // Get scene
     Scene* scene = GetSubsystem<Renderer>()->GetViewport(0)->GetScene();
@@ -217,5 +207,63 @@ void SystemOsp::debug_function(StringHash which)
         area->set_terrain(terrain);
 
     }
+
+}
+
+/**
+ * @brief Adds an OSP resource directory
+ * @param path [in] Absolute File Path to directory
+ *
+ * The directory contents will be scanned for parts and scripts.
+ * Contents of a subdirectory named "Parts" will be scanned recursively for .gltf.sturdy files
+ *
+ */
+void SystemOsp::process_directory(const String& path)
+{
+    ResourceCache* cache = GetSubsystem<ResourceCache>();
+    FileSystem* fileSystem = GetSubsystem<FileSystem>();
+
+    String dirName = path.Substring(path.FindLast('/') + 1, path.Length());
+    URHO3D_LOGINFOF("Processing Directory: [%s] %s", dirName.CString(), path.CString());
+
+    String pathParts = path + "/Parts";
+    if (fileSystem->DirExists(pathParts))
+    {
+        // Start loading sturdy.gltf files
+        URHO3D_LOGINFOF("Parts Directory Found: %s", pathParts.CString());
+        Vector<String> gltfs;
+        fileSystem->ScanDir(gltfs, pathParts, "*.sturdy.gltf", SCAN_FILES, true);
+        for (String s : gltfs)
+        {
+            URHO3D_LOGINFOF("Part %s", (dirName + "/Parts/" + s).CString());
+            cache->BackgroundLoadResource<GLTFFile>(dirName + "/Parts/" + s);
+        }
+    }
+
+    String pathScripts = path + "/Scripts";
+    if (fileSystem->DirExists(pathScripts))
+    {
+        // Start loading .gltf.sturdy files
+        URHO3D_LOGINFOF("Scripts Directory Found: %s", pathScripts.CString());
+    }
+
+}
+
+/**
+ * @brief Include a .gltf.sturdy's contents into the categories of parts
+ * @param gltf [in] GLTF file to process
+ */
+void SystemOsp::register_parts(const GLTFFile* gltf)
+{
+
+}
+
+/**
+ * @brief SystemOsp::make_craft A function that adds Entity and some functionality to a node made of disabled parts. currently just adds Entity
+ * @param node [in, out] Node to turn into a craft
+ */
+void SystemOsp::make_craft(Node* node)
+{
+    node->CreateComponent<Entity>();
 
 }

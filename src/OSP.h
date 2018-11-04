@@ -7,6 +7,7 @@
 #include <Urho3D/Scene/LogicComponent.h>
 #include <Urho3D/Physics/RigidBody.h>
 
+#include "GLTFFile.h"
 #include "PlanetWrenderer.h"
 #include "LongVector3.h"
 
@@ -129,7 +130,10 @@ public:
     SystemOsp(Context* context);
 
     Scene* get_hidden_scene() { return m_hiddenScene; }
-    void debug_function(StringHash which);
+
+    void debug_function(const StringHash which);
+    void process_directory(const String& path);
+    void register_parts(const GLTFFile* gltf);
     void make_craft(Node* node);
 };
 
