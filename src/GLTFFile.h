@@ -13,7 +13,7 @@ using namespace Urho3D;
 // Refer to:
 // https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
 
-// combined accessor and bufferView
+/// Combined accessor and bufferView
 struct BufferAccessor
 {
     unsigned count; // How many elements
@@ -32,6 +32,22 @@ struct BufferAccessor
     //VertexElementType vertexType;
 };
 
+/// Used for async loading
+struct AsyncBufferData
+{
+    IndexBuffer* indBuff_;
+    SharedArrayPtr<unsigned char> indData_;
+    unsigned indCount_;
+    bool indLarge_;
+
+    VertexBuffer* vertBuff_;
+    SharedArrayPtr<unsigned char> vertData_;
+    PODVector<VertexElement> vertexElements_;
+    unsigned vertCount_;
+
+    Geometry* geometry_;
+};
+
 class GLTFFile : public JSONFile
 {
 
@@ -46,7 +62,8 @@ public:
     static void ComponentTypeByteSize(unsigned componentType);
     static unsigned TypeComponentCount(const String& type);
 
-    virtual bool BeginLoad(Deserializer& source);
+    bool BeginLoad(Deserializer& source) override;
+    bool EndLoad() override;
 
     SharedPtr<Node> GetNode(unsigned index) const;
     SharedPtr<Scene> GetScene(unsigned index) const;
@@ -63,7 +80,9 @@ private:
     //Vector<SharedArrayPtr<unsigned char>> buffers_;
     Vector<SharedPtr<File>> buffers_;
     Vector<SharedPtr<Model>> meshs_;
+    Vector<AsyncBufferData> asyncLoading_;
     //Vector<WeakPtr<Texture>> textures_;
+    //Vector<Vector<Pair<SharedArrayPtr<unsigned char>, SharedArrayPtr<unsigned char>>>> bufData;
 
     bool ParsePrimitive(const JSONObject& object, Model& model, Vector<SharedPtr<VertexBuffer> >& vertList, Vector<SharedPtr<IndexBuffer> >& indList);
     BufferAccessor ParseAccessor(unsigned index);

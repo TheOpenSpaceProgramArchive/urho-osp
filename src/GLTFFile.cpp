@@ -242,7 +242,6 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             model->SetVertexBuffers(vertList, morphRangeStarts, morphRangeCounts);
             model->SetIndexBuffers(indList);
 
-
             URHO3D_LOGINFO("AAAAAASDSADASDASd");
             GetSubsystem<ResourceCache>()->AddManualResource(model);
             meshs_.Push(model);
@@ -270,6 +269,30 @@ bool GLTFFile::BeginLoad(Deserializer& source)
 
     return true;
 
+}
+
+bool GLTFFile::EndLoad()
+{
+    // This is called from the main thread;
+    // Do GPU things if BeginLoad() was on a worker thread
+
+    URHO3D_LOGINFO("Async stuff happening right now");
+
+    for (AsyncBufferData data : asyncLoading_)
+    {
+        data.vertBuff_->SetSize(data.vertCount_, data.vertexElements_);
+        data.vertBuff_->SetData(data.vertData_.Get());
+
+        data.indBuff_->SetSize(data.indCount_, data.indLarge_);
+        data.indBuff_->SetData(data.indData_.Get());
+
+        data.geometry_->SetDrawRange(TRIANGLE_LIST, 0, data.indCount_);
+    }
+
+    // This should also de-allocate vertData_ and indData_, generated in ParsePrimitive
+    asyncLoading_.Clear();
+
+    return true;
 }
 
 bool GLTFFile::ParsePrimitive(const JSONObject &object, Model &model, Vector<SharedPtr<VertexBuffer> >& vertList, Vector<SharedPtr<IndexBuffer> >& indList)
@@ -428,44 +451,38 @@ bool GLTFFile::ParsePrimitive(const JSONObject &object, Model &model, Vector<Sha
 
     // Create an Urho-compatible Vertex buffer
 
-    {
-        // Allocate buffer that's large enough to fit all the vertex data
-        SharedArrayPtr<unsigned char> vertData(new unsigned char[totalByteSize]);
+    // Allocate buffer that's large enough to fit all the vertex data
+    SharedArrayPtr<unsigned char> vertData(new unsigned char[totalByteSize]);
 
-        // This loop adds each vertex element
-        for (unsigned i = 0; i < vertexCount; i ++)
+    // This loop adds each vertex element
+    for (unsigned i = 0; i < vertexCount; i ++)
+    {
+        for (unsigned j = 0; j < bufferAccessors.Size(); j ++)
         {
-            for (unsigned j = 0; j < bufferAccessors.Size(); j ++)
-            {
-                const BufferAccessor& bufAcc = bufferAccessors[j];
-                File& file = *(buffers_[bufAcc.buffer]);
-                file.Seek(bufAcc.bufferOffset + i * bufAcc.components * bufAcc.componentType);
-                file.Read(vertData.Get() + i * vertexByteSize + bufAcc.vertexOffset, bufAcc.components * bufAcc.componentType);
-                //URHO3D_LOGINFOF("Somevertex: %s", reinterpret_cast<const Vector3&>(vertData[i * vertexByteSize + bufAcc.vertexOffset]).ToString().CString());
-            }
+            const BufferAccessor& bufAcc = bufferAccessors[j];
+            File& file = *(buffers_[bufAcc.buffer]);
+            file.Seek(bufAcc.bufferOffset + i * bufAcc.components * bufAcc.componentType);
+            file.Read(vertData.Get() + i * vertexByteSize + bufAcc.vertexOffset, bufAcc.components * bufAcc.componentType);
+            //URHO3D_LOGINFOF("Somevertex: %s", reinterpret_cast<const Vector3&>(vertData[i * vertexByteSize + bufAcc.vertexOffset]).ToString().CString());
         }
-        vertBuff->SetSize(vertexCount, elements);
-        vertBuff->SetData(vertData.Get());
-        vertList.Push(SharedPtr<VertexBuffer>(vertBuff));
     }
 
-    // Load the index buffer
+    vertList.Push(SharedPtr<VertexBuffer>(vertBuff));
 
-    {
-        // maybe try converting to CW from CCW triangles
-        // for now, just load directly
+    // Create index buffer
 
-        // Allocate large enough buffer
-        SharedArrayPtr<unsigned char> indData(new unsigned char[indBuffAcc.bufferLength]);
+    // maybe try converting to CW from CCW triangles
+    // for now, just load directly
 
-        File& file = *(buffers_[indBuffAcc.buffer]);
-        file.Seek(indBuffAcc.bufferOffset);
-        file.Read(indData.Get(), indBuffAcc.bufferLength);
+    // Allocate large enough buffer
+    SharedArrayPtr<unsigned char> indData(new unsigned char[indBuffAcc.bufferLength]);
 
-        indBuff->SetSize(indBuffAcc.count, indBuffAcc.componentType == 4);
-        indBuff->SetData(indData.Get());
-        indList.Push(SharedPtr<IndexBuffer>(indBuff));
-    }
+    // No loop is needed as index buffers are usually not interleved with any other data
+    File& file = *(buffers_[indBuffAcc.buffer]);
+    file.Seek(indBuffAcc.bufferOffset);
+    file.Read(indData.Get(), indBuffAcc.bufferLength);
+
+    indList.Push(SharedPtr<IndexBuffer>(indBuff));
 
     model.SetNumGeometries(index + 1);
     model.SetGeometry(index, 0, geometry);
@@ -473,7 +490,44 @@ bool GLTFFile::ParsePrimitive(const JSONObject &object, Model &model, Vector<Sha
     geometry->SetNumVertexBuffers(1);
     geometry->SetVertexBuffer(0, vertBuff);
     geometry->SetIndexBuffer(indBuff);
-    geometry->SetDrawRange(TRIANGLE_LIST, 0, indBuffAcc.count);
+
+    // Must be on main thread to do GPU operations, which SetSize does
+    if (GetAsyncLoadState() == ASYNC_LOADING)
+    {
+        // Queue for EndLoad(), which is on the main thread
+
+        AsyncBufferData bufData;
+
+        bufData.vertBuff_ = vertBuff;
+        bufData.vertCount_ = vertexCount;
+        bufData.vertexElements_ = elements;
+        bufData.vertData_ = vertData;
+
+        bufData.indBuff_ = indBuff;
+        bufData.indCount_ = indBuffAcc.count;
+        bufData.indLarge_ = indBuffAcc.componentType == 4;
+        bufData.indData_ = indData;
+
+        bufData.geometry_ = geometry;
+
+        asyncLoading_.Push(bufData);
+    }
+    else
+    {
+        // Create index and vertex buffers now
+        vertBuff->SetSize(vertexCount, elements);
+        vertBuff->SetData(vertData.Get());
+
+        indBuff->SetSize(indBuffAcc.count, indBuffAcc.componentType == 4);
+        indBuff->SetData(indData.Get());
+
+        geometry->SetDrawRange(TRIANGLE_LIST, 0, indBuffAcc.count);
+
+        vertData.Reset();
+        indData.Reset();
+    }
+
+
 
     //vertList.Push(SharedPtr<VertexBuffer>(vertBuff));
 
