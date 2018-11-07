@@ -8,11 +8,11 @@
 
 Scene@ g_scene;
 
-void main(Scene& scene)
+void loaded()
 {
     Print("This is a print from the menu script " + osp.typeName);
 
-    g_scene = scene;
+    g_scene = renderer.viewports[0].scene;
 
     // Load the scene with the earth and some cubes
     //scene.LoadXML(cache.GetFile("Scenes/Menu.xml"));

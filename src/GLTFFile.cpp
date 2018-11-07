@@ -88,7 +88,6 @@ bool GLTFFile::BeginLoad(Deserializer& source)
         // Loop through buffers array
         for (int i = 0; i < buffers.Size(); i ++)
         {
-            URHO3D_LOGINFO("now loading a buffer...");
             if (!buffers[i].IsObject())
             {
                 URHO3D_LOGERROR("Incorrect definition of buffer");
@@ -119,7 +118,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
 
             // Trim off the filename to get directory, and add the .bin filename ("path/to/" + "binary.bin")
             binPath = binPath.Substring(0, binPath.FindLast('/') + 1) + uri->GetString();
-            URHO3D_LOGINFO("Binpath: " + binPath);
+            //URHO3D_LOGINFO("Binpath: " + binPath);
 
             // The GLTF binary is just raw vertex/index/texCoord/... data, no headers or anything else
             SharedPtr<File> binFile = GetSubsystem<ResourceCache>()->GetFile(binPath, false);
@@ -129,7 +128,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
                 URHO3D_LOGERROR("Failed to load GLTF binary file: " + binPath);
             }
 
-            URHO3D_LOGINFOF("Binary Data Size: %u bytes", binFile->GetSize());
+            //URHO3D_LOGINFOF("Binary Data Size: %u bytes", binFile->GetSize());
 
             // Push the binFile into the buffers_ array
             buffers_.Push(binFile);
@@ -183,8 +182,6 @@ bool GLTFFile::BeginLoad(Deserializer& source)
         // Loop through meshs array
         for (int i = 0; i < meshs.Size(); i ++)
         {
-            URHO3D_LOGINFO("now loading a mesh...");
-
             SharedPtr<Model> model(new Model(context_));
 
             if (!meshs[i].IsObject())
@@ -242,7 +239,6 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             model->SetVertexBuffers(vertList, morphRangeStarts, morphRangeCounts);
             model->SetIndexBuffers(indList);
 
-            URHO3D_LOGINFO("AAAAAASDSADASDASd");
             GetSubsystem<ResourceCache>()->AddManualResource(model);
             meshs_.Push(model);
         }
@@ -275,8 +271,6 @@ bool GLTFFile::EndLoad()
 {
     // This is called from the main thread;
     // Do GPU things if BeginLoad() was on a worker thread
-
-    URHO3D_LOGINFO("Async stuff happening right now");
 
     for (AsyncBufferData data : asyncLoading_)
     {
@@ -616,7 +610,7 @@ BufferAccessor GLTFFile::ParseAccessor(unsigned index)
 
 /**
  *
- * @param index
+ * @param index [in] Index of scene defined in the JSON
  * @return
  */
 SharedPtr<Scene> GLTFFile::GetScene(unsigned index) const
@@ -628,8 +622,8 @@ SharedPtr<Scene> GLTFFile::GetScene(unsigned index) const
 
 /**
  * Add members of a GLTF scene to an existing node
- * @param index
- * @param addTo
+ * @param index [in] Index of scene defined in the JSON
+ * @param addTo [in, out] Node to add children too
  */
 void GLTFFile::GetScene(unsigned index, Node* addTo) const
 {
@@ -703,9 +697,10 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
 
     if (nodeObject.Contains("name"))
     {
-        const JSONValue& name = nodeObject["name"];
+        const JSONValue& name = *(nodeObject["name"]);
         if (name.IsString()) {
             node->SetName(name.GetString());
+            //URHO3D_LOGINFOF("Name Set: %s", name.GetString().CString());
         }
     }
 
@@ -722,10 +717,18 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
                 //node->SetVar(i->first_, value);
             //}
         //}
-        node->SetVar("extras", Variant(nodeObject["extras"]));
+        if (nodeObject["extras"]->IsObject())
+        {
+
+            const JSONObject* obj = &(nodeObject["extras"]->GetObject());
+
+            node->SetVar("extras", Variant() = (void*)obj);
+
+            //URHO3D_LOGINFOF("EXTRAS SET %p -> %p", obj, (node->GetVar("extras")).GetVoidPtr());
+        }
     }
 
-    URHO3D_LOGINFO("Node!");
+    //URHO3D_LOGINFO("Node!");
 
     if (nodeObject.Contains("children"))
     {
@@ -738,8 +741,8 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
         {
             if (children[i].IsNumber())
             {
-                URHO3D_LOGINFO("Child!");
                 node->AddChild(GetNode(children[i].GetUInt()));
+                //URHO3D_LOGINFOF("Child! %u", node->GetChildren().Size());
             }
         }
     }

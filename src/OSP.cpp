@@ -1,3 +1,5 @@
+#include <Urho3D/AngelScript/Script.h>
+#include <Urho3D/AngelScript/ScriptFile.h>
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/IO/FileSystem.h>
@@ -243,10 +245,16 @@ void SystemOsp::process_directory(const String& path)
     String pathScripts = path + "/Scripts";
     if (fileSystem->DirExists(pathScripts))
     {
-        // Start loading .gltf.sturdy files
+        // Start loading scripts
         URHO3D_LOGINFOF("Scripts Directory Found: %s", pathScripts.CString());
+        Vector<String> scripts;
+        fileSystem->ScanDir(scripts, pathScripts, "*.as", SCAN_FILES, true);
+        for (String s : scripts)
+        {
+            URHO3D_LOGINFOF("Script %s", (dirName + "/Scripts/" + s).CString());
+            cache->BackgroundLoadResource<ScriptFile>(dirName + "/Scripts/" + s);
+        }
     }
-
 }
 
 /**
@@ -255,7 +263,35 @@ void SystemOsp::process_directory(const String& path)
  */
 void SystemOsp::register_parts(const GLTFFile* gltf)
 {
+    // Doesn't need to be an actual scene, just make it a node
+    SharedPtr<Node> gltfScene(new Node(context_));
 
+    URHO3D_LOGINFOF("Registering part: %s", gltf->GetName().CString());
+
+    // Contents of Scene 0 of the GLTF will be parsed into gltfScene
+    gltf->GetScene(0, gltfScene);
+
+    const Vector<SharedPtr<Node>>& children = gltfScene->GetChildren();
+
+    for (SharedPtr<Node> node : children)
+    {
+        String partName = node->GetName();
+        URHO3D_LOGINFOF("Node: %s", partName.CString());
+        if (partName.StartsWith("part_"))
+        {
+
+            // This is a part, parse it
+            const VariantMap& vars = node->GetVars();
+            const JSONObject* extras = reinterpret_cast<JSONObject*>(vars["extras"]->GetVoidPtr());
+            if (extras)
+            {
+                URHO3D_LOGINFOF("Name: %s", (*extras)["name"]->GetString().CString());
+                URHO3D_LOGINFOF("Description: %s", (*extras)["description"]->GetString().CString());
+            }
+            //
+
+        }
+    }
 }
 
 /**

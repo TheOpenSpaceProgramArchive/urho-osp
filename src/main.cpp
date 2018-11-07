@@ -46,6 +46,7 @@
 #include <Urho3D/UI/UIEvents.h>
 #include <Urho3D/UI/UI.h>
 #include <Urho3D/AngelScript/APITemplates.h>
+#include <Urho3D/ThirdParty/AngelScript/angelscript.h>
 
 #include "ActiveArea.h"
 #include "config.h"
@@ -367,14 +368,31 @@ public:
             //    params.Push(Variant(m_scene));
             //    script->Execute("void main(Scene&)", params);
             //}
+            Resource* res = reinterpret_cast<Resource*>(eventData[ResourceBackgroundLoaded::P_RESOURCE].GetVoidPtr());
 
-
+            URHO3D_LOGINFO(res->GetTypeName());
+            if (res->IsInstanceOf("ScriptFile"))
+            {
+                ScriptFile* script = reinterpret_cast<ScriptFile*>(res);
+                asIScriptFunction* function = script->GetFunction("void loaded()");
+                //URHO3D_LOGINFOF("functopn: %p", function);
+                if (function)
+                {
+                    VariantVector params;
+                    params.Push(Variant(m_scene));
+                    script->Execute(function, params);
+                }
+            }
+            else if (res->IsInstanceOf("GLTFFile"))
+            {
+                GLTFFile* gltf = reinterpret_cast<GLTFFile*>(res);
+                m_osp->register_parts(gltf);
+            }
         } else {
             // error!
-            URHO3D_LOGERROR("Loading something went wrong");
+            URHO3D_LOGERRORF("Failed to load resource: %s", eventData[ResourceBackgroundLoaded::P_RESOURCENAME].GetString().CString());
         }
     }
-
 };
 
 
