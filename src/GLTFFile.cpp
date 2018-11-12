@@ -1,5 +1,6 @@
 #include <Urho3D/Graphics/Geometry.h>
 #include <Urho3D/Graphics/IndexBuffer.h>
+#include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/Graphics/VertexBuffer.h>
 #include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/IO/Log.h>
@@ -9,7 +10,7 @@
 #include "GLTFFile.h"
 
 GLTFFile::GLTFFile(Context* context) :
-    JSONFile(context), meshs_()
+    JSONFile(context), meshes_()
 {
 
 }
@@ -54,6 +55,34 @@ unsigned GLTFFile::TypeComponentCount(const String& type)
     else if (type.StartsWith("M"))
     {
 
+    }
+}
+
+const String GLTFFile::StringValue(const JSONValue* value)
+{
+    if (!value)
+        return String::EMPTY;
+
+    switch (value->GetValueType())
+    {
+    case JSON_STRING:
+        return value->GetString();
+        break;
+    case JSON_NUMBER:
+        switch (value->GetNumberType())
+        {
+        case JSONNT_INT:
+            return String(value->GetInt());
+        case JSONNT_UINT:
+            return String(value->GetUInt());
+        case JSONNT_FLOAT_DOUBLE:
+            return String(value->GetFloat());
+        case JSONNT_NAN:
+            return "NaN";
+        }
+    // put more here
+    default:
+        return String::EMPTY;
     }
 }
 
@@ -176,21 +205,21 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             views_ = *(rootObj["bufferViews"]);
         }
 
-        // Meshs section in the GLTF file
-        const JSONArray& meshs = rootObj["meshes"]->GetArray();
+        // meshes section in the GLTF file
+        const JSONArray& meshes = rootObj["meshes"]->GetArray();
 
-        // Loop through meshs array
-        for (int i = 0; i < meshs.Size(); i ++)
+        // Loop through meshes array
+        for (int i = 0; i < meshes.Size(); i ++)
         {
             SharedPtr<Model> model(new Model(context_));
 
-            if (!meshs[i].IsObject())
+            if (!meshes[i].IsObject())
             {
                 URHO3D_LOGERROR("Incorrect definition of mesh");
                 return false;
             }
 
-            const JSONObject& mesh = meshs[i].GetObject();
+            const JSONObject& mesh = meshes[i].GetObject();
 
             if (mesh.Contains("name"))
             {
@@ -240,7 +269,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             model->SetIndexBuffers(indList);
 
             GetSubsystem<ResourceCache>()->AddManualResource(model);
-            meshs_.Push(model);
+            meshes_.Push(model);
         }
 
     }
@@ -647,14 +676,16 @@ void GLTFFile::GetScene(unsigned index, Node* addTo) const
     if (scene.Contains("name"))
     {
         const JSONValue* name = scene["name"];
-        if (name->IsString()) {
+        if (name->IsString())
+        {
             addTo->SetName(name->GetString());
         }
     }
 
     if (scene.Contains("nodes"))
     {
-        if (!scene["nodes"]->IsArray()) {
+        if (!scene["nodes"]->IsArray())
+        {
             URHO3D_LOGERROR("Scene.Nodes must be an array");
             return;
         }
@@ -688,23 +719,26 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
         return node;
     }
 
-    if (!nodes[index].IsObject()) {
+    if (!nodes[index].IsObject())
+    {
         URHO3D_LOGERROR("Node must be an object");
         return node;
     }
 
     const JSONObject& nodeObject = nodes[index].GetObject();
 
+    // Set name of node
     if (nodeObject.Contains("name"))
     {
         const JSONValue& name = *(nodeObject["name"]);
-        if (name.IsString()) {
+        if (name.IsString())
+        {
             node->SetName(name.GetString());
             //URHO3D_LOGINFOF("Name Set: %s", name.GetString().CString());
         }
     }
 
-    // Set node vars to extras
+    // Set extras object as a Var
     if (nodeObject.Contains("extras"))
     {
         //JSONValue* extrasValues = nodeObject["extras"];
@@ -728,11 +762,34 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
         }
     }
 
+    // Add a StaticModel if mesh is present
+    if (nodeObject.Contains("mesh"))
+    {
+        const JSONValue& meshIndex = *(nodeObject["mesh"]);
+        if (meshIndex.IsNumber())
+        {
+
+            unsigned index = meshIndex.GetUInt();
+            URHO3D_LOGINFOF("Mesh used: %u", index);
+
+            if (meshes_.Size() > index)
+            {
+                StaticModel* model = node->CreateComponent<StaticModel>();
+                model->SetModel(meshes_[index]);
+            }
+            else
+            {
+                URHO3D_LOGERROR("Mesh index out of range");
+            }
+        }
+    }
+
     //URHO3D_LOGINFO("Node!");
 
     if (nodeObject.Contains("children"))
     {
-        if (!nodeObject["children"]->IsArray()) {
+        if (!nodeObject["children"]->IsArray())
+        {
             URHO3D_LOGERROR("Node's children must be an array");
             return node;
         }

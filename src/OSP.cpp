@@ -264,14 +264,15 @@ void SystemOsp::process_directory(const String& path)
 void SystemOsp::register_parts(const GLTFFile* gltf)
 {
     // Doesn't need to be an actual scene, just make it a node
-    SharedPtr<Node> gltfScene(new Node(context_));
+    Node* gltfScene = m_hiddenScene->CreateChild("gltf_" + gltf->GetNameHash());
 
     URHO3D_LOGINFOF("Registering part: %s", gltf->GetName().CString());
 
     // Contents of Scene 0 of the GLTF will be parsed into gltfScene
     gltf->GetScene(0, gltfScene);
 
-    const Vector<SharedPtr<Node>>& children = gltfScene->GetChildren();
+    // don't make this a reference, original will be modified
+    const Vector<SharedPtr<Node>> children = gltfScene->GetChildren();
 
     for (SharedPtr<Node> node : children)
     {
@@ -283,13 +284,23 @@ void SystemOsp::register_parts(const GLTFFile* gltf)
             // This is a part, parse it
             const VariantMap& vars = node->GetVars();
             const JSONObject* extras = reinterpret_cast<JSONObject*>(vars["extras"]->GetVoidPtr());
-            if (extras)
-            {
-                URHO3D_LOGINFOF("Name: %s", (*extras)["name"]->GetString().CString());
-                URHO3D_LOGINFOF("Description: %s", (*extras)["description"]->GetString().CString());
-            }
-            //
 
+            if (!extras)
+                continue;
+
+            node->SetVar("country", GLTFFile::StringValue((*extras)["country"]));
+            node->SetVar("description", GLTFFile::StringValue((*extras)["description"]));
+            node->SetVar("manufacturer", GLTFFile::StringValue((*extras)["manufacturer"]));
+            node->SetVar("name", GLTFFile::StringValue((*extras)["name"]));
+
+            URHO3D_LOGINFOF("Name: %s", GLTFFile::StringValue((*extras)["name"]).CString());
+            //URHO3D_LOGINFOF("Description: %s", GLTFFile::StringValue((*extras)["description"]).CString());
+            //URHO3D_LOGINFOF("Cost: %s", GLTFFile::StringValue((*extras)["cost"]).CString());
+
+            node->SetName(partName.Substring(5));
+
+            m_parts->GetChild("dbg")->AddChild(node.Get());
+            //node->SetParent(m_parts.Get());
         }
     }
 }

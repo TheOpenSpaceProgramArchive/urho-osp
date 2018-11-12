@@ -61,6 +61,7 @@ public:
     static void RegisterObject(Context* context);
     static void ComponentTypeByteSize(unsigned componentType);
     static unsigned TypeComponentCount(const String& type);
+    static const String StringValue(const JSONValue* value);
 
     bool BeginLoad(Deserializer& source) override;
     bool EndLoad() override;
@@ -68,7 +69,7 @@ public:
     SharedPtr<Node> GetNode(unsigned index) const;
     SharedPtr<Scene> GetScene(unsigned index) const;
     void GetScene(unsigned index, Node* addTo) const;
-    const Vector<SharedPtr<Model>>& GetMeshs() const { return meshs_; }
+    const Vector<SharedPtr<Model>>& Getmeshes() const { return meshes_; }
 
 private:
 
@@ -79,7 +80,7 @@ private:
 
     //Vector<SharedArrayPtr<unsigned char>> buffers_;
     Vector<SharedPtr<File>> buffers_;
-    Vector<SharedPtr<Model>> meshs_;
+    Vector<SharedPtr<Model>> meshes_;
     Vector<AsyncBufferData> asyncLoading_;
     //Vector<WeakPtr<Texture>> textures_;
     //Vector<Vector<Pair<SharedArrayPtr<unsigned char>, SharedArrayPtr<unsigned char>>>> bufData;
