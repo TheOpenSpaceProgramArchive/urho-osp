@@ -50,24 +50,16 @@ inline uint8_t PlanetWrenderer::neighboor_index(SubTriangle& tri, trindex lookin
     return 255;
 }
 
-PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFree()
+PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFree(), m_depthVsEdgeLength()
 {
     // Chunk profile determines which triangles should be subdivided multiple times after a single subdivide call
     // as if the triangle can subdivide into 64 triangles instead of just 4
     // This is intended to reduce the number of distance checks
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
+
     m_indCount = 0;
-    m_maxDepth = 6;
-    m_hqDepth = 4;
+    m_maxDepth = 15;
+    m_chunkProfile.Resize(m_maxDepth);
+    //m_hqDepth = 4;
 }
 
 PlanetWrenderer::~PlanetWrenderer()
@@ -151,7 +143,8 @@ void PlanetWrenderer::initialize(Context* context, double size) {
 
     // Shape into the right sized sphere
     double vx, vy, vz;
-    for (int i = 0; i < 68; i += 6) {
+    for (int i = 0; i < 68; i += 6)
+    {
 
         vx = vertInit[i + 0];
         vy = vertInit[i + 1];
@@ -219,7 +212,8 @@ void PlanetWrenderer::initialize(Context* context, double size) {
     m_triangles.Reserve(3000);
 
     // Initialize triangles, indices from sc_icoTemplateTris
-    for (int i = 0; i < sc_icosahedronFaceCount; i ++) {
+    for (int i = 0; i < sc_icosahedronFaceCount; i ++)
+    {
         // Set trianglesz
         SubTriangle tri;
         //printf("Triangle: %p\n", t);
@@ -227,29 +221,17 @@ void PlanetWrenderer::initialize(Context* context, double size) {
         set_verts(tri, sc_icoTemplateTris[i * 3 + 0], sc_icoTemplateTris[i * 3 + 1], sc_icoTemplateTris[i * 3 + 2]);
         set_neighbours(tri, sc_icoTemplateneighbours[i * 3 + 0], sc_icoTemplateneighbours[i * 3 + 1], sc_icoTemplateneighbours[i * 3 + 2]);
         tri.m_bitmask = 0;
-        tri.m_depth = 1;
+        tri.m_depth = 0;
         calculate_center(tri);
         m_triangles.Push(tri);
         //if (i != 0)
         set_visible(i, true);
     }
 
-    for (int i = 0; i < sc_icosahedronFaceCount; i ++) {
+    for (int i = 0; i < sc_icosahedronFaceCount; i ++)
+    {
         subdivide(i);
     }
-
-    //unsubdivide(1);
-    //unsubdivide(0);
-    //unsubdivide(5);
-    //unsubdivide(7);
-    //subdivide(5);
-    //unsubdivide(25);
-    //subdivide(26);
-    //subdivide(21);
-
-    //for (int i = 20; i < 20 + 20 * 4; i ++) {
-    //    subdivide(i);
-    //}
 
     // Not leaking memory
     delete[] vertInit;
@@ -473,7 +455,7 @@ void PlanetWrenderer::subdivide(trindex t)
     tri->m_bitmask ^= E_SUBDIVIDED;
 
     // If the triangle is non-zero in the chunk profile, this means that it should be divided more
-    if (m_chunkProfile[tri->m_depth - 1])
+    if (false)
     {
         // in case a reallocation happens during a subdivide, this trindex doesn't change
         trindex childs = tri->m_children;
@@ -658,16 +640,16 @@ void PlanetWrenderer::sub_recurse(trindex t)
 
     bool shouldSubdivide = false;
 
-    if (tri->m_depth < m_hqDepth)
-    {
-        // Test to see if this part of the sphere is visible, using the face normal's dot product with the camera
-        float dot = tri->m_center.DotProduct(m_camera) / (m_cameraDist * tri->m_center.Length());
-        shouldSubdivide = (dot > m_threshold / tri->m_depth);
-        //shouldBeSubdivided = (dot > m_threshold + 0.2f * (float(tri->m_depth) + 3.0f));
-    } else {
-        // Measure distance instead of using angles, again more temporary code
-        shouldSubdivide = ((tri->m_center - m_camera).LengthSquared() < Pow(float(m_size * 7.05), 2.0f));
-    }
+    //if (tri->m_depth < m_hqDepth)
+    //{
+    //  // Test to see if this part of the sphere is visible, using the face normal's dot product with the camera
+    //  float dot = tri->m_center.DotProduct(m_camera) / (m_cameraDist * tri->m_center.Length());
+    //  shouldSubdivide = (dot > m_threshold / tri->m_depth);
+    //  shouldBeSubdivided = (dot > m_threshold + 0.2f * (float(tri->m_depth) + 3.0f));
+    //} else {
+    //    // Measure distance instead of using angles, again more temporary code
+    //    shouldSubdivide = ((tri->m_center - m_camera).LengthSquared() < Pow(float(m_size * 7.05), 2.0f));
+    //}
     // Measure angle
     //printf("DOT: %f\n", dot);
     // calculate dot product thing
@@ -676,6 +658,32 @@ void PlanetWrenderer::sub_recurse(trindex t)
     //    subdivide(t);
     //}
 
+    // Icosahedron edge length equations
+    // let r = radius of circumscribed sphere
+    // let a = edge length
+    // from this equation: r = (a / 4) * sqrt(10 + 2 * sqrt(5))
+    // arrange to this:    a = 4r / sqrt(10 + 2 * sqrt(5))
+    // then divide by 2^depth because subdivision
+
+    // close enough approximation (should be a bit higher because it's spherical)
+    float edgeLength = (4.0 * m_size)
+                       / Sqrt(10.0 + 2.0 * Sqrt(5.0))
+                       / Pow(2, int(tri->m_depth));
+
+    // Equilateral triangle area
+    float triArea = Sqrt(3) * edgeLength * edgeLength / 4;
+
+    // Distance from viewer
+    float distanceSquared = (tri->m_center - m_camera).LengthSquared();
+
+    // How much space this triangle takes up on screen
+    // InverseSquareDistance * Area -> area / distancesquared
+    float screenArea = triArea / (distanceSquared * 0.2f);
+
+    //URHO3D_LOGINFOF("MyArea: %f", screenArea);
+
+    //shouldSubdivide = (distanceSquared < Pow(2000.0f, 2.0f));
+    shouldSubdivide = (screenArea > 0.1f);
 
     // If already subdivided
     if (tri->m_bitmask & E_SUBDIVIDED)
