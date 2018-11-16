@@ -108,7 +108,6 @@ class PlanetWrenderer
     PODVector<trindex> m_trianglesFree;
 
     PODVector<uint8_t> m_chunkProfile;
-    PODVector<float> m_depthVsEdgeLength;
 
     Vector3 m_offset;
     Vector3 m_camera;

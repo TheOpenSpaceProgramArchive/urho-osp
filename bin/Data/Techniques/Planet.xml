@@ -1,4 +1,0 @@
-<technique vs="Cubemap" ps="Cubemap">
-    <pass name="base" />
-    <pass name="litbase" psdefines="AMBIENT" />
-</technique>

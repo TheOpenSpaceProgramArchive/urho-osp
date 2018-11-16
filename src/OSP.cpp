@@ -72,11 +72,12 @@ PlanetTerrain::PlanetTerrain(Context* context) : StaticModel(context), m_first(f
 void PlanetTerrain::initialize(AstronomicalBody* body)
 {
     m_planet.initialize(context_, body->get_radius());
-    Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/DefaultGrey.xml");
+    Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Planet.xml");
     SetModel(m_planet.get_model());
     m->SetCullMode(CULL_NONE);
-    m->SetFillMode(FILL_WIREFRAME);
+    //m->SetFillMode(FILL_WIREFRAME);
     SetMaterial(m);
+    SetCastShadows(false);
 }
 
 void PlanetTerrain::RegisterObject(Context* context)
@@ -205,7 +206,7 @@ void SystemOsp::debug_function(const StringHash which)
         //shape->SetTriangleMesh(terrain->GetPlanet()->get_model(), 0, Vector3::ONE);
 
         ActiveArea* area = scene->CreateComponent<ActiveArea>();
-        area->relocate(ab, LongVector3(0, 4002 * 1000, 0));
+        area->relocate(ab, LongVector3(0, 4100 * 1000, 0));
         area->set_terrain(terrain);
 
     }

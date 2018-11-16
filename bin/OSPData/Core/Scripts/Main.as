@@ -39,6 +39,7 @@ void play_pressed()
 
 // Yeah, it's called MainMenu but the rocket building code is here too.
 
+Node@ camera;
 Node@ cameraCenter;
 Node@ cursor;
 Node@ grabbed;
@@ -62,7 +63,7 @@ void construct_apparatus()
     // Node the camera orbits around
     cameraCenter = g_scene.CreateChild("CameraCenter");
     // Node that contains the camera component
-    Node@ camera = cameraCenter.CreateChild("Camera");
+    camera = cameraCenter.CreateChild("Camera");
     // Distanced from the center a bit
     camera.position = Vector3(0, 0, -8);
     renderer.viewports[0].camera = camera.CreateComponent("Camera");
@@ -103,13 +104,21 @@ void construct_apparatus()
             SubscribeToEvent(butt, "Pressed", "clickpart");
         }
     }
+    ui.root.AddChild(assemblyUI);
    
+    Text@ help = Text();
+    help.text = "Controls: [Arrow Keys] Orbit Camera  [Z/X] Move Camera In/Out\n[Space] Launch  [R] Restart";
+    help.SetFont(cache.GetResource("Font", "Fonts/BlueHighway.ttf"), 18);
+    help.SetPosition(0, 0);
+    ui.root.AddChild(help);
+    
     //bottomBlank.SetPosition(0, 0);
     //bottomBlank.SetSize(graphics.width, graphics.height);
     //bottomBlank.opacity = 0;
     
     //ui.root.AddChild(bottomBlank);
-    ui.root.AddChild(assemblyUI);
+
+
 
     SubscribeToEvent("UIMouseClick", "click_drop");
     SubscribeToEvent("KeyDown", "construct_keydown");
@@ -203,6 +212,12 @@ void construct_keydown(StringHash eventType, VariantMap& eventData)
         cast<SoundSource>(g_scene.GetComponent("SoundSource")).Stop();
         
         osp.debug_function(StringHash("create_universe"));
+        
+        Text@ help = Text();
+        help.text = "Controls: [Arrow Keys] Orbit Camera  [Z/X] Move Camera In/Out\n[WASD] Rotate  [F/G] Throttle rockets Up/Down  [Q] Toggle Planet Wireframe  [R] Restart";
+        help.SetFont(cache.GetResource("Font", "Fonts/BlueHighway.ttf"), 18);
+        help.SetPosition(0, 0);
+    ui.root.AddChild(help);
     }
     else if (eventData["Key"].GetInt() == KEY_R)
     {
@@ -221,6 +236,7 @@ void construct_update(StringHash eventType, VariantMap& eventData)
     Vector2 arrowKeys(bint(input.keyDown[KEY_RIGHT]) - bint(input.keyDown[KEY_LEFT]), bint(input.keyDown[KEY_UP]) - bint(input.keyDown[KEY_DOWN]));
     cameraCenter.rotation = Quaternion(Clamp(cameraCenter.rotation.pitch + arrowKeys.y * delta * 90, -80.0f, 80.0f), cameraCenter.rotation.yaw - arrowKeys.x * delta * 90, 0.0);
 
+    camera.position = Vector3(0, 0, camera.position.z + delta * 10.0 * (bint(input.keyDown[KEY_Z]) - bint(input.keyDown[KEY_X])));
     //cameraCenter.rotation.FromEulerAngles(cameraCenter.rotation.yaw, cameraCenter.rotation.pitch, 0.0);
     //Print("update! " + Clamp(cameraCenter.rotation.pitch + arrowKeys.y * delta * 90, -100, 100));
     //prevMouseRay

@@ -50,15 +50,26 @@ inline uint8_t PlanetWrenderer::neighboor_index(SubTriangle& tri, trindex lookin
     return 255;
 }
 
-PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFree(), m_depthVsEdgeLength()
+PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_chunkProfile(0), m_vertFree()
 {
     // Chunk profile determines which triangles should be subdivided multiple times after a single subdivide call
     // as if the triangle can subdivide into 64 triangles instead of just 4
     // This is intended to reduce the number of distance checks
 
     m_indCount = 0;
-    m_maxDepth = 15;
-    m_chunkProfile.Resize(m_maxDepth);
+    m_maxDepth = 11;
+
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(0);
+    m_chunkProfile.Push(1); // When depth 8 is subdivided, subdivide again
+    m_chunkProfile.Push(1); // and subdivide the new children too
+    m_chunkProfile.Push(0);
     //m_hqDepth = 4;
 }
 
@@ -81,7 +92,7 @@ void PlanetWrenderer::initialize(Context* context, double size) {
 
     // calculate proper numbers later
     m_maxTriangles = 50000;
-    m_maxIndices = 18000;
+    m_maxIndices = 48000;
     m_maxVertice = 17000;
 
     m_vertCount = 12;
@@ -455,8 +466,9 @@ void PlanetWrenderer::subdivide(trindex t)
     tri->m_bitmask ^= E_SUBDIVIDED;
 
     // If the triangle is non-zero in the chunk profile, this means that it should be divided more
-    if (false)
+    if (bool(m_chunkProfile[tri->m_depth]) && (tri->m_depth + 1 < m_maxDepth))
     {
+        //URHO3D_LOGINFOF("Deeepth: %u", tri->m_depth);
         // in case a reallocation happens during a subdivide, this trindex doesn't change
         trindex childs = tri->m_children;
         subdivide(childs + 0);
@@ -472,11 +484,6 @@ void PlanetWrenderer::subdivide(trindex t)
         set_visible(tri->m_children + 2, true);
         set_visible(tri->m_children + 3, true);
     }
-
-
-    //tri.myDepth ++;
-
-    // Set subdivided bit
 
 }
 
@@ -690,12 +697,18 @@ void PlanetWrenderer::sub_recurse(trindex t)
     {
         if (shouldSubdivide)
         {
-            sub_recurse(tri->m_children + 0);
-            sub_recurse(tri->m_children + 1);
-            sub_recurse(tri->m_children + 2);
-            sub_recurse(tri->m_children + 3);
+            // magic number to not recurse into triangles that will never be subdivided
+            if (tri->m_depth < 8)
+            {
+                // triangle vector might reallocate making tri invalid, so keep a copy of m_children
+                trindex childs = tri->m_children;
+                sub_recurse(childs + 0);
+                sub_recurse(childs + 1);
+                sub_recurse(childs + 2);
+                sub_recurse(childs + 3);
+            }
         } else if (!bool(m_chunkProfile[tri->m_depth])) {
-             unsubdivide(t);
+            unsubdivide(t);
         }
     } else {
         if (shouldSubdivide)

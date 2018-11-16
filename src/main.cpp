@@ -228,7 +228,7 @@ public:
             engine_->Exit();
 
         if(key==KEY_Q) {
-            Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/DefaultGrey.xml");
+            Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Planet.xml");
             m->SetFillMode((m->GetFillMode() == FILL_WIREFRAME) ? FILL_SOLID : FILL_WIREFRAME );
         }
 

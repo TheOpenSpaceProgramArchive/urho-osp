@@ -8,8 +8,8 @@
 		"Elapsed Time": 3.1755282878875734,
 		"Next Replicated Node ID": 18,
 		"Next Replicated Component ID": 36,
-		"Next Local Node ID": 16777233,
-		"Next Local Component ID": 16777420,
+		"Next Local Node ID": 16777234,
+		"Next Local Component ID": 16777432,
 		"Variables": {},
 		"Variable Names": ""
 	},
@@ -28,9 +28,10 @@
 			"type": "Zone",
 			"id": 13,
 			"attributes": {
-				"Bounding Box Min": "-9000 -9000 -9000",
-				"Bounding Box Max": "9000 9000 9000",
+				"Bounding Box Min": "-90000 -90000 -90000",
+				"Bounding Box Max": "90000 90000 90000",
 				"Ambient Color": "0.1 0.08 0.1 1",
+				"Fog Color": "0 0 0 0",
 				"Fog Start": 100000000.0,
 				"Fog End": 1000000000.0
 			}
@@ -43,7 +44,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -8055600
+				"Play Position": -576160
 			}
 		},
 		{
