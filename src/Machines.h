@@ -28,6 +28,7 @@ class MachineRocket : public Machine
     PerformanceCurves m_thrust;
     PerformanceCurves m_efficiency;
     WeakPtr<SoundSource> m_rocketSound;
+    WeakPtr<Node> m_plume;
     //float m_throttle;
 
 public:

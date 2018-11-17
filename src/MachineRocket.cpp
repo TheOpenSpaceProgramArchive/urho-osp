@@ -1,5 +1,4 @@
-
-
+#include <Urho3D/Graphics/ParticleEmitter.h>
 
 #include "Machines.h"
 
@@ -46,6 +45,21 @@ void MachineRocket::FixedUpdate(float timeStep)
         m_rocketSound->SetFrequency(44100.0f);
         m_rocketSound->Play(sound);
     }
+
+    // hard coded just to look cool
+    if (m_plume.Null())
+    {
+        Node* plume = GetScene()->InstantiateJSON(GetSubsystem<ResourceCache>()->GetResource<JSONFile>("Data/Objects/Plume1.json")->GetRoot(), Vector3(0.0f, -0.5f, 0.0f), Quaternion(0, 0, 0));
+        plume->Scale(2.3f);
+
+        PODVector<ParticleEmitter*> plumes;
+        plume->GetComponents<ParticleEmitter>(plumes);
+        plumes[0]->SetEmitting(true);
+        plumes[1]->SetEmitting(true);
+
+        node_->AddChild(plume);
+        m_plume = plume;
+    }
     //CollisionShape* collider = static_cast<CollisionShape*>(&(node_->GetParent()->GetComponents().At[node_->GetVar("colliderIndices").Get<Vector<int>>()[0]]));
     //Vector<int>* indices = static_cast<Vector<int>*>(node_->GetVar("Colliders").GetVoidPtr());
     //const VariantVector* colliders = node_->GetVar("Colliders").GetVariantVector();
@@ -65,6 +79,13 @@ void MachineRocket::FixedUpdate(float timeStep)
     // This is mostly temporary
     m_rocketSound->SetFrequency(44100.0f * (m_curveInputs["Throttle"] / 70.0f + 0.3f));
     m_rocketSound->SetGain(m_curveInputs["Throttle"] / 100.0f);
+
+    // Set rocket plume
+    //m_plume->SetScale(m_curveInputs["Throttle"] > 2 ? 2.6f : 0.0f);
+    PODVector<ParticleEmitter*> plumes;
+    m_plume->GetComponents<ParticleEmitter>(plumes);
+    plumes[0]->SetEmitting(m_curveInputs["Throttle"] > 2);
+    plumes[1]->SetEmitting(m_curveInputs["Throttle"] > 2);
 
     // Thrust related things
     Vector3 what(collider->GetPosition());
