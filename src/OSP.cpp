@@ -297,7 +297,7 @@ void SystemOsp::register_parts(const GLTFFile* gltf)
             part->SetVar("manufacturer", GLTFFile::StringValue((*extras)["manufacturer"]));
             part->SetVar("name", GLTFFile::StringValue((*extras)["name"]));
             part->SetVar("massdry", (*extras)["massdry"]->GetFloat());
-            part->SetVar("prototype", Variant(part.Get())); // stored as WeakPtr
+            part->SetVar("prototype", part.Get()); // stored as WeakPtr
 
             URHO3D_LOGINFOF("Name: %s", GLTFFile::StringValue((*extras)["name"]).CString());
             //URHO3D_LOGINFOF("Description: %s", GLTFFile::StringValue((*extras)["description"]).CString());
@@ -341,7 +341,7 @@ void SystemOsp::part_node_recurse(Node* partRoot, Node* node)
         else
         {
             // Cube is default shape
-            shape->SetBox(scale, pos, rot);
+            shape->SetBox(scale * 2.0f, pos, rot);
         }
 
         URHO3D_LOGINFOF("Shape made on: %s", node->GetParent()->GetName().CString());

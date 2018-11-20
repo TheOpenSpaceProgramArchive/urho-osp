@@ -86,6 +86,46 @@ const String GLTFFile::StringValue(const JSONValue* value)
     }
 }
 
+const Vector3 GLTFFile::ParseVector3(const JSONValue* value)
+{
+    if (!value->IsArray())
+    {
+        return Vector3::ZERO;
+    }
+
+    const JSONArray& array = value->GetArray();
+
+    if (array.Size() < 3)
+    {
+        return Vector3::ZERO;
+    }
+
+    // maybe put some checks later, but i'm lazy
+
+    return Vector3(array[0].GetFloat(), array[1].GetFloat(), array[2].GetFloat());
+
+}
+
+const Quaternion GLTFFile::ParseQuaternion(const JSONValue* value)
+{
+    if (!value->IsArray())
+    {
+        return Quaternion::IDENTITY;
+    }
+
+    const JSONArray& array = value->GetArray();
+
+    if (array.Size() < 4)
+    {
+        return Quaternion::IDENTITY;
+    }
+
+    // maybe put some checks later, but i'm lazy
+
+    return Quaternion(array[3].GetFloat(), array[0].GetFloat(), array[1].GetFloat(), array[2].GetFloat());
+
+}
+
 /**
  * Called by Urho3D. Real loading begins here
  */
@@ -738,19 +778,30 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
         }
     }
 
+    if (nodeObject.Contains("matrix"))
+    {
+        // TODO parse matrix if it's there
+    }
+    else
+    {
+        if (nodeObject.Contains("translation"))
+        {
+            node->SetPosition(ParseVector3(nodeObject["translation"]));
+        }
+        if (nodeObject.Contains("scale"))
+        {
+            node->SetScale(ParseVector3(nodeObject["scale"]));
+        }
+        if (nodeObject.Contains("rotation"))
+        {
+            node->SetRotation(ParseQuaternion(nodeObject["rotation"]));
+        }
+    }
+
+
     // Set extras object as a Var
     if (nodeObject.Contains("extras"))
     {
-        //JSONValue* extrasValues = nodeObject["extras"];
-        //if (extrasValues->IsObject()) {
-            //const JSONObject& extras = extrasValues->GetObject();
-            //for (JSONObject::ConstIterator i = extras.Begin(); i != extras.End(); i ++)
-            //{
-                //Variant value = i->second_.GetVariantValue(Variant::GetTypeFromName(i->second_.GetValueTypeName()));
-                //URHO3D_LOGINFO("what " + value.ToString());
-                //node->SetVar(i->first_, value);
-            //}
-        //}
         if (nodeObject["extras"]->IsObject())
         {
 

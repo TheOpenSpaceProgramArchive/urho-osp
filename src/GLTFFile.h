@@ -61,6 +61,8 @@ public:
     static void RegisterObject(Context* context);
     static void ComponentTypeByteSize(unsigned componentType);
     static unsigned TypeComponentCount(const String& type);
+    static const Vector3 ParseVector3(const JSONValue* value);
+    static const Quaternion ParseQuaternion(const JSONValue* value);
     static const String StringValue(const JSONValue* value);
 
     bool BeginLoad(Deserializer& source) override;
