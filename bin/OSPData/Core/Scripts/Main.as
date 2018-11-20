@@ -165,48 +165,9 @@ void construct_keydown(StringHash eventType, VariantMap& eventData)
 {
     if (eventData["Key"].GetInt() == KEY_SPACE && !subject.HasComponent("RigidBody"))
     {
-        // Make it into a craft
 
-        // Calculate center of mass
-        Array<Node@> childrenColliders = subject.GetChildrenWithComponent("RigidBody");
-
-        Vector3 centerOfMass(0, 0, 0);
-        float totalMass = 0;
-
-        for (uint i = 0; i < childrenColliders.length; i ++) 
-        {
-            RigidBody@ shape = cast<RigidBody>(childrenColliders[i].GetComponent("RigidBody"));
-            centerOfMass += (childrenColliders[i].position + childrenColliders[i].rotation * shape.centerOfMass ) * shape.mass;
-            totalMass += shape.mass;
-        }
-
-        centerOfMass /= totalMass;
-        Print(totalMass);
-
-        //subject.position += centerOfMass;
-        for (uint i = 0; i < childrenColliders.length; i ++) 
-        {
-            childrenColliders[i].position -= centerOfMass;
-            Array<Variant> colliders;
-            Array<Component@> shapes = childrenColliders[i].GetComponents("CollisionShape");
-            for (uint j = 0; j < shapes.length; j ++) 
-            {
-                CollisionShape@ shapeA = cast<CollisionShape>(subject.CreateComponent("CollisionShape"));
-                CollisionShape@ shapeB = cast<CollisionShape>(shapes[j]);
-                colliders.Push(Variant(shapeA));
-                shapeA.SetBox(Vector3(1, 1, 1)); // this is too avoid a weird glitch
-                shapeA.position = childrenColliders[i].position + childrenColliders[i].rotation * shapeB.position * childrenColliders[i].scale;
-                shapeA.size = childrenColliders[i].scale * shapeB.size * 1.01f;
-                shapeA.shapeType = shapeB.shapeType;
-                Print("shape added " + shapeA.position.x);
-            }
-            childrenColliders[i].vars["Colliders"] = colliders;
-        }
-
-        osp.make_craft(subject);
-        RigidBody@ body = subject.CreateComponent("RigidBody");
-        body.mass = totalMass;
-
+        solidify_prototype(subject);
+        
         ui.root.RemoveAllChildren();
         
         cast<SoundSource>(g_scene.GetComponent("SoundSource")).Stop();
@@ -217,7 +178,7 @@ void construct_keydown(StringHash eventType, VariantMap& eventData)
         help.text = "Controls: [Arrow Keys] Orbit Camera  [Z/X] Move Camera In/Out\n[WASD] Rotate  [F/G] Throttle rockets Up/Down  [Q] Toggle Planet Wireframe  [R] Restart";
         help.SetFont(cache.GetResource("Font", "Fonts/BlueHighway.ttf"), 18);
         help.SetPosition(0, 0);
-    ui.root.AddChild(help);
+        ui.root.AddChild(help);
     }
     else if (eventData["Key"].GetInt() == KEY_R)
     {
@@ -225,6 +186,65 @@ void construct_keydown(StringHash eventType, VariantMap& eventData)
         g_scene.RemoveAllChildren();
         construct_apparatus();
     }
+}
+
+void solidify_prototype(Node@ prototype)
+{
+    // Calculate center of mass
+    Array<Node@> parts = prototype.GetChildren();
+    prototype.position = Vector3::ZERO;
+
+    Vector3 centerOfMass(0, 0, 0);
+    float totalMass = 0;
+
+    for (uint i = 0; i < parts.length; i ++) 
+    {
+        //RigidBody@ shape = cast<RigidBody>(childrenColliders[i].GetComponent("RigidBody"));
+        float mass = parts[i].vars["massdry"].GetFloat();
+        centerOfMass += (parts[i].worldPosition) * mass;
+        totalMass += mass;
+    }
+
+    centerOfMass /= totalMass;
+    Print("total mass: " + totalMass);
+
+    // Create a single rigid body with all the colliders
+    Array<Node@> childrenColliders = prototype.GetChildrenWithComponent("CollisionShape", true);
+
+    //subject.position += centerOfMass;
+    for (uint i = 0; i < childrenColliders.length; i ++) 
+    {
+        childrenColliders[i].worldPosition -= centerOfMass;
+        Array<Variant> colliders;
+        Array<Component@> shapes = childrenColliders[i].GetComponents("CollisionShape");
+        for (uint j = 0; j < shapes.length; j ++) 
+        {
+            CollisionShape@ shapeA = cast<CollisionShape>(prototype.CreateComponent("CollisionShape"));
+            CollisionShape@ shapeB = cast<CollisionShape>(shapes[j]);
+            colliders.Push(Variant(shapeA));
+            shapeA.SetBox(Vector3(1, 1, 1)); // this is too avoid a weird glitch
+            shapeA.position = childrenColliders[i].worldPosition + childrenColliders[i].rotation * shapeB.position * childrenColliders[i].scale;
+            shapeA.size = childrenColliders[i].scale * shapeB.size * 1.01f;
+            shapeA.shapeType = shapeB.shapeType;
+            Print("shape added " + shapeA.position.x);
+        }
+        childrenColliders[i].vars["colliders"] = colliders;
+    }
+
+    osp.make_craft(prototype);
+    RigidBody@ body = prototype.CreateComponent("RigidBody");
+    body.mass = totalMass;
+}
+
+Node@ get_part_from_node(Node@ node)
+{
+    // only parts contain "prototype" in vars
+    while (!node.vars.Contains("prototype"))
+    {
+        // keep reassigning node to its parent until it's a part
+        node = node.parent;
+    }
+    return node;
 }
 
 void construct_update(StringHash eventType, VariantMap& eventData)
@@ -252,10 +272,8 @@ void construct_update(StringHash eventType, VariantMap& eventData)
     if (grabbed !is null)
     {
         grabbed.position = renderer.viewports[0].camera.node.LocalToWorld(Vector3(mouseCenter.x * dist, mouseCenter.y * dist, dist));
-        
     }
-    
-    
+
 }
 
 void test_update(StringHash eventType, VariantMap& eventData)

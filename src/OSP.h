@@ -135,6 +135,9 @@ public:
     void process_directory(const String& path);
     void register_parts(const GLTFFile* gltf);
     void make_craft(Node* node);
+    
+private:
+    void part_node_recurse(Node* partRoot, Node* node);
 };
 
 }

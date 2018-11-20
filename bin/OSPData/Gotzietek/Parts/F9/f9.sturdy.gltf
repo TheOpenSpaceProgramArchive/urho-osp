@@ -253,6 +253,7 @@
                 "country" : "United States",
                 "description" : "Elon's RP-1 powered Linear Beef",
                 "manufacturer" : "SpaceX",
+                "massdry": 22200,
                 "name" : "Falcon 9 Block 4"
             },
             "name" : "part_F9"

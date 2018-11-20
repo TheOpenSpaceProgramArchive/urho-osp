@@ -133,6 +133,8 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         aPart->SetVar("description", "A simple oddly shaped cube");
         aPart->SetVar("manufacturer", "Gotzietec Industries");
         aPart->SetVar("name", "Cube "  + String(i));
+        aPart->SetVar("massdry", Pow(0.05f * (i + 1), 3.0f));
+        aPart->SetVar("prototype", aPart); // stored as WeakPtr
 
         // Tweakscale it based on i
         aPart->SetScale(0.05f * (i + 1));
@@ -149,9 +151,9 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         model->SetMaterial(GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Floor0.json"));
 
         // Give it physics, and set it's mass to size^3
-        RigidBody* rb = aPart->CreateComponent<RigidBody>();
-        rb->SetMass(Pow(0.05f * (i + 1), 3.0f));
-        rb->SetEnabled(false);
+        //RigidBody* rb = aPart->CreateComponent<RigidBody>();
+        //rb->SetMass(Pow(0.05f * (i + 1), 3.0f));
+        //rb->SetEnabled(false);
 
         // Give it collisions, default shape is already a unit cube
         // and is affected by scale
@@ -275,34 +277,84 @@ void SystemOsp::register_parts(const GLTFFile* gltf)
     // don't make this a reference, original will be modified
     const Vector<SharedPtr<Node>> children = gltfScene->GetChildren();
 
-    for (SharedPtr<Node> node : children)
+    for (SharedPtr<Node> part : children)
     {
-        String partName = node->GetName();
-        URHO3D_LOGINFOF("Node: %s", partName.CString());
+        String partName = part->GetName();
+
+        // Any node that is prefixed with part_ will be a part usable in game
         if (partName.StartsWith("part_"))
         {
 
             // This is a part, parse it
-            const VariantMap& vars = node->GetVars();
+            const VariantMap& vars = part->GetVars();
             const JSONObject* extras = reinterpret_cast<JSONObject*>(vars["extras"]->GetVoidPtr());
 
             if (!extras)
                 continue;
 
-            node->SetVar("country", GLTFFile::StringValue((*extras)["country"]));
-            node->SetVar("description", GLTFFile::StringValue((*extras)["description"]));
-            node->SetVar("manufacturer", GLTFFile::StringValue((*extras)["manufacturer"]));
-            node->SetVar("name", GLTFFile::StringValue((*extras)["name"]));
+            part->SetVar("country", GLTFFile::StringValue((*extras)["country"]));
+            part->SetVar("description", GLTFFile::StringValue((*extras)["description"]));
+            part->SetVar("manufacturer", GLTFFile::StringValue((*extras)["manufacturer"]));
+            part->SetVar("name", GLTFFile::StringValue((*extras)["name"]));
+            part->SetVar("massdry", (*extras)["massdry"]->GetFloat());
+            part->SetVar("prototype", Variant(part.Get())); // stored as WeakPtr
 
             URHO3D_LOGINFOF("Name: %s", GLTFFile::StringValue((*extras)["name"]).CString());
             //URHO3D_LOGINFOF("Description: %s", GLTFFile::StringValue((*extras)["description"]).CString());
             //URHO3D_LOGINFOF("Cost: %s", GLTFFile::StringValue((*extras)["cost"]).CString());
 
-            node->SetName(partName.Substring(5));
+            part->SetName(partName.Substring(5));
+            part->SetPosition(Vector3::ZERO);
 
-            m_parts->GetChild("dbg")->AddChild(node.Get());
-            //node->SetParent(m_parts.Get());
+            const Vector<SharedPtr<Node>>& partChildren = part->GetChildren();
+
+            for (SharedPtr<Node> node : partChildren)
+            {
+                part_node_recurse(part, node);
+            }
+
+            m_parts->GetChild("dbg")->AddChild(part.Get());
+
         }
+    }
+}
+
+void SystemOsp::part_node_recurse(Node* partRoot, Node* node)
+{
+    const VariantMap& vars = node->GetVars();
+    //const JSONObject* extras = reinterpret_cast<JSONObject*>(vars["extras"]->GetVoidPtr());
+
+    if (node->GetName().StartsWith("col_"))
+    {
+        const Vector3& pos = node->GetPosition();
+        const Vector3& scale = node->GetScale();
+        const Quaternion& rot = node->GetRotation();
+
+        const String& shapeType = "";//GLTFFile::StringValue((*extras)["shape"]);
+
+        CollisionShape* shape = node->GetParent()->CreateComponent<CollisionShape>();
+
+        if (shapeType == "cylinder")
+        {
+            shape->SetCylinder(Min(scale.x_, scale.z_), scale.y_, pos, rot);
+        }
+        else
+        {
+            // Cube is default shape
+            shape->SetBox(scale, pos, rot);
+        }
+
+        URHO3D_LOGINFOF("Shape made on: %s", node->GetParent()->GetName().CString());
+
+        // don't loop through children
+        return;
+    }
+
+    const Vector<SharedPtr<Node>>& children = node->GetChildren();
+
+    for (SharedPtr<Node> node : children)
+    {
+        part_node_recurse(partRoot, node);
     }
 }
 

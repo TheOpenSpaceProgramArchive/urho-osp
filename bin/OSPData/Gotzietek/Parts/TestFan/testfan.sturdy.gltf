@@ -227,6 +227,7 @@
                 "country" : "Canarda",
                 "description" : "A fan made for the dollar store.",
                 "manufacturer" : "Gotzietec Industries",
+                "massdry": 2,
                 "name" : "Vintage $200 Fan"
             },
             "name" : "part_TestFan"
