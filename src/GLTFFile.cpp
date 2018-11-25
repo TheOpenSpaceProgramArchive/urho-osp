@@ -167,7 +167,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
 
             JSONValue* uri = buffer["uri"];
 
-            if (uri == NULL)
+            if (uri == nullptr)
             {
                 URHO3D_LOGERROR("Buffer has no uri");
                 return false;
@@ -179,15 +179,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
                 return false;
             }
 
-            //URHO3D_LOGINFO(uri->GetString());
-            //URHO3D_LOGINFO(source.GetName());
-
-            // Set binPath to the path to the GLTF resource, ("path/to/file.gltf")
-            String binPath(source.GetName());
-
-            // Trim off the filename to get directory, and add the .bin filename ("path/to/" + "binary.bin")
-            binPath = binPath.Substring(0, binPath.FindLast('/') + 1) + uri->GetString();
-            //URHO3D_LOGINFO("Binpath: " + binPath);
+            const String binPath = UriToResourcePath(uri->GetString());
 
             // The GLTF binary is just raw vertex/index/texCoord/... data, no headers or anything else
             SharedPtr<File> binFile = GetSubsystem<ResourceCache>()->GetFile(binPath, false);
@@ -216,6 +208,81 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             //buffers_.Push(binData);
 
         }
+    }
+
+    // Start loading images
+    if (rootObj.Contains("images"))
+    {
+        if (!rootObj["images"]->IsArray())
+        {
+            URHO3D_LOGERROR("Images section must be an array");
+            return false;
+        }
+
+        const JSONArray& images = rootObj["images"]->GetArray();
+
+        images_.Reserve(images.Size());
+
+        for (int i = 0; i < images.Size(); i ++)
+        {
+            SharedPtr<Image> img(new Image(context_));
+            images_.Push(img);
+
+            if (!images[i].IsObject())
+            {
+                URHO3D_LOGERROR("Incorrect definition of image");
+                continue    ;
+            }
+
+            const JSONObject& imgObj = images[i].GetObject();
+
+            JSONValue* uri = imgObj["uri"];
+
+            if (!uri)
+            {
+                URHO3D_LOGERROR("Image has no uri");
+                continue;
+            }
+
+            if (!uri->IsString())
+            {
+                URHO3D_LOGERROR("Image URI must be a string");
+                continue;
+            }
+
+            const String imgPath = UriToResourcePath(uri->GetString());
+
+            SharedPtr<File> imgFile = GetSubsystem<ResourceCache>()->GetFile(imgPath, false);
+            if (!imgFile)
+            {
+                URHO3D_LOGERROR("Failed to load GLTF binary file: " + imgPath);
+            }
+
+        }
+
+    }
+
+    // Start loading materials
+    if (rootObj.Contains("materials"))
+    {
+        if (!rootObj["materials"]->IsArray())
+        {
+            URHO3D_LOGERROR("Materials section must be an array");
+            return false;
+        }
+
+        const JSONArray& materials = rootObj["materials"]->GetArray();
+
+        materials_.Resize(materials.Size());
+
+        // Loop through materials array
+        for (int i = 0; i < materials.Size(); i ++)
+        {
+            SharedPtr<Material> material(new Material(context_));
+            material->SetFillMode(FILL_WIREFRAME);
+            materials_[i] = material;
+        }
+
     }
 
     // Start loading meshes
@@ -247,6 +314,8 @@ bool GLTFFile::BeginLoad(Deserializer& source)
 
         // meshes section in the GLTF file
         const JSONArray& meshes = rootObj["meshes"]->GetArray();
+
+        meshMaterialIndices_.Reserve(meshes.Size());
 
         // Loop through meshes array
         for (int i = 0; i < meshes.Size(); i ++)
@@ -280,8 +349,15 @@ bool GLTFFile::BeginLoad(Deserializer& source)
 
             const JSONArray& primitives = mesh["primitives"]->GetArray();
 
+            meshMaterialIndices_.Push(PODVector<int>(primitives.Size(), -1));
+
             Vector<SharedPtr<VertexBuffer> > vertList;
             Vector<SharedPtr<IndexBuffer> > indList;
+
+            // Add an unsigned vector as metadata
+            // This is because material in gltf is stored per primitive
+            // (this doesn't work because metadata is readonly)
+            //model->AddMetadata("material", CustomVariantValueImpl<PODVector<unsigned>>(PODVector<unsigned>()));
 
             for (int j = 0; j < primitives.Size(); j ++)
             {
@@ -292,7 +368,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
                 }
 
                 // Call ParsePrimitive because there are too many code blocks
-                if (!ParsePrimitive(primitives[j].GetObject(), *model, vertList, indList))
+                if (!ParsePrimitive(primitives[j].GetObject(), i, *model, vertList, indList))
                 {
                     return false;
                 }
@@ -358,10 +434,22 @@ bool GLTFFile::EndLoad()
     return true;
 }
 
-bool GLTFFile::ParsePrimitive(const JSONObject &object, Model &model, Vector<SharedPtr<VertexBuffer> >& vertList, Vector<SharedPtr<IndexBuffer> >& indList)
+bool GLTFFile::ParsePrimitive(const JSONObject &object, int modelIndex, Model &model, Vector<SharedPtr<VertexBuffer> >& vertList, Vector<SharedPtr<IndexBuffer> >& indList)
 {
     // Index of new geometry to add
     unsigned index = model.GetNumGeometries();
+
+    // Get material value if used
+    if (object.Contains("material"))
+    {
+        const JSONValue& value = *(object["material"]);
+        if (value.IsNumber())
+        {
+            unsigned material = value.GetInt();
+            URHO3D_LOGINFOF("MATERIAL FOUUUUUUUND %u", material);
+            meshMaterialIndices_[modelIndex][index] = material;
+        }
+    }
 
     // Start parsing attributes
 
@@ -677,6 +765,12 @@ BufferAccessor GLTFFile::ParseAccessor(unsigned index)
     return result;
 }
 
+String GLTFFile::UriToResourcePath(const String &in) const
+{
+    const String& name = GetName();
+    return name.Substring(0, name.FindLast('/') + 1) + in;
+}
+
 /**
  *
  * @param index [in] Index of scene defined in the JSON
@@ -827,6 +921,19 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
             {
                 StaticModel* model = node->CreateComponent<StaticModel>();
                 model->SetModel(meshes_[index]);
+
+                // For multiple geometries with different materials
+
+                for (int i = 0; i < model->GetNumGeometries(); i ++)
+                {
+                    if (meshMaterialIndices_[index][i] != -1)
+                    {
+                        // Material is defined for this geometry
+                        URHO3D_LOGINFOF("moist bird: %u", meshMaterialIndices_[index][i]);
+                        materials_[meshMaterialIndices_[index][i]]->SetFillMode(FILL_WIREFRAME);
+                        model->SetMaterial(i, materials_[meshMaterialIndices_[index][i]]);
+                    }
+                }
             }
             else
             {

@@ -4,9 +4,11 @@
 #include <Urho3D/Core/Context.h>
 #include <Urho3D/Graphics/Model.h>
 #include <Urho3D/Graphics/Texture.h>
+#include <Urho3D/Graphics/Material.h>
 #include <Urho3D/IO/File.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Resource/JSONFile.h>
+#include <Urho3D/Resource/Image.h>
 
 using namespace Urho3D;
 
@@ -71,6 +73,7 @@ public:
     SharedPtr<Node> GetNode(unsigned index) const;
     SharedPtr<Scene> GetScene(unsigned index) const;
     void GetScene(unsigned index, Node* addTo) const;
+    inline String UriToResourcePath(const String& in) const;
     const Vector<SharedPtr<Model>>& Getmeshes() const { return meshes_; }
 
 private:
@@ -83,11 +86,16 @@ private:
     //Vector<SharedArrayPtr<unsigned char>> buffers_;
     Vector<SharedPtr<File>> buffers_;
     Vector<SharedPtr<Model>> meshes_;
+    Vector<SharedPtr<Material>> materials_;
+    Vector<SharedPtr<Image>> images_;
+    Vector<PODVector<int>> meshMaterialIndices_;
     Vector<AsyncBufferData> asyncLoading_;
+
     //Vector<WeakPtr<Texture>> textures_;
     //Vector<Vector<Pair<SharedArrayPtr<unsigned char>, SharedArrayPtr<unsigned char>>>> bufData;
 
-    bool ParsePrimitive(const JSONObject& object, Model& model, Vector<SharedPtr<VertexBuffer> >& vertList, Vector<SharedPtr<IndexBuffer> >& indList);
+    bool ParsePrimitive(const JSONObject& object, int modelIndex, Model& model, Vector<SharedPtr<VertexBuffer> >& vertList, Vector<SharedPtr<IndexBuffer> >& indList);
+    bool ParseMaterial(const JSONObject& object);
     BufferAccessor ParseAccessor(unsigned index);
 };
 

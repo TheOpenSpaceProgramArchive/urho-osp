@@ -267,7 +267,7 @@ void SystemOsp::process_directory(const String& path)
 void SystemOsp::register_parts(const GLTFFile* gltf)
 {
     // Doesn't need to be an actual scene, just make it a node
-    Node* gltfScene = m_hiddenScene->CreateChild("gltf_" + gltf->GetNameHash());
+    Node* gltfScene = m_hiddenScene->CreateChild("gltf_" + gltf->GetNameHash().ToString());
 
     URHO3D_LOGINFOF("Registering part: %s", gltf->GetName().CString());
 

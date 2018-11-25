@@ -69,7 +69,7 @@ void MachineRocket::FixedUpdate(float timeStep)
     //    printf("aaa %p\n", colliders[j].GetVoidPtr());
     //}
 
-    VariantVector colliders = node_->GetVar("Colliders").GetVariantVector();
+    VariantVector colliders = node_->GetVar("colliders").GetVariantVector();
     CollisionShape* collider = static_cast<CollisionShape*>(colliders[0].GetPtr());
     //printf("COM: %s\n", rb->GetCenterOfMass().ToString().CString());
 
