@@ -1,7 +1,8 @@
 #include <Urho3D/AngelScript/Script.h>
 #include <Urho3D/AngelScript/ScriptFile.h>
-#include <Urho3D/Graphics/Renderer.h>
+#include <Urho3D/Graphics/Material.h>
 #include <Urho3D/Graphics/StaticModel.h>
+#include <Urho3D/Graphics/Technique.h>
 #include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
@@ -148,7 +149,11 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         model->SetModel(GetSubsystem<ResourceCache>()->GetResource<Model>("Models/Box.mdl"));
         //model->SetModel(f->GetMeshs()[0]);
 
-        model->SetMaterial(GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Floor0.json"));
+        Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Floor0.json");
+        //m->SetTexture(TU_DIFFUSE, GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Floor0.json")->GetTexture(TU_DIFFUSE));
+        //m->SetTechnique(0, GetSubsystem<ResourceCache>()->GetResource<Technique>("Techniques/DiffUnlit.xml"));
+
+        model->SetMaterial(m);
 
         // Give it physics, and set it's mass to size^3
         //RigidBody* rb = aPart->CreateComponent<RigidBody>();
@@ -365,5 +370,12 @@ void SystemOsp::part_node_recurse(Node* partRoot, Node* node)
 void SystemOsp::make_craft(Node* node)
 {
     node->CreateComponent<Entity>();
+    PODVector<Node*> printthese = node->GetChildrenWithComponent("StaticModel", true);
 
+    //for (Node* n : printthese)
+    //{
+    //    Material* m = n->GetComponent<StaticModel>()->GetMaterial();
+    //    URHO3D_LOGINFOF("Material Scene: %p", m);
+    //    m->SetScene(GetSubsystem<Renderer>()->GetViewport(0)->GetScene());
+    //}
 }

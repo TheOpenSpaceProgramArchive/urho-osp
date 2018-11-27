@@ -1,7 +1,10 @@
 #include <Urho3D/Graphics/Geometry.h>
 #include <Urho3D/Graphics/IndexBuffer.h>
 #include <Urho3D/Graphics/StaticModel.h>
+#include <Urho3D/Graphics/Technique.h>
 #include <Urho3D/Graphics/VertexBuffer.h>
+#include <Urho3D/Graphics/Camera.h>
+#include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/IO/Log.h>
 #include <Urho3D/Math/Sphere.h>
@@ -17,7 +20,6 @@ GLTFFile::GLTFFile(Context* context) :
 
 GLTFFile::~GLTFFile()
 {
-
 }
 
 void GLTFFile::RegisterObject(Context* context)
@@ -134,6 +136,8 @@ bool GLTFFile::BeginLoad(Deserializer& source)
     // Load the JSON
     JSONFile::BeginLoad(source);
 
+    ResourceCache* cache = GetSubsystem<ResourceCache>();
+
     // See this for more information, very important to understanding this
     // https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
 
@@ -182,7 +186,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             const String binPath = UriToResourcePath(uri->GetString());
 
             // The GLTF binary is just raw vertex/index/texCoord/... data, no headers or anything else
-            SharedPtr<File> binFile = GetSubsystem<ResourceCache>()->GetFile(binPath, false);
+            SharedPtr<File> binFile = cache->GetFile(binPath, false);
 
             if (!binFile)
             {
@@ -231,7 +235,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             if (!images[i].IsObject())
             {
                 URHO3D_LOGERROR("Incorrect definition of image");
-                continue    ;
+                continue;
             }
 
             const JSONObject& imgObj = images[i].GetObject();
@@ -255,34 +259,19 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             SharedPtr<File> imgFile = GetSubsystem<ResourceCache>()->GetFile(imgPath, false);
             if (!imgFile)
             {
-                URHO3D_LOGERROR("Failed to load GLTF binary file: " + imgPath);
+                URHO3D_LOGERROR("Failed to load GLTF image file: " + imgPath);
+                continue;
             }
 
+            // Stuff from Texture2D.cpp
+
+            if (!img->Load(*imgFile))
+            {
+                img.Reset();
+                URHO3D_LOGERROR("Failed to load GLTF image file: " + imgPath);
+                continue;
+            }
         }
-
-    }
-
-    // Start loading materials
-    if (rootObj.Contains("materials"))
-    {
-        if (!rootObj["materials"]->IsArray())
-        {
-            URHO3D_LOGERROR("Materials section must be an array");
-            return false;
-        }
-
-        const JSONArray& materials = rootObj["materials"]->GetArray();
-
-        materials_.Resize(materials.Size());
-
-        // Loop through materials array
-        for (int i = 0; i < materials.Size(); i ++)
-        {
-            SharedPtr<Material> material(new Material(context_));
-            material->SetFillMode(FILL_WIREFRAME);
-            materials_[i] = material;
-        }
-
     }
 
     // Start loading meshes
@@ -332,7 +321,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
 
             if (mesh.Contains("name"))
             {
-                model->SetName(mesh["name"]->GetString());
+                model->SetName(GetName() + "/Mesh_" + mesh["name"]->GetString());
             }
 
             if (!mesh.Contains("primitives"))
@@ -384,7 +373,7 @@ bool GLTFFile::BeginLoad(Deserializer& source)
             model->SetVertexBuffers(vertList, morphRangeStarts, morphRangeCounts);
             model->SetIndexBuffers(indList);
 
-            GetSubsystem<ResourceCache>()->AddManualResource(model);
+            cache->AddManualResource(model);
             meshes_.Push(model);
         }
 
@@ -431,6 +420,175 @@ bool GLTFFile::EndLoad()
     // This should also de-allocate vertData_ and indData_, generated in ParsePrimitive
     asyncLoading_.Clear();
 
+    const JSONObject& rootObj = GetRoot().GetObject();
+
+    // Set texture data
+    // Most of it is GPU side setting data
+    // Start loading textures
+    if (rootObj.Contains("textures"))
+    {
+        if (!rootObj["textures"]->IsArray())
+        {
+            URHO3D_LOGERROR("Textures section must be an array");
+            return false;
+        }
+
+        const JSONArray& textures = rootObj["textures"]->GetArray();
+
+        textures_.Resize(textures.Size());
+
+        for (int i = 0; i < textures.Size(); i ++)
+        {
+
+            textures_[i] = SharedPtr<Texture2D>(new Texture2D(context_));
+
+            if (!textures[i].IsObject())
+            {
+                URHO3D_LOGERROR("Texture must be an object");
+                continue;
+            }
+
+            const JSONObject& texObj = textures[i].GetObject();
+
+            // The longer I code, the more different methods I use to error check
+            if (JSONValue* tex = texObj["source"])
+            {
+                if (tex->IsNumber())
+                {
+                    int imgIndex = tex->GetInt();
+                    textures_[i]->SetData(images_[imgIndex], images_[imgIndex]->HasAlphaChannel());
+                }
+                else
+                {
+                    URHO3D_LOGERROR("Texture.source must be a number");
+                    continue;
+                }
+            }
+            else
+            {
+                URHO3D_LOGERROR("Texture has no source");
+                continue;
+            }
+        }
+    }
+
+    // Start loading materials
+    if (rootObj.Contains("materials"))
+    {
+        if (!rootObj["materials"]->IsArray())
+        {
+            URHO3D_LOGERROR("Materials section must be an array");
+            return false;
+        }
+
+        const JSONArray& matArray = rootObj["materials"]->GetArray();
+
+        materials_.Resize(matArray.Size());
+
+        // Loop through materials array
+        for (int i = 0; i < matArray.Size(); i ++)
+        {
+            SharedPtr<Material> mat(new Material(context_));
+            mat->SetName(GetName() + "/Material_" + StringValue(&(matArray[i])));
+            mat->SetScene(GetSubsystem<Renderer>()->GetViewport(0)->GetScene());
+
+            GetSubsystem<ResourceCache>()->AddManualResource(mat);
+            materials_[i] = mat;
+
+            if (!matArray[i].IsObject())
+            {
+                continue;
+            }
+
+            const JSONObject& matObj = matArray[i].GetObject();
+
+            if (JSONValue* normalTexture = matObj["normalTexture"])
+            {
+                if (!normalTexture->IsObject())
+                {
+                    continue;
+                }
+                if (JSONValue* index = normalTexture->GetObject()["index"])
+                {
+                    unsigned texIndex = index->GetUInt();
+
+                    // check on index
+                    if (textures_.Size() <= texIndex)
+                    {
+                        continue;
+                    }
+
+                    mat->SetTexture(TU_NORMAL, textures_[texIndex]);
+                }
+            }
+
+            if (JSONValue* pbrVal = matObj["pbrMetallicRoughness"])
+            {
+
+                const JSONObject& pbrObj = pbrVal->GetObject();
+
+                if (JSONValue* baseColorTexture = pbrObj["baseColorTexture"])
+                {
+                    if (!baseColorTexture->IsObject())
+                    {
+                        continue;
+                    }
+                    if (JSONValue* index = baseColorTexture->GetObject()["index"])
+                    {
+                        unsigned texIndex = index->GetUInt();
+
+                        // check on index
+                        if (textures_.Size() <= texIndex)
+                        {
+                            continue;
+                        }
+
+                        mat->SetTexture(TU_DIFFUSE, textures_[texIndex]);
+                    }
+                }
+
+                if (JSONValue* metallicRoughnessTexture = pbrObj["metallicRoughnessTexture"])
+                {
+                    if (!metallicRoughnessTexture->IsObject())
+                    {
+                        continue;
+                    }
+                    if (JSONValue* index = metallicRoughnessTexture->GetObject()["index"])
+                    {
+                        unsigned texIndex = index->GetUInt();
+
+                        // check on index
+                        if (textures_.Size() <= texIndex)
+                        {
+                            continue;
+                        }
+
+                        mat->SetTexture(TU_SPECULAR, textures_[texIndex]);
+                    }
+                }
+            }
+
+            // TODO: Determine which technique to use based on values provided
+            mat->SetTechnique(0, GetSubsystem<ResourceCache>()->GetResource<Technique>("Techniques/PBR/PBRMetallicRoughDiffNormalSpec.xml"));
+        }
+    }
+
+    // Used for debugging
+    //if (materials_.Size() != 0)
+    //{
+    //    materials_[0] = SharedPtr<Material>(new Material(context_));
+    //    //materials_[0] = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Floor0.json");
+    //    materials_[0]->SetScene(GetSubsystem<Renderer>()->GetViewport(0)->GetScene());
+    //    //materials_[0] = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Floor0.json");
+    //    materials_[0]->SetTechnique(0, GetSubsystem<ResourceCache>()->GetResource<Technique>("Techniques/PBR/PBRDiff.xml"));
+    //    materials_[0]->SetTexture(TU_DIFFUSE, textures_[0]);
+    //    materials_[0]->SetTexture(TU_NORMAL, textures_[1]);
+    //    materials_[0]->SetTexture(TU_SPECULAR, textures_[2]);
+    //    materials_[0]->SetName("McMaterial");
+    //    GetSubsystem<ResourceCache>()->AddManualResource(materials_[0]);
+    //    URHO3D_LOGINFO("asdkljadkglafghjksglalglajegoieruoieyug;hg;sdhigjsdfbjdljg.ildsjfg");
+    //}
+
     return true;
 }
 
@@ -446,7 +604,6 @@ bool GLTFFile::ParsePrimitive(const JSONObject &object, int modelIndex, Model &m
         if (value.IsNumber())
         {
             unsigned material = value.GetInt();
-            URHO3D_LOGINFOF("MATERIAL FOUUUUUUUND %u", material);
             meshMaterialIndices_[modelIndex][index] = material;
         }
     }
@@ -532,6 +689,36 @@ bool GLTFFile::ParsePrimitive(const JSONObject &object, int modelIndex, Model &m
 
         } else {
             URHO3D_LOGERROR("Normals attribute must be a number");
+            return false;
+        }
+    }
+
+    // Load Tangent data
+    if (attributes.Contains("TANGENT"))
+    {
+        if (attributes["TANGENT"]->IsNumber())
+        {
+            // Read from JSON and into this BufferAccessor
+            BufferAccessor bufAcc(ParseAccessor(attributes["TANGENT"]->GetUInt()));
+
+            // Check if ParseAccessor was succesful
+            // See the line that reads "result.buffer = buffers_.Size();"
+            if (bufAcc.buffer == buffers_.Size())
+            {
+                return false;
+            }
+
+            bufAcc.vertexElement = VertexElement(TYPE_VECTOR4, SEM_TANGENT);
+            elements.Push(bufAcc.vertexElement);
+
+            bufAcc.vertexOffset = vertexByteSize;
+            vertexByteSize += bufAcc.componentType * bufAcc.components;
+            vertexCount = bufAcc.count;
+
+            bufferAccessors.Push(bufAcc);
+
+        } else {
+            URHO3D_LOGERROR("Tangents attribute must be a number");
             return false;
         }
     }
@@ -915,7 +1102,7 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
         {
 
             unsigned index = meshIndex.GetUInt();
-            URHO3D_LOGINFOF("Mesh used: %u", index);
+            //URHO3D_LOGINFOF("Mesh used: %u", index);
 
             if (meshes_.Size() > index)
             {
@@ -929,9 +1116,7 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
                     if (meshMaterialIndices_[index][i] != -1)
                     {
                         // Material is defined for this geometry
-                        URHO3D_LOGINFOF("moist bird: %u", meshMaterialIndices_[index][i]);
-                        materials_[meshMaterialIndices_[index][i]]->SetFillMode(FILL_WIREFRAME);
-                        model->SetMaterial(i, materials_[meshMaterialIndices_[index][i]]);
+                        model->SetMaterial(i, materials_[meshMaterialIndices_[index][i]].Get());
                     }
                 }
             }

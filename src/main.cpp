@@ -129,6 +129,15 @@ public:
         // Initialize OSP system
         m_osp = new SystemOsp(context_);
 
+        // Create empty scene
+        m_scene = new Scene(context_);
+
+        // Add a single viewport
+        Renderer* renderer = GetSubsystem<Renderer>();
+        SharedPtr<Viewport> viewport(new Viewport(context_));
+        viewport->SetScene(m_scene);
+        renderer->SetViewport(0, viewport);
+
         // Get Angelscript working
         context_->RegisterSubsystem(new Script(context_));
 
@@ -174,15 +183,6 @@ public:
         {
             m_osp->process_directory(ospDir + name);
         }
-
-        // Create empty scene
-        m_scene = new Scene(context_);
-
-        // Add a single viewport
-        Renderer* renderer = GetSubsystem<Renderer>();
-        SharedPtr<Viewport> viewport(new Viewport(context_));
-        viewport->SetScene(m_scene);
-        renderer->SetViewport(0, viewport);
 
         // Don't grab the mouse
         GetSubsystem<Input>()->SetMouseGrabbed(false);

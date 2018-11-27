@@ -1,7 +1,7 @@
 {
 	"techniques": [
 		{
-			"name": "Techniques/Diff.xml",
+			"name": "Techniques/PBR/PBRDiff.xml",
 			"quality": 1,
 			"loddistance": 0.0
 		}
@@ -16,7 +16,7 @@
 		"MatEmissiveColor": "0 0 0",
 		"MatEnvMapColor": "1 1 1",
 		"MatSpecColor": "0.3 0.3 0.3 16",
-		"Roughness": "0.5",
+		"Roughness": "0.2",
 		"Metallic": "0"
 	},
 	"shaderParameterAnimations": null,

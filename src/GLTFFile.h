@@ -3,7 +3,7 @@
 #include <Urho3D/Container/Vector.h>
 #include <Urho3D/Core/Context.h>
 #include <Urho3D/Graphics/Model.h>
-#include <Urho3D/Graphics/Texture.h>
+#include <Urho3D/Graphics/Texture2D.h>
 #include <Urho3D/Graphics/Material.h>
 #include <Urho3D/IO/File.h>
 #include <Urho3D/Scene/Scene.h>
@@ -74,7 +74,8 @@ public:
     SharedPtr<Scene> GetScene(unsigned index) const;
     void GetScene(unsigned index, Node* addTo) const;
     inline String UriToResourcePath(const String& in) const;
-    const Vector<SharedPtr<Model>>& Getmeshes() const { return meshes_; }
+    const Vector<SharedPtr<Material>>& GetMaterials() const { return materials_; }
+    const Vector<SharedPtr<Model>>& GetMeshes() const { return meshes_; }
 
 private:
 
@@ -88,6 +89,7 @@ private:
     Vector<SharedPtr<Model>> meshes_;
     Vector<SharedPtr<Material>> materials_;
     Vector<SharedPtr<Image>> images_;
+    Vector<SharedPtr<Texture2D>> textures_;
     Vector<PODVector<int>> meshMaterialIndices_;
     Vector<AsyncBufferData> asyncLoading_;
 

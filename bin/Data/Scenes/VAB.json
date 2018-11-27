@@ -8,8 +8,8 @@
 		"Elapsed Time": 3.1755282878875734,
 		"Next Replicated Node ID": 18,
 		"Next Replicated Component ID": 36,
-		"Next Local Node ID": 16777234,
-		"Next Local Component ID": 16777432,
+		"Next Local Node ID": 16777235,
+		"Next Local Component ID": 16777444,
 		"Variables": {},
 		"Variable Names": ""
 	},
@@ -44,7 +44,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -576160
+				"Play Position": -574912
 			}
 		},
 		{
@@ -78,7 +78,6 @@
 					"type": "RigidBody",
 					"id": 19,
 					"attributes": {
-						"Physics Rotation": "1 0 0 0",
 						"Physics Position": "0 -2.1 0",
 						"Friction": 0.0,
 						"Anisotropic Friction": "0 0 0",
@@ -117,36 +116,37 @@
 					"attributes": {
 						"Light Type": "Directional",
 						"Color": "1 1 1.01 1",
-						"Brightness Multiplier": 0.800000011920929
+						"Brightness Multiplier": 20.0
 					}
 				}
 			],
-			"children": []
-		},
-		{
-			"id": 5,
-			"attributes": {
-				"Is Enabled": true,
-				"Name": "FloorLight",
-				"Tags": [],
-				"Position": "0 1.74172 0",
-				"Rotation": "0.707107 -0.707107 0 0",
-				"Scale": "1 1 1",
-				"Variables": {}
-			},
-			"components": [
+			"children": [
 				{
-					"type": "Light",
 					"id": 5,
 					"attributes": {
-						"Light Type": "Directional",
-						"Color": "0.9 0.9 1 1",
-						"Specular Intensity": 0.0,
-						"Brightness Multiplier": 0.4000000059604645
-					}
+						"Is Enabled": true,
+						"Name": "FloorLight",
+						"Tags": [],
+						"Position": "0 0 0",
+						"Rotation": "-0.0805217 0.920364 0.381227 0.0333529",
+						"Scale": "1 1 1",
+						"Variables": {}
+					},
+					"components": [
+						{
+							"type": "Light",
+							"id": 5,
+							"attributes": {
+								"Light Type": "Directional",
+								"Color": "0.9 0.9 1 1",
+								"Specular Intensity": 0.0,
+								"Brightness Multiplier": 0.4000000059604645
+							}
+						}
+					],
+					"children": []
 				}
-			],
-			"children": []
+			]
 		},
 		{
 			"id": 8,
@@ -177,7 +177,7 @@
 		{
 			"id": 14,
 			"attributes": {
-				"Is Enabled": true,
+				"Is Enabled": false,
 				"Name": "Box",
 				"Tags": [],
 				"Position": "3.00322 -1.47087 -4.35253",
@@ -246,7 +246,6 @@
 					"type": "RigidBody",
 					"id": 29,
 					"attributes": {
-						"Physics Rotation": "1 0 0 0",
 						"Physics Position": "0 -2.60532 0",
 						"Friction": 0.0,
 						"Anisotropic Friction": "0 0 0",
