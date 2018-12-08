@@ -24,9 +24,9 @@ inline void PlanetWrenderer::set_neighbours(SubTriangle& tri, trindex bot, trind
  */
 inline void PlanetWrenderer::set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte)
 {
-    tri.m_verts[0] = top;
-    tri.m_verts[1] = lft;
-    tri.m_verts[2] = rte;
+    tri.m_corners[0] = top;
+    tri.m_corners[1] = lft;
+    tri.m_corners[2] = rte;
 }
 
 /**
@@ -50,7 +50,7 @@ inline uint8_t PlanetWrenderer::neighboor_index(SubTriangle& tri, trindex lookin
     return 255;
 }
 
-PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_chunkProfile(0), m_vertFree()
+PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFree()
 {
     // Chunk profile determines which triangles should be subdivided multiple times after a single subdivide call
     // as if the triangle can subdivide into 64 triangles instead of just 4
@@ -59,17 +59,6 @@ PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_chunkPr
     m_indCount = 0;
     m_maxDepth = 11;
 
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(0);
-    m_chunkProfile.Push(1); // When depth 8 is subdivided, subdivide again
-    m_chunkProfile.Push(1); // and subdivide the new children too
-    m_chunkProfile.Push(0);
     //m_hqDepth = 4;
 }
 
@@ -88,7 +77,7 @@ PlanetWrenderer::~PlanetWrenderer()
  */
 void PlanetWrenderer::initialize(Context* context, double size) {
 
-    m_size = size;
+    m_radius = size;
 
     // calculate proper numbers later
     m_maxTriangles = 50000;
@@ -275,9 +264,9 @@ void PlanetWrenderer::set_visible(trindex t, bool visible)
 
         // Put data into indBuf
         unsigned xz[3];
-        xz[0] = tri->m_verts[0];
-        xz[1] = tri->m_verts[1];
-        xz[2] = tri->m_verts[2];
+        xz[0] = tri->m_corners[0];
+        xz[1] = tri->m_corners[1];
+        xz[2] = tri->m_corners[2];
         m_indBuf->SetDataRange(&xz, tri->m_index, 3);
         //printf("Showing: %u %u %u \n", xz[0], xz[1], xz[2]);
 
@@ -397,12 +386,12 @@ void PlanetWrenderer::subdivide(trindex t)
 
             // Technique taken from an urho3D example
             //Vector3& vertM = (*reinterpret_cast<Vector3*>(&vertData[vertSize * tri.midVerts[i]]));
-            const Vector3& vertA = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_verts[(i + 1) % 3]));
-            const Vector3& vertB = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_verts[(i + 2) % 3]));
+            const Vector3& vertA = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_corners[(i + 1) % 3]));
+            const Vector3& vertB = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_corners[(i + 2) % 3]));
 
             Vector3 vertM[2];
             vertM[1] = ((vertA + vertB) / 2).Normalized();
-            vertM[0] = vertM[1] * m_size;
+            vertM[0] = vertM[1] * m_radius;
             //printf("VA %s, VB: %s, \n", vertA.ToString().CString(), vertB.ToString().CString());
 
             //printf("DataRange: %u\n", tri->m_midVerts[i]);
@@ -444,9 +433,9 @@ void PlanetWrenderer::subdivide(trindex t)
     }
 
     // Set verticies
-    set_verts(children[0], tri->m_verts[0], tri->m_midVerts[2], tri->m_midVerts[1]);
-    set_verts(children[1], tri->m_midVerts[2], tri->m_verts[1], tri->m_midVerts[0]);
-    set_verts(children[2], tri->m_midVerts[1], tri->m_midVerts[0], tri->m_verts[2]);
+    set_verts(children[0], tri->m_corners[0], tri->m_midVerts[2], tri->m_midVerts[1]);
+    set_verts(children[1], tri->m_midVerts[2], tri->m_corners[1], tri->m_midVerts[0]);
+    set_verts(children[2], tri->m_midVerts[1], tri->m_midVerts[0], tri->m_corners[2]);
     // The center triangle is made up of purely middle vertices.
     set_verts(children[3], tri->m_midVerts[0], tri->m_midVerts[1], tri->m_midVerts[2]);
 
@@ -465,25 +454,13 @@ void PlanetWrenderer::subdivide(trindex t)
 
     tri->m_bitmask ^= E_SUBDIVIDED;
 
-    // If the triangle is non-zero in the chunk profile, this means that it should be divided more
-    if (bool(m_chunkProfile[tri->m_depth]) && (tri->m_depth + 1 < m_maxDepth))
-    {
-        //URHO3D_LOGINFOF("Deeepth: %u", tri->m_depth);
-        // in case a reallocation happens during a subdivide, this trindex doesn't change
-        trindex childs = tri->m_children;
-        subdivide(childs + 0);
-        subdivide(childs + 1);
-        subdivide(childs + 2);
-        subdivide(childs + 3);
-    } else {
-        // Make them all visible
+    // Make them all visible
 
-        //printf("Children to show: %u\n", tri->m_children);
-        set_visible(tri->m_children + 0, true);
-        set_visible(tri->m_children + 1, true);
-        set_visible(tri->m_children + 2, true);
-        set_visible(tri->m_children + 3, true);
-    }
+    //printf("Children to show: %u\n", tri->m_children);
+    set_visible(tri->m_children + 0, true);
+    set_visible(tri->m_children + 1, true);
+    set_visible(tri->m_children + 2, true);
+    set_visible(tri->m_children + 3, true);
 
 }
 
@@ -589,9 +566,9 @@ void PlanetWrenderer::calculate_center(SubTriangle &tri)
 {
     const unsigned char* vertData = m_vertBuf->GetShadowData();
     const unsigned vertSize = m_vertBuf->GetVertexSize();
-    const Vector3& vertA = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_verts[0]));
-    const Vector3& vertB = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_verts[1]));
-    const Vector3& vertC = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_verts[2]));
+    const Vector3& vertA = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_corners[0]));
+    const Vector3& vertB = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_corners[1]));
+    const Vector3& vertC = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_corners[2]));
 
     tri.m_center = (vertA + vertB + vertC) / 3.0f;
     //printf("Center: %s\n", tri.m_center.ToString().CString());
@@ -623,7 +600,7 @@ void PlanetWrenderer::update(const Vector3& camera)
 
     // size/distance is equal to the dot product between the camera position vector, and the surface normal at the viewd edge of a perfect sphere
     // 0.45f is added because the triangles at the edge of the spehere are curved, and are still visible even when they point away from the camera.
-    m_threshold = m_size / m_cameraDist - 0.45f;
+    m_threshold = m_radius / m_cameraDist - 0.45f;
 
     //printf("Camera! %s\n", camera.ToString().CString());
     //printf("vert count: %ux\n", m_vertCount);
@@ -655,7 +632,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
     //  shouldBeSubdivided = (dot > m_threshold + 0.2f * (float(tri->m_depth) + 3.0f));
     //} else {
     //    // Measure distance instead of using angles, again more temporary code
-    //    shouldSubdivide = ((tri->m_center - m_camera).LengthSquared() < Pow(float(m_size * 7.05), 2.0f));
+    //    shouldSubdivide = ((tri->m_center - m_camera).LengthSquared() < Pow(float(m_radius * 7.05), 2.0f));
     //}
     // Measure angle
     //printf("DOT: %f\n", dot);
@@ -673,7 +650,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
     // then divide by 2^depth because subdivision
 
     // close enough approximation (should be a bit higher because it's spherical)
-    float edgeLength = (4.0 * m_size)
+    float edgeLength = (4.0 * m_radius)
                        / Sqrt(10.0 + 2.0 * Sqrt(5.0))
                        / Pow(2, int(tri->m_depth));
 
@@ -697,8 +674,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
     {
         if (shouldSubdivide)
         {
-            // magic number to not recurse into triangles that will never be subdivided
-            if (tri->m_depth < 8)
+            if (tri->m_depth < m_maxDepth)
             {
                 // triangle vector might reallocate making tri invalid, so keep a copy of m_children
                 trindex childs = tri->m_children;
@@ -707,7 +683,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
                 sub_recurse(childs + 2);
                 sub_recurse(childs + 3);
             }
-        } else if (!bool(m_chunkProfile[tri->m_depth])) {
+        } else {
             unsubdivide(t);
         }
     } else {
@@ -719,11 +695,9 @@ void PlanetWrenderer::sub_recurse(trindex t)
             }
         }
     }
+}
 
-    //find_refs(*tri);
+void PlanetWrenderer::generate_chunk(trindex t)
+{
 
-    //if (m_chunkProfile[tri->m_depth])
-    //{
-    //    sub_recurse(tri->m_children + 3);
-    //}
 }

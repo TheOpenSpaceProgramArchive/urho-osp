@@ -59,7 +59,7 @@ static constexpr const uint8_t sc_icoTemplateneighbours[20 * 3] {
 
 static const int sc_icosahedronFaceCount = 20;
 
-enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010 };
+enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010, E_CHUNKED = 0b0100 };
 
 // Index to a triangle
 typedef uint32_t trindex;
@@ -70,49 +70,86 @@ typedef uint32_t buindex;
 struct SubTriangle
 {
     trindex m_parent;
-    trindex m_children; // always has 4 children if subdivided
     trindex m_neighbours[3];
-    buindex m_midVerts[3];
-    buindex m_verts[3];
-    buindex m_index;
+    buindex m_corners[3]; // to vertex buffer, 3 corners of triangle
+
     //bool subdivided;
-    uint8_t m_bitmask; // 1: subdivided, 2: visible
+    uint8_t m_bitmask;
     uint8_t m_depth;
     Vector3 m_center;
+    // not really sure if this is worth doing
+    union {
+        // Can't have chunk data and be subdivided/visible at the same time
+        union {
+            // Data used when subdivided
+            trindex m_children; // index to first child, always has 4 children if subdivided
+            buindex m_midVerts[3]; // Bottom, Right, Left vertices in index buffer
+            buindex m_index; // to index buffer
+        };
+        union {
+            // Chunk data
+            // All these refer to the m_indBufFine
+            buindex m_chunkSides[3]; // Sides of the triangle that can be shared with other triangles
+            buindex m_chunkCorners[3]; // 3 corners of the chunk triangle
+            buindex m_chunkMeat; // center vertices of the chunk (the largest of all these three)
+        };
+        //TriChunk m_chunkData;
+    };
 };
+
+//struct TriChunk
+//{
+//    buindex[3]
+//};
 
 class PlanetWrenderer
 {
-
     bool m_ready = false;
-    double m_size;
+    bool m_fineMode;
+    double m_radius;
+
     unsigned m_maxDepth;
-    unsigned m_hqDepth;
 
     buindex m_maxTriangles;
     buindex m_maxVertice;
     buindex m_maxIndices;
 
-    Model* m_model;
-    Geometry* m_geometry;
-
-    SharedPtr<IndexBuffer> m_indBuf;
-    trindex* m_indDomain;
-    buindex m_indCount;
-
-    SharedPtr<VertexBuffer> m_vertBuf;
-    PODVector<buindex> m_vertFree;
-    buindex m_vertCount;
-
-    PODVector<SubTriangle> m_triangles;
-    PODVector<trindex> m_trianglesFree;
-
-    PODVector<uint8_t> m_chunkProfile;
-
     Vector3 m_offset;
     Vector3 m_camera;
     float m_cameraDist;
     float m_threshold;
+
+    Model* m_model;
+
+    // ** Base geometry for preview and slightly close up
+
+    Geometry* m_geometry;
+
+    SharedPtr<IndexBuffer> m_indBuf;
+    buindex m_indCount;
+
+    SharedPtr<VertexBuffer> m_vertBuf;
+    buindex m_vertCount;
+
+    // List of all triangles
+    PODVector<SubTriangle> m_triangles;
+    // Records empty spaces in the triangle class array
+    PODVector<trindex> m_trianglesFree;
+    // Records empty spaces in the vertex buffer GPU data
+    PODVector<buindex> m_vertFree;
+    // Map index buffer indices to triangle indices
+    // m_indDomain[buindex] = trindex
+    trindex* m_indDomain;
+
+    // Geometry for fine details (chunks)
+
+    Geometry* m_geometryFine;
+
+    SharedPtr<IndexBuffer> m_indBufFine;
+    buindex m_indCountFine;
+
+    SharedPtr<VertexBuffer> m_vertBuffFine;
+    buindex m_vertCountFine;
 
 public:
 
@@ -139,8 +176,9 @@ protected:
 
     void set_side_recurse(SubTriangle& tri, uint8_t side, trindex to);
     void set_visible(trindex t, bool visible);
-
     void sub_recurse(trindex t);
+
+    void generate_chunk(trindex t);
 
     inline SubTriangle* get_triangle(trindex t) { return m_triangles.Buffer() + t; }
 

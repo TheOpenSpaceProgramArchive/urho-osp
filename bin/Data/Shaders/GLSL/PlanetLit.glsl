@@ -51,7 +51,7 @@ void VS()
     vec3 worldPos = GetWorldPos(modelMatrix);
     vNormal = GetWorldNormal(modelMatrix);
     vWorldPos = vec4(worldPos, GetDepth(gl_Position));
-    gl_Position = GetClipPos(worldPos + vNormal * 1.0 * rand(worldPos.xy));
+    gl_Position = GetClipPos(worldPos);
 
     #ifdef VERTEXCOLOR
         vColor = iColor;
