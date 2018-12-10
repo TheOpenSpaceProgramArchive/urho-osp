@@ -64,6 +64,9 @@ enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010, E_CHUN
 // Index to a triangle
 typedef uint32_t trindex;
 
+// Index to a chunk
+typedef unsigned chindex;
+
 // Index to a buffer
 typedef uint32_t buindex;
 
@@ -77,24 +80,26 @@ struct SubTriangle
     uint8_t m_bitmask;
     uint8_t m_depth;
     Vector3 m_center;
-    // not really sure if this is worth doing
-    union {
-        // Can't have chunk data and be subdivided/visible at the same time
-        union {
+
+    // Triangle will never be subdivided and chunked at the same time
+    //union {
+    //    struct {
             // Data used when subdivided
             trindex m_children; // index to first child, always has 4 children if subdivided
             buindex m_midVerts[3]; // Bottom, Right, Left vertices in index buffer
             buindex m_index; // to index buffer
-        };
-        union {
-            // Chunk data
-            // All these refer to the m_indBufFine
+    //    };
+
+    //    struct {
+            // Data used for handling chunks
+            // These three refer to an index in the chunk index buffer
             buindex m_chunkSides[3]; // Sides of the triangle that can be shared with other triangles
             buindex m_chunkCorners[3]; // 3 corners of the chunk triangle
             buindex m_chunkMeat; // center vertices of the chunk (the largest of all these three)
-        };
-        //TriChunk m_chunkData;
-    };
+    //    };
+    //};
+
+
 };
 
 //struct TriChunk
@@ -111,8 +116,6 @@ class PlanetWrenderer
     unsigned m_maxDepth;
 
     buindex m_maxTriangles;
-    buindex m_maxVertice;
-    buindex m_maxIndices;
 
     Vector3 m_offset;
     Vector3 m_camera;
@@ -127,29 +130,40 @@ class PlanetWrenderer
 
     SharedPtr<IndexBuffer> m_indBuf;
     buindex m_indCount;
+    buindex m_maxIndices;
 
     SharedPtr<VertexBuffer> m_vertBuf;
     buindex m_vertCount;
+    buindex m_maxVertice;
 
-    // List of all triangles
-    PODVector<SubTriangle> m_triangles;
-    // Records empty spaces in the triangle class array
-    PODVector<trindex> m_trianglesFree;
-    // Records empty spaces in the vertex buffer GPU data
-    PODVector<buindex> m_vertFree;
-    // Map index buffer indices to triangle indices
-    // m_indDomain[buindex] = trindex
-    trindex* m_indDomain;
+    PODVector<SubTriangle> m_triangles; // List of all triangles
+    PODVector<trindex> m_trianglesFree; // Empty spaces in the triangle class array
+    PODVector<buindex> m_vertFree; // Empty spaces in vertex buffer GPU data
+    trindex* m_indDomain; // Maps index buffer indices to triangle indices
+    // use "m_indDomain[buindex]" to get a triangle index
 
-    // Geometry for fine details (chunks)
+    // Geometry for chunks
 
-    Geometry* m_geometryFine;
+    Geometry* m_geometryChunk;
 
-    SharedPtr<IndexBuffer> m_indBufFine;
-    buindex m_indCountFine;
+    SharedPtr<IndexBuffer> m_indBufChunk;
+    unsigned m_chunkResolution; // How many vertices wide each chunk is
+    unsigned m_chunkSize; // How many vertices there are in each chunk
+    unsigned m_chunkSizeInd; // How many triangles in each chunk
+    chindex m_maxChunks; // Max number of chunks
+    chindex m_chunkCount; // How many chunks there are right now
+    PODVector<chindex> m_chunkFree; // Empty spaces for deleted chunks
 
-    SharedPtr<VertexBuffer> m_vertBuffFine;
-    buindex m_vertCountFine;
+    SharedPtr<VertexBuffer> m_vertBufChunk;
+    buindex m_maxVertChunk; // How large the chunk vertex buffer is in total
+    buindex m_maxVertChunkShared; // How much of it is reserved for shared vertices
+    buindex m_vertCountChunk[2];
+    //buindex m_vertCountChunkShared;
+
+    PODVector<buindex> m_vertFreeChunk[2];
+
+    // Vertex buffer is divided unevenly
+    // [shared vertex data] (m_maxVertChunkShared) [vertices unique to single chunks]
 
 public:
 

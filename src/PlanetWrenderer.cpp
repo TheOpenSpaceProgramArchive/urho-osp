@@ -2,11 +2,11 @@
 #include "OSP.h"
 
 /**
- * @brief A quick way to set neighbours
- * @param tri Reference to triangle
- * @param bot Bottom
- * @param rte Right
- * @param lft Left
+ * A quick way to set neighbours of a triangle
+ * @param tri [ref] Reference to triangle
+ * @param bot [in] Bottom
+ * @param rte [in] Right
+ * @param lft [in] Left
  */
 inline void PlanetWrenderer::set_neighbours(SubTriangle& tri, trindex bot, trindex rte, trindex lft)
 {
@@ -16,9 +16,9 @@ inline void PlanetWrenderer::set_neighbours(SubTriangle& tri, trindex bot, trind
 }
 
 /**
- * @brief A quick way to set vertices
- * @param tri Reference to triangle
- * @param top Top
+ * A quick way to set vertices of a triangle
+ * @param tri [ref] Reference to triangle
+ * @param top [in] Top
  * @param lft Left
  * @param rte Right
  */
@@ -30,9 +30,9 @@ inline void PlanetWrenderer::set_verts(SubTriangle& tri, trindex top, trindex lf
 }
 
 /**
- * @brief Find which side a triangle is on another triangle
- * @param tri Reference to triangle to be searched
- * @param lookingFor Index of triangle to search for
+ * Find which side a triangle is on another triangle
+ * @param [ref] tri Reference to triangle to be searched
+ * @param [in] lookingFor Index of triangle to search for
  * @return Neighbour index (0 - 2), or bottom, left, or right
  */
 inline uint8_t PlanetWrenderer::neighboor_index(SubTriangle& tri, trindex lookingFor)
@@ -71,132 +71,219 @@ PlanetWrenderer::~PlanetWrenderer()
 }
 
 /**
- * @brief PlanetWrenderer::initialize
- * @param context
- * @param size
+ * Calculate initial icosahedron and initialize buffers. Call before drawing
+ * @param context [in] Context used to initialize Urho3D objects
+ * @param size [in] Minimum height of planet, or radius
  */
 void PlanetWrenderer::initialize(Context* context, double size) {
 
     m_radius = size;
 
-    // calculate proper numbers later
+    // calculate proper numbers later, use magic numbers for now
     m_maxTriangles = 50000;
-    m_maxIndices = 48000;
-    m_maxVertice = 17000;
 
-    m_vertCount = 12;
-    m_indCount = 0;
+    m_model = new Model(context);
+    m_model->SetNumGeometries(2);
+    m_model->SetBoundingBox(BoundingBox(Sphere(Vector3(0, 0, 0), size * 2)));
 
-    // Pentagon stuff, from wolfram alpha
-    // This part is kind of messy and should be revised
-    // "X pointing" pentagon goes on the top
-
-    float s = size / 280.43394944265;
-    float h = 114.486680448;
-
-    float ca = 79.108350559987f;
-    float cb = 207.10835055999f;
-    float sa = 243.47046817156f;
-    float sb = 150.47302458687f;
-
-    float* vertInit = new float[m_maxVertice * 6];
-
-    // VERT XYZ, NORMAL XYZ, VERT XYZ, NORMAL XYZ, ...
-    // Set initial data for the normal icosahedron
-    // There should be a better way to do this
-    vertInit[0] = 0; // Top vertex 0
-    vertInit[1] = 280.43394944265;
-    vertInit[2] = 0;
-    vertInit[6] = 280.43394944265; // Pentagon top aligned point 1
-    vertInit[7] = h;
-    vertInit[8] = 0;
-    vertInit[12] = ca; // going clockwise from top 2
-    vertInit[13] = h;
-    vertInit[14] = -sa;
-    vertInit[18] = -cb; // 3
-    vertInit[19] = h;
-    vertInit[20] = -sb;
-    vertInit[24] = -cb; // 4
-    vertInit[25] = h;
-    vertInit[26] = sb;
-    vertInit[30] = ca; // 5
-    vertInit[31] = h;
-    vertInit[32] = sa;
-    vertInit[36] = -256; // Pentagon bottom aligned 6
-    vertInit[37] = -h;
-    vertInit[38] = 0;
-    vertInit[42] = -ca; // 7
-    vertInit[43] = -h;
-    vertInit[44] = -sa;
-    vertInit[48] = cb; // 8
-    vertInit[49] = -h;
-    vertInit[50] = -sb;
-    vertInit[54] = cb; // 9
-    vertInit[55] = -h;
-    vertInit[56] = sb;
-    vertInit[60] = -ca; // 10
-    vertInit[61] = -h;
-    vertInit[62] = sa;
-    vertInit[66] = 0; // Bottom vertex 11
-    vertInit[67] = -256;
-    vertInit[68] = 0;
-
-    // Shape into the right sized sphere
-    double vx, vy, vz;
-    for (int i = 0; i < 68; i += 6)
     {
 
-        vx = vertInit[i + 0];
-        vy = vertInit[i + 1];
-        vz = vertInit[i + 2];
-        double mag = Sqrt(vx * vx
-                          + vy * vy
-                          + vz * vz);
-        vertInit[i + 0] = float(vx / mag * size);
-        vertInit[i + 1] = float(vy / mag * size);
-        vertInit[i + 2] = float(vz / mag * size);
-        vertInit[i + 3] = float(vx / mag);
-        vertInit[i + 4] = float(vy / mag);
-        vertInit[i + 5] = float(vz / mag);
+        // Calculate ideal numbers later, for now magic numbers
+        m_maxIndices = 48000;
+        m_maxVertice = 17000;
+
+        m_vertCount = 12;
+        m_indCount = 0;
+
+        // Pentagon stuff, from wolfram alpha
+        // This part is kind of messy and should be revised
+        // "X pointing" pentagon goes on the top
+
+        float s = size / 280.43394944265;
+        float h = 114.486680448;
+
+        float ca = 79.108350559987f;
+        float cb = 207.10835055999f;
+        float sa = 243.47046817156f;
+        float sb = 150.47302458687f;
+
+        float* vertInit = new float[m_maxVertice * 6];
+
+        // VERT XYZ, NORMAL XYZ, VERT XYZ, NORMAL XYZ, ...
+        // Set initial data for the normal icosahedron
+        // There should be a better way to do this
+        vertInit[0] = 0; // Top vertex 0
+        vertInit[1] = 280.43394944265;
+        vertInit[2] = 0;
+        vertInit[6] = 280.43394944265; // Pentagon top aligned point 1
+        vertInit[7] = h;
+        vertInit[8] = 0;
+        vertInit[12] = ca; // going clockwise from top 2
+        vertInit[13] = h;
+        vertInit[14] = -sa;
+        vertInit[18] = -cb; // 3
+        vertInit[19] = h;
+        vertInit[20] = -sb;
+        vertInit[24] = -cb; // 4
+        vertInit[25] = h;
+        vertInit[26] = sb;
+        vertInit[30] = ca; // 5
+        vertInit[31] = h;
+        vertInit[32] = sa;
+        vertInit[36] = -256; // Pentagon bottom aligned 6
+        vertInit[37] = -h;
+        vertInit[38] = 0;
+        vertInit[42] = -ca; // 7
+        vertInit[43] = -h;
+        vertInit[44] = -sa;
+        vertInit[48] = cb; // 8
+        vertInit[49] = -h;
+        vertInit[50] = -sb;
+        vertInit[54] = cb; // 9
+        vertInit[55] = -h;
+        vertInit[56] = sb;
+        vertInit[60] = -ca; // 10
+        vertInit[61] = -h;
+        vertInit[62] = sa;
+        vertInit[66] = 0; // Bottom vertex 11
+        vertInit[67] = -256;
+        vertInit[68] = 0;
+
+        // Shape into the right sized sphere
+        double vx, vy, vz;
+        for (int i = 0; i < 68; i += 6)
+        {
+
+            vx = vertInit[i + 0];
+            vy = vertInit[i + 1];
+            vz = vertInit[i + 2];
+            double mag = Sqrt(vx * vx
+                              + vy * vy
+                              + vz * vz);
+            vertInit[i + 0] = float(vx / mag * size);
+            vertInit[i + 1] = float(vy / mag * size);
+            vertInit[i + 2] = float(vz / mag * size);
+            vertInit[i + 3] = float(vx / mag);
+            vertInit[i + 4] = float(vy / mag);
+            vertInit[i + 5] = float(vz / mag);
+        }
+
+        // Urho3D specific, make buffers and stuff
+        m_indBuf = new IndexBuffer(context);
+        m_vertBuf = new VertexBuffer(context);
+        m_geometry = new Geometry(context);
+
+        // This part is instuctions saying that position and normal data is interleved
+        PODVector<VertexElement> elements;
+        elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
+        elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
+
+        // Set size and data of vertex data
+        m_vertBuf->SetSize(m_maxVertice, elements);
+        m_vertBuf->SetShadowed(true);
+        m_vertBuf->SetData(vertInit); // This line causes random sigsegvs sometimes, TODO: investigate
+
+        // Same but with index buffer
+        m_indBuf->SetSize(m_maxIndices * 3, true, true);
+        //indBuf_->SetData();
+        m_indBuf->SetShadowed(true);
+
+        // Create the geometry, urho3d specific
+        m_geometry->SetNumVertexBuffers(1);
+        m_geometry->SetVertexBuffer(0, m_vertBuf);
+        m_geometry->SetIndexBuffer(m_indBuf);
+        m_geometry->SetDrawRange(TRIANGLE_LIST, 0, 20 * 3);
+
+        // Add geometry to model, urho3d specific
+        m_model->SetGeometry(0, 0, m_geometry);
+
+        // Create index domain, and reserve some space on empty triangles array
+        m_indDomain = new trindex[m_maxIndices * 3];
+        //m_triangles.Reserve(180);
+        m_triangles.Reserve(3000);
+
+        // Initialize triangles, indices from sc_icoTemplateTris
+        for (int i = 0; i < sc_icosahedronFaceCount; i ++)
+        {
+            // Set trianglesz
+            SubTriangle tri;
+            //printf("Triangle: %p\n", t);
+            //tri.m_parent = 0;
+            set_verts(tri, sc_icoTemplateTris[i * 3 + 0], sc_icoTemplateTris[i * 3 + 1], sc_icoTemplateTris[i * 3 + 2]);
+            set_neighbours(tri, sc_icoTemplateneighbours[i * 3 + 0], sc_icoTemplateneighbours[i * 3 + 1], sc_icoTemplateneighbours[i * 3 + 2]);
+            tri.m_bitmask = 0;
+            tri.m_depth = 0;
+            calculate_center(tri);
+            m_triangles.Push(tri);
+            //if (i != 0)
+            set_visible(i, true);
+        }
+
+        for (int i = 0; i < sc_icosahedronFaceCount; i ++)
+        {
+            subdivide(i);
+        }
+
+        // Not leaking memory
+        delete[] vertInit;
     }
 
-    // Urho3D specific, make buffers and stuff
-    m_indBuf = new IndexBuffer(context);
-    m_vertBuf = new VertexBuffer(context);
-    m_geometry = new Geometry(context);
-    m_model = new Model(context);
+    {
 
-    // This part is instuctions saying that position and normal data is interleved
-    PODVector<VertexElement> elements;
-    elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
-    elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
+        // Again, magic numbers
+        m_maxChunks = 42;
 
-    // Set size and data of vertex data
-    m_vertBuf->SetSize(m_maxVertice, elements);
-    m_vertBuf->SetShadowed(true);
-    m_vertBuf->SetData(vertInit); // This line causes random sigsegvs sometimes, TODO: investigate
+        m_chunkCount = 0;
 
-    // Same but with index buffer
-    m_indBuf->SetSize(m_maxIndices * 3, true, true);
-    //indBuf_->SetData();
-    m_indBuf->SetShadowed(true);
+        // chunk size / vertex count is the (chunk resolution)th triangular number
+        m_chunkResolution = 6;
+        m_chunkSize = m_chunkResolution * (m_chunkResolution + 1) / 2;
 
-    // Create the geometry, urho3d specific
-    m_geometry->SetNumVertexBuffers(1);
-    m_geometry->SetVertexBuffer(0, m_vertBuf);
-    m_geometry->SetIndexBuffer(m_indBuf);
-    m_geometry->SetDrawRange(TRIANGLE_LIST, 0, 20 * 3);
+        // This is how many triangles is in a chunk
+        m_chunkSizeInd = Pow(m_chunkResolution - 1, 2u);
 
-    // Add geometry to model, urho3d specific
-    m_model->SetNumGeometries(1);
-    m_model->SetGeometry(0, 0, m_geometry);
-    m_model->SetBoundingBox(BoundingBox(Sphere(Vector3(0, 0, 0), size * 2)));
+        m_maxVertChunk = 4000;
+        m_maxVertChunkShared = 1000; // magic number for how much of m_maxVertChunk is reserved for shared vertices (must be smaller)
+
+        m_vertCountChunk[0] = 0;
+        m_vertCountChunk[1] = 0;
+
+        // Initialize objects for dealing with chunks
+        m_indBufChunk = new IndexBuffer(context);
+        m_vertBufChunk = new VertexBuffer(context);
+        m_geometryChunk = new Geometry(context);
+
+        // Say that each vertex has position, normal, and tangent data
+        PODVector<VertexElement> elements;
+        elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
+        elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
+        //elements.Push(VertexElement(TYPE_VECTOR3, SEM_TEXCOORD));
+        //elements.Push(VertexElement(TYPE_VECTOR3, SEM_COLOR));
+
+        m_vertBufChunk->SetSize(m_maxVertChunk, elements);
+        m_vertBufChunk->SetShadowed(true);
+
+        m_indBufChunk->SetSize(m_maxChunks * m_chunkSizeInd * 3, true, true);
+        m_indBufChunk->SetShadowed(true);
+
+        // Create the geometry, urho3d specific
+        m_geometryChunk->SetNumVertexBuffers(1);
+        m_geometryChunk->SetVertexBuffer(0, m_vertBufChunk);
+        m_geometryChunk->SetIndexBuffer(m_indBufChunk);
+        m_geometryChunk->SetDrawRange(TRIANGLE_LIST, 0, 20 * 3);
+
+        // Add geometry to model, urho3d specific
+        m_model->SetGeometry(1, 0, m_geometryChunk);
+
+    }
 
     // Not sure what this is doing, urho3d specific
     Vector<SharedPtr<VertexBuffer> > vrtBufs;
     Vector<SharedPtr<IndexBuffer> > indBufs;
     vrtBufs.Push(m_vertBuf);
+    vrtBufs.Push(m_vertBufChunk);
     indBufs.Push(m_indBuf);
+    indBufs.Push(m_indBufChunk);
     PODVector<unsigned> morphRangeStarts;
     PODVector<unsigned> morphRangeCounts;
     morphRangeStarts.Push(0);
@@ -204,37 +291,6 @@ void PlanetWrenderer::initialize(Context* context, double size) {
     m_model->SetVertexBuffers(vrtBufs, morphRangeStarts, morphRangeCounts);
     m_model->SetIndexBuffers(indBufs);
 
-    //ready_ = true;
-
-    // Create index domain, and reserve some space on empty triangles array
-    m_indDomain = new trindex[m_maxIndices * 3];
-    //m_triangles.Reserve(180);
-    m_triangles.Reserve(3000);
-
-    // Initialize triangles, indices from sc_icoTemplateTris
-    for (int i = 0; i < sc_icosahedronFaceCount; i ++)
-    {
-        // Set trianglesz
-        SubTriangle tri;
-        //printf("Triangle: %p\n", t);
-        //tri.m_parent = 0;
-        set_verts(tri, sc_icoTemplateTris[i * 3 + 0], sc_icoTemplateTris[i * 3 + 1], sc_icoTemplateTris[i * 3 + 2]);
-        set_neighbours(tri, sc_icoTemplateneighbours[i * 3 + 0], sc_icoTemplateneighbours[i * 3 + 1], sc_icoTemplateneighbours[i * 3 + 2]);
-        tri.m_bitmask = 0;
-        tri.m_depth = 0;
-        calculate_center(tri);
-        m_triangles.Push(tri);
-        //if (i != 0)
-        set_visible(i, true);
-    }
-
-    for (int i = 0; i < sc_icosahedronFaceCount; i ++)
-    {
-        subdivide(i);
-    }
-
-    // Not leaking memory
-    delete[] vertInit;
 }
 
 /**
@@ -308,8 +364,8 @@ void PlanetWrenderer::set_visible(trindex t, bool visible)
 }
 
 /**
- * @brief Subdivide a triangle into 4 more
- * @param Triangle to subdivide
+ * Subdivide a triangle into 4 more
+ * @param [out] Triangle to subdivide
  */
 void PlanetWrenderer::subdivide(trindex t)
 {
@@ -498,8 +554,8 @@ void PlanetWrenderer::find_refs(SubTriangle& tri)
 }
 
 /**
- * @brief Unsubdivide a triangle. Removes children and sets neighbours of neighbours
- * @param t Index of triangle to unsubdivide
+ * Unsubdivide a triangle. Removes children and sets neighbours of neighbours
+ * @param t [out] Index of triangle to unsubdivide
  */
 void PlanetWrenderer::unsubdivide(trindex t)
 {
@@ -559,8 +615,8 @@ void PlanetWrenderer::unsubdivide(trindex t)
 }
 
 /**
- * @brief Calculates and sets m_center
- * @param tri Reference to triangle
+ * Calculates and sets m_center
+ * @param tri [ref] Reference to triangle
  */
 void PlanetWrenderer::calculate_center(SubTriangle &tri)
 {
@@ -575,10 +631,10 @@ void PlanetWrenderer::calculate_center(SubTriangle &tri)
 }
 
 /**
- * @brief Set a single neighbour of a triangle, and apply for all of it's children's
- * @param tri Reference to triangle
- * @param side Side to set
- * @param to Neighbour to set side to
+ * Set a neighbour of a triangle, and apply for all of it's children's
+ * @param tri [ref] Reference to triangle
+ * @param side [in] Which side to set
+ * @param to [in] Neighbour to operate on
  */
 void PlanetWrenderer::set_side_recurse(SubTriangle& tri, uint8_t side, trindex to)
 {
@@ -590,8 +646,8 @@ void PlanetWrenderer::set_side_recurse(SubTriangle& tri, uint8_t side, trindex t
 }
 
 /**
- * @brief Recalculates camera positiona and sub_recurses the main 20 triangles. Call this when the camera moves.
- * @param camera
+ * Recalculates camera positiona and sub_recurses the main 20 triangles. Call this when the camera moves.
+ * @param camera [in] Position of camera center
  */
 void PlanetWrenderer::update(const Vector3& camera)
 {
@@ -615,8 +671,8 @@ void PlanetWrenderer::update(const Vector3& camera)
 }
 
 /**
- * @brief Recursively check every triangle for which ones need (un)subdividing
- * @param t Triangle to start with
+ * Recursively check every triangle for which ones need (un)subdividing or chunking
+ * @param t [in] Triangle to start with
  */
 void PlanetWrenderer::sub_recurse(trindex t)
 {
@@ -647,31 +703,31 @@ void PlanetWrenderer::sub_recurse(trindex t)
     // let a = edge length
     // from this equation: r = (a / 4) * sqrt(10 + 2 * sqrt(5))
     // arrange to this:    a = 4r / sqrt(10 + 2 * sqrt(5))
-    // then divide by 2^depth because subdivision
+    // this equation now calculates edge length from radius
+    // divide by 2^depth because the edge has been subdivided in powers of two
 
     // close enough approximation (should be a bit higher because it's spherical)
     float edgeLength = (4.0 * m_radius)
                        / Sqrt(10.0 + 2.0 * Sqrt(5.0))
                        / Pow(2, int(tri->m_depth));
 
-    // Equilateral triangle area
+    // Approximation of the triangle's area
     float triArea = Sqrt(3) * edgeLength * edgeLength / 4;
 
-    // Distance from viewer
+    // Distance squared from viewer
     float distanceSquared = (tri->m_center - m_camera).LengthSquared();
 
-    // How much space this triangle takes up on screen
+    // How much space this triangle takes up on screen, using inverse square law
     // InverseSquareDistance * Area -> area / distancesquared
+    // 0.2 is magic number to nicely fit things on screen
     float screenArea = triArea / (distanceSquared * 0.2f);
 
-    //URHO3D_LOGINFOF("MyArea: %f", screenArea);
-
-    //shouldSubdivide = (distanceSquared < Pow(2000.0f, 2.0f));
+    // 0.1 is also a magic number, which is the maximum screen area a triangle can take before it's subdivided
     shouldSubdivide = (screenArea > 0.1f);
 
-    // If already subdivided
     if (tri->m_bitmask & E_SUBDIVIDED)
     {
+        // Test children if already subdivided and shouldn't be unsubdivided
         if (shouldSubdivide)
         {
             if (tri->m_depth < m_maxDepth)
@@ -689,7 +745,11 @@ void PlanetWrenderer::sub_recurse(trindex t)
     } else {
         if (shouldSubdivide)
         {
-            if (tri->m_depth < m_maxDepth)
+            if (tri->m_depth == m_maxDepth - 1)
+            {
+                generate_chunk(t);
+            }
+            else if (tri->m_depth < m_maxDepth)
             {
                 subdivide(t);
             }
@@ -697,7 +757,183 @@ void PlanetWrenderer::sub_recurse(trindex t)
     }
 }
 
+/**
+ * Convert XY coordinates to a triangular number index
+ *
+ * 0
+ * 1  2
+ * 3  4
+ * 6  7  8  9
+ * x = right, y = down
+ *
+ * @param x [in]
+ * @param y [in]
+ * @return
+ */
+inline unsigned get_index(int x, int y)
+{
+    return y * (y + 1) / 2 + x;
+}
+
+/**
+ * @brief PlanetWrenderer::generate_chunk
+ * @param t
+ */
 void PlanetWrenderer::generate_chunk(trindex t)
 {
+    SubTriangle* tri = get_triangle(t);
+
+    if (tri->m_bitmask & E_CHUNKED)
+    {
+        // already chunked
+        return;
+    }
+
+    // Hide triangle
+    set_visible(t, false);
+
+    // Think of tri as a right triangle like this
+    //
+    // dirDown  dirRight--->
+    // |
+    // |   o
+    // |   oo
+    // V   ooo
+    //     oooo
+    //     ooooo    o = a single vertex
+    //     oooooo
+    //
+    //     <----> m_chunkResolution
+
+    unsigned char* vertData = m_vertBuf->GetShadowData();
+    unsigned vertSize = m_vertBuf->GetVertexSize();
+
+    // top, left, right
+    const Vector3 verts[3] = {
+        (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_corners[0])),
+        (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_corners[1])),
+        (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_corners[2]))
+    };
+
+    const Vector3 dirRight = (verts[2] - verts[1]) / (m_chunkResolution - 1);
+    const Vector3 dirDown = (verts[1] - verts[0]) / (m_chunkResolution - 1);
+
+    // Loop through neighbours and see which ones are already chunked to share vertices with
+
+    bool chunkedNeighbours[3];
+
+    for (int i = 0; i < 3; i ++)
+    {
+        SubTriangle* triB = get_triangle(tri->m_neighbours[i]);
+        chunkedNeighbours[i] = (triB->m_bitmask & E_CHUNKED)    ;
+    }
+
+    //URHO3D_LOGINFOF("0; %f %f %f", verts[0].x_, verts[0].y_, verts[0].z_);
+    //URHO3D_LOGINFOF("1: %f %f %f", verts[1].x_, verts[1].y_, verts[1].z_);
+    //URHO3D_LOGINFOF("2: %f %f %f", verts[2].x_, verts[2].y_, verts[2].z_);
+
+    URHO3D_LOGINFOF("DirDown: %f %f %f", dirDown.x_, dirDown.y_, dirDown.z_);
+
+    PODVector<unsigned> indices(m_chunkSize);
+
+
+    // Loop through like a triangle
+    int i = 0;
+    for (int y = 0; y < m_chunkResolution; y ++)
+    {
+        // Loops once, then twice, then thrice, etc...
+        for (int x = 0; x <= y; x ++)
+        {
+            unsigned vertIndex;
+            bool shared = false;
+            bool generate = true;
+            // Check if on edge
+            if ((x == 0) || (x == y) || (y == m_chunkResolution - 1))
+            {
+                shared = true;
+                if (chunkedNeighbours[0])
+                {
+                    // Bottom can be shared
+                    //URHO3D_LOGINFO("Bottom is chunked");
+                }
+                else if (chunkedNeighbours[1])
+                {
+                    // Left can be shared
+                    //URHO3D_LOGINFO("Left is chunked");
+                }
+                else if (chunkedNeighbours[2])
+                {
+                    // Right can be shared
+                    //URHO3D_LOGINFO("Right is chunked");
+                }
+            }
+
+            shared = false;
+            if (generate)
+            {
+                // Generate a new vertex and use it
+
+                URHO3D_LOGINFOF("X:%i Y:%i I:%i", x, y, i);
+
+                if (m_vertFreeChunk[shared].Size() == 0) {
+                    if (m_vertCountChunk[shared] == m_maxVertChunk - 1)
+                    {
+                        URHO3D_LOGERROR("Maximum chunk vertices");
+                        return;
+                    }
+                    vertIndex = m_vertCountChunk[shared];
+                    m_vertCountChunk[shared] ++;
+                }
+
+                const Vector3 pos = verts[0] + (dirRight * x + dirDown * y);
+
+                // Position and normal
+                Vector3 vertM[2] = {pos, Vector3(0, 1, 0)};
+                m_vertBufChunk->SetDataRange(vertM, vertIndex, 1);
+
+            }
+            indices[i] = vertIndex;
+            i ++;
+        }
+    }
+
+    // The data that will be pushed directly into the chunk index buffer
+    PODVector<unsigned> chunkIndData(m_chunkSizeInd * 3);
+
+
+    i = 0;
+    // indices array is now populated, connect the dots!
+    for (int y = 0; y < m_chunkResolution - 1; y ++)
+    {
+        for (int x = 0; x < y * 2 + 1; x ++)
+        {
+            // alternate between true and false
+            if (x % 2)
+            {
+                chunkIndData[i + 0] = indices[get_index(0, 0)];
+                chunkIndData[i + 1] = indices[get_index(0, 0)];
+                chunkIndData[i + 2] = indices[get_index(0, 0)];
+            }
+            else
+            {
+                // up pointing triangle
+                // top, left, right
+                chunkIndData[i + 0] = indices[get_index(x / 2, y)];
+                chunkIndData[i + 1] = indices[get_index(x / 2, y + 1)];
+                chunkIndData[i + 2] = indices[get_index(x / 2 + 1, y + 1)];
+
+                URHO3D_LOGINFOF("Triangle: %u %u %u", chunkIndData[i + 0], chunkIndData[i + 1], chunkIndData[i + 2]);
+            }
+            URHO3D_LOGINFOF("I: %i", i / 3);
+            i += 3;
+        }
+    }
+
+    m_indBufChunk->SetDataRange(chunkIndData.Buffer(), m_chunkCount * chunkIndData.Size(), chunkIndData.Size());
+    m_chunkCount ++;
+
+    m_geometryChunk->SetDrawRange(TRIANGLE_LIST, 0, m_chunkCount * chunkIndData.Size());
+
+    tri->m_bitmask ^= E_CHUNKED;
 
 }
