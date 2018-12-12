@@ -57,7 +57,7 @@ PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFre
     // This is intended to reduce the number of distance checks
 
     m_indCount = 0;
-    m_maxDepth = 11;
+    m_maxDepth = 7;
 
     //m_hqDepth = 4;
 }
@@ -67,7 +67,7 @@ PlanetWrenderer::~PlanetWrenderer()
     //m_vertBuf->Release();
     //m_indBuf->Release();
     //printf("pppp %p;\n", m_indDomain);
-    delete[] m_indDomain;
+    //delete[] m_indDomain;
 }
 
 /**
@@ -75,9 +75,10 @@ PlanetWrenderer::~PlanetWrenderer()
  * @param context [in] Context used to initialize Urho3D objects
  * @param size [in] Minimum height of planet, or radius
  */
-void PlanetWrenderer::initialize(Context* context, double size) {
+void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size) {
 
     m_radius = size;
+    m_heightMap = heightMap;
 
     // calculate proper numbers later, use magic numbers for now
     m_maxTriangles = 50000;
@@ -173,6 +174,10 @@ void PlanetWrenderer::initialize(Context* context, double size) {
         m_vertBuf = new VertexBuffer(context);
         m_geometry = new Geometry(context);
 
+        // Allocate index domain, some space on empty triangles array
+        m_indDomain.Resize(m_maxIndices * 3);
+        m_triangles.Reserve(3000);
+
         // This part is instuctions saying that position and normal data is interleved
         PODVector<VertexElement> elements;
         elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
@@ -196,11 +201,6 @@ void PlanetWrenderer::initialize(Context* context, double size) {
 
         // Add geometry to model, urho3d specific
         m_model->SetGeometry(0, 0, m_geometry);
-
-        // Create index domain, and reserve some space on empty triangles array
-        m_indDomain = new trindex[m_maxIndices * 3];
-        //m_triangles.Reserve(180);
-        m_triangles.Reserve(3000);
 
         // Initialize triangles, indices from sc_icoTemplateTris
         for (int i = 0; i < sc_icosahedronFaceCount; i ++)
@@ -231,19 +231,20 @@ void PlanetWrenderer::initialize(Context* context, double size) {
     {
 
         // Again, magic numbers
-        m_maxChunks = 42;
+        m_maxChunks = 100;
 
         m_chunkCount = 0;
 
         // chunk size / vertex count is the (chunk resolution)th triangular number
-        m_chunkResolution = 6;
+        m_chunkResolution = 12;
         m_chunkSize = m_chunkResolution * (m_chunkResolution + 1) / 2;
 
         // This is how many triangles is in a chunk
         m_chunkSizeInd = Pow(m_chunkResolution - 1, 2u);
+        m_chunkSharedCount = (m_chunkResolution - 1) * 3;
 
-        m_maxVertChunk = 4000;
-        m_maxVertChunkShared = 1000; // magic number for how much of m_maxVertChunk is reserved for shared vertices (must be smaller)
+        m_maxVertChunk = 40000;
+        m_maxVertChunkShared = 10000; // magic number for how much of m_maxVertChunk is reserved for shared vertices (must be smaller)
 
         m_vertCountChunk[0] = 0;
         m_vertCountChunk[1] = 0;
@@ -252,6 +253,7 @@ void PlanetWrenderer::initialize(Context* context, double size) {
         m_indBufChunk = new IndexBuffer(context);
         m_vertBufChunk = new VertexBuffer(context);
         m_geometryChunk = new Geometry(context);
+        m_chunkDomain.Resize(m_maxChunks);
 
         // Say that each vertex has position, normal, and tangent data
         PODVector<VertexElement> elements;
@@ -447,7 +449,8 @@ void PlanetWrenderer::subdivide(trindex t)
 
             Vector3 vertM[2];
             vertM[1] = ((vertA + vertB) / 2).Normalized();
-            vertM[0] = vertM[1] * m_radius;
+
+            vertM[0] = vertM[1] * (m_radius + (m_heightMap->GetPixelBilinear(Mod(Atan2(vertM[1].z_, vertM[1].x_) + 360.0f, 360.0f) / 360.0f, Acos(vertM[1].y_) / 180.0f).r_ * 100.0f));
             //printf("VA %s, VB: %s, \n", vertA.ToString().CString(), vertB.ToString().CString());
 
             //printf("DataRange: %u\n", tri->m_midVerts[i]);
@@ -770,9 +773,48 @@ void PlanetWrenderer::sub_recurse(trindex t)
  * @param y [in]
  * @return
  */
-inline unsigned get_index(int x, int y)
+inline unsigned PlanetWrenderer::get_index(int x, int y)
 {
     return y * (y + 1) / 2 + x;
+}
+
+/**
+ * Similar to the normal get_index, but the first possible indices returned makes a border around the triangle
+ *
+ * 6
+ * 5  7
+ * 4  9  8
+ * 3  2  1  0
+ * x = right, y = down
+ *
+ * @param x [in]
+ * @param y [in]
+ * @return
+ */
+unsigned PlanetWrenderer::get_index_ringed(int x, int y)
+{
+    // || (x == y) ||
+    if (y == m_chunkResolution - 1)
+    {
+        // Bottom edge
+        return m_chunkResolution - x - 1;
+    }
+    else if (x == 0)
+    {
+        // Left edge
+        return (m_chunkResolution - 1) * 2 - y;
+    }
+    else if (x == y)
+    {
+        // Right edge
+        return (m_chunkResolution - 1) * 2 + y;
+    }
+    else
+    {
+        // Center
+        return m_chunkSharedCount + get_index(x - 1, y - 2);
+    }
+
 }
 
 /**
@@ -783,14 +825,17 @@ void PlanetWrenderer::generate_chunk(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
 
+    if (m_chunkCount >= m_maxChunks)
+    {
+        URHO3D_LOGERRORF("Chunk limit reached");
+        return;
+    }
+
     if (tri->m_bitmask & E_CHUNKED)
     {
         // already chunked
         return;
     }
-
-    // Hide triangle
-    set_visible(t, false);
 
     // Think of tri as a right triangle like this
     //
@@ -836,8 +881,7 @@ void PlanetWrenderer::generate_chunk(trindex t)
 
     PODVector<unsigned> indices(m_chunkSize);
 
-
-    // Loop through like a triangle
+    // Loop through the center triangle
     int i = 0;
     for (int y = 0; y < m_chunkResolution; y ++)
     {
@@ -868,31 +912,48 @@ void PlanetWrenderer::generate_chunk(trindex t)
                 }
             }
 
-            shared = false;
             if (generate)
             {
                 // Generate a new vertex and use it
 
-                URHO3D_LOGINFOF("X:%i Y:%i I:%i", x, y, i);
+                //URHO3D_LOGINFOF("X:%i Y:%i I:%i", x, y, i);
 
-                if (m_vertFreeChunk[shared].Size() == 0) {
-                    if (m_vertCountChunk[shared] == m_maxVertChunk - 1)
+                if (shared)
+                {
+                    if (m_vertCountChunk[1] + 1 >= m_maxVertChunkShared)
                     {
-                        URHO3D_LOGERROR("Maximum chunk vertices");
+                        URHO3D_LOGERROR("Max Shared Vertices for Chunk");
                         return;
                     }
-                    vertIndex = m_vertCountChunk[shared];
-                    m_vertCountChunk[shared] ++;
+                    if (m_vertFreeChunk[1].Size() == 0) {
+                        vertIndex = m_vertCountChunk[1];
+                        m_vertCountChunk[1] ++;
+                    }
+                }
+                else
+                {
+                    if (m_vertCountChunk[0] + 1 >= m_maxVertChunk)
+                    {
+                        URHO3D_LOGERROR("Max Shared Vertices for Chunk");
+                        return;
+                    }
+                    if (m_vertFreeChunk[0].Size() == 0) {
+                        vertIndex = m_vertCountChunk[0] + m_maxVertChunkShared;
+                        m_vertCountChunk[0] ++;
+                    }
                 }
 
-                const Vector3 pos = verts[0] + (dirRight * x + dirDown * y);
+                Vector3 pos = verts[0] + (dirRight * x + dirDown * y);
+                Vector3 normal = pos.Normalized();
+
+                pos = normal * (m_radius + (100.0f * m_heightMap->GetPixelBilinear(Mod(Atan2(normal.z_, normal.x_) + 360.0f, 360.0f) / 360.0f, Acos(normal.y_) / 180.0f).r_));
 
                 // Position and normal
                 Vector3 vertM[2] = {pos, Vector3(0, 1, 0)};
                 m_vertBufChunk->SetDataRange(vertM, vertIndex, 1);
 
             }
-            indices[i] = vertIndex;
+            indices[get_index_ringed(x, y)] = vertIndex;
             i ++;
         }
     }
@@ -910,26 +971,34 @@ void PlanetWrenderer::generate_chunk(trindex t)
             // alternate between true and false
             if (x % 2)
             {
-                chunkIndData[i + 0] = indices[get_index(0, 0)];
-                chunkIndData[i + 1] = indices[get_index(0, 0)];
-                chunkIndData[i + 2] = indices[get_index(0, 0)];
+                // upside down triangle
+                // top, left, right
+                chunkIndData[i + 0] = indices[get_index_ringed(x / 2 + 1, y + 1)];
+                chunkIndData[i + 1] = indices[get_index_ringed(x / 2 + 1, y)];
+                chunkIndData[i + 2] = indices[get_index_ringed(x / 2, y)];
             }
             else
             {
                 // up pointing triangle
                 // top, left, right
-                chunkIndData[i + 0] = indices[get_index(x / 2, y)];
-                chunkIndData[i + 1] = indices[get_index(x / 2, y + 1)];
-                chunkIndData[i + 2] = indices[get_index(x / 2 + 1, y + 1)];
+                chunkIndData[i + 0] = indices[get_index_ringed(x / 2, y)];
+                chunkIndData[i + 1] = indices[get_index_ringed(x / 2, y + 1)];
+                chunkIndData[i + 2] = indices[get_index_ringed(x / 2 + 1, y + 1)];
 
-                URHO3D_LOGINFOF("Triangle: %u %u %u", chunkIndData[i + 0], chunkIndData[i + 1], chunkIndData[i + 2]);
+                //URHO3D_LOGINFOF("Triangle: %u %u %u", chunkIndData[i + 0], chunkIndData[i + 1], chunkIndData[i + 2]);
             }
-            URHO3D_LOGINFOF("I: %i", i / 3);
+            //URHO3D_LOGINFOF("I: %i", i / 3);
             i += 3;
         }
     }
 
+    // Hide triangle
+    set_visible(t, false);
+
+    m_chunkDomain[m_chunkCount] = t;
     m_indBufChunk->SetDataRange(chunkIndData.Buffer(), m_chunkCount * chunkIndData.Size(), chunkIndData.Size());
+    tri->m_chunkIndex = m_chunkCount * chunkIndData.Size();
+
     m_chunkCount ++;
 
     m_geometryChunk->SetDrawRange(TRIANGLE_LIST, 0, m_chunkCount * chunkIndData.Size());

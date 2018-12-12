@@ -81,25 +81,13 @@ struct SubTriangle
     uint8_t m_depth;
     Vector3 m_center;
 
-    // Triangle will never be subdivided and chunked at the same time
-    //union {
-    //    struct {
-            // Data used when subdivided
-            trindex m_children; // index to first child, always has 4 children if subdivided
-            buindex m_midVerts[3]; // Bottom, Right, Left vertices in index buffer
-            buindex m_index; // to index buffer
-    //    };
+    // Data used when subdivided
+    trindex m_children; // index to first child, always has 4 children if subdivided
+    buindex m_midVerts[3]; // Bottom, Right, Left vertices in index buffer
+    buindex m_index; // to index buffer
 
-    //    struct {
-            // Data used for handling chunks
-            // These three refer to an index in the chunk index buffer
-            buindex m_chunkSides[3]; // Sides of the triangle that can be shared with other triangles
-            buindex m_chunkCorners[3]; // 3 corners of the chunk triangle
-            buindex m_chunkMeat; // center vertices of the chunk (the largest of all these three)
-    //    };
-    //};
-
-
+    // Data used when chunked
+    buindex m_chunkIndex; // Index to index data in the index buffer
 };
 
 //struct TriChunk
@@ -124,6 +112,8 @@ class PlanetWrenderer
 
     Model* m_model;
 
+    Image* m_heightMap;
+
     // ** Base geometry for preview and slightly close up
 
     Geometry* m_geometry;
@@ -139,7 +129,7 @@ class PlanetWrenderer
     PODVector<SubTriangle> m_triangles; // List of all triangles
     PODVector<trindex> m_trianglesFree; // Empty spaces in the triangle class array
     PODVector<buindex> m_vertFree; // Empty spaces in vertex buffer GPU data
-    trindex* m_indDomain; // Maps index buffer indices to triangle indices
+    PODVector<trindex> m_indDomain; // Maps index buffer indices to triangles
     // use "m_indDomain[buindex]" to get a triangle index
 
     // Geometry for chunks
@@ -148,11 +138,12 @@ class PlanetWrenderer
 
     SharedPtr<IndexBuffer> m_indBufChunk;
     unsigned m_chunkResolution; // How many vertices wide each chunk is
+    unsigned m_chunkSharedCount; // How many shared verticies per chunk
     unsigned m_chunkSize; // How many vertices there are in each chunk
     unsigned m_chunkSizeInd; // How many triangles in each chunk
     chindex m_maxChunks; // Max number of chunks
     chindex m_chunkCount; // How many chunks there are right now
-    PODVector<chindex> m_chunkFree; // Empty spaces for deleted chunks
+    PODVector<trindex> m_chunkDomain; // Maps chunks to triangles
 
     SharedPtr<VertexBuffer> m_vertBufChunk;
     buindex m_maxVertChunk; // How large the chunk vertex buffer is in total
@@ -171,7 +162,7 @@ public:
     ~PlanetWrenderer();
     bool is_ready() {return m_ready;}
 
-    void initialize(Context* context, double size);
+    void initialize(Context* context, Image* heightMap, double size);
     void update(const Vector3& camera);
 
 
@@ -195,6 +186,9 @@ protected:
     void generate_chunk(trindex t);
 
     inline SubTriangle* get_triangle(trindex t) { return m_triangles.Buffer() + t; }
+
+    inline unsigned get_index(int x, int y);
+    unsigned get_index_ringed(int x, int y);
 
     // for debugging only
     void find_refs(SubTriangle& tri);
