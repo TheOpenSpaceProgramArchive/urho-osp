@@ -1,10 +1,8 @@
-<technique vs="PlanetLit" ps="PlanetLit" psdefines="DIFFMAP">
+<technique vs="PlanetLit" ps="PlanetLit" psdefines="DIFFMAP PBR IBL" vsdefines="" >
     <pass name="base" />
-    <pass name="litbase" psdefines="AMBIENT" />
     <pass name="light" depthtest="equal" depthwrite="false" blend="add" />
-    <pass name="prepass" psdefines="PREPASS" />
     <pass name="material" psdefines="MATERIAL" depthtest="equal" depthwrite="false" />
-    <pass name="deferred" psdefines="DEFERRED" />
-    <pass name="depth" vs="PlanetDepth" ps="PlanetDepth" />
-    <pass name="shadow" vs="PlanetShadow" ps="PlanetShadow" />
+    <pass name="deferred" psdefines="DEFERRED" blend="add" />
+    <pass name="depth" vs="Depth" ps="Depth" />
+    <pass name="shadow" vs="Shadow" ps="Shadow" />
 </technique>

@@ -7,9 +7,9 @@
 		"Snap Threshold": 5.0,
 		"Elapsed Time": 3.1755282878875734,
 		"Next Replicated Node ID": 18,
-		"Next Replicated Component ID": 36,
-		"Next Local Node ID": 16777235,
-		"Next Local Component ID": 16777444,
+		"Next Replicated Component ID": 38,
+		"Next Local Node ID": 16777237,
+		"Next Local Component ID": 16777468,
 		"Variables": {},
 		"Variable Names": ""
 	},
@@ -28,8 +28,8 @@
 			"type": "Zone",
 			"id": 13,
 			"attributes": {
-				"Bounding Box Min": "-90000 -90000 -90000",
-				"Bounding Box Max": "90000 90000 90000",
+				"Bounding Box Min": "-900000 -900000 -900000",
+				"Bounding Box Max": "900000 900000 900000",
 				"Ambient Color": "0.1 0.08 0.1 1",
 				"Fog Color": "0 0 0 0",
 				"Fog Start": 100000000.0,
@@ -44,7 +44,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -574912
+				"Play Position": -7657504
 			}
 		},
 		{
@@ -79,7 +79,7 @@
 					"id": 19,
 					"attributes": {
 						"Physics Position": "0 -2.1 0",
-						"Friction": 0.0,
+						"Friction": 5.0,
 						"Anisotropic Friction": "0 0 0",
 						"Linear Factor": "0 0 0",
 						"Angular Factor": "0 0 0",
@@ -105,7 +105,7 @@
 				"Name": "CeilLight",
 				"Tags": [],
 				"Position": "0 1.74172 0",
-				"Rotation": "0.707733 0.593858 0.293152 -0.245984",
+				"Rotation": "0.970818 0.239813 0 0",
 				"Scale": "1 1 1",
 				"Variables": {}
 			},
@@ -116,42 +116,19 @@
 					"attributes": {
 						"Light Type": "Directional",
 						"Color": "1 1 1.01 1",
-						"Brightness Multiplier": 20.0
+						"Brightness Multiplier": 3000.0,
+						"Temperature": 5700.0,
+						"Use Physical Values": true,
+						"Cast Shadows": true
 					}
 				}
 			],
-			"children": [
-				{
-					"id": 5,
-					"attributes": {
-						"Is Enabled": true,
-						"Name": "FloorLight",
-						"Tags": [],
-						"Position": "0 0 0",
-						"Rotation": "-0.0805217 0.920364 0.381227 0.0333529",
-						"Scale": "1 1 1",
-						"Variables": {}
-					},
-					"components": [
-						{
-							"type": "Light",
-							"id": 5,
-							"attributes": {
-								"Light Type": "Directional",
-								"Color": "0.9 0.9 1 1",
-								"Specular Intensity": 0.0,
-								"Brightness Multiplier": 0.4000000059604645
-							}
-						}
-					],
-					"children": []
-				}
-			]
+			"children": []
 		},
 		{
 			"id": 8,
 			"attributes": {
-				"Is Enabled": true,
+				"Is Enabled": false,
 				"Name": "SpotLight",
 				"Tags": [],
 				"Position": "6.24304 6.87098 0",
@@ -177,10 +154,10 @@
 		{
 			"id": 14,
 			"attributes": {
-				"Is Enabled": false,
+				"Is Enabled": true,
 				"Name": "Box",
 				"Tags": [],
-				"Position": "3.00322 -1.47087 -4.35253",
+				"Position": "3.00322 -1.04452 -4.35253",
 				"Rotation": "1 0 0 0",
 				"Scale": "1 1 1",
 				"Variables": {}
@@ -191,9 +168,22 @@
 					"id": 18,
 					"attributes": {
 						"Model": "Model;Models/Box.mdl",
-						"Material": "Material;Materials/Stone.xml",
+						"Material": "Material;Materials/Floor0.json",
 						"Cast Shadows": true
 					}
+				},
+				{
+					"type": "RigidBody",
+					"id": 36,
+					"attributes": {
+						"Physics Position": "3.00322 -1.04452 -4.35253",
+						"Mass": 1.0
+					}
+				},
+				{
+					"type": "CollisionShape",
+					"id": 37,
+					"attributes": null
 				}
 			],
 			"children": []

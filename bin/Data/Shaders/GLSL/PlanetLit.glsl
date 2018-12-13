@@ -3,9 +3,13 @@
 #include "Transform.glsl"
 #include "ScreenPos.glsl"
 #include "Lighting.glsl"
+#include "Constants.glsl"
 #include "Fog.glsl"
+#include "PBR.glsl"
+#include "IBL.glsl"
+#line 30010
 
-#ifdef NORMALMAP
+#if defined(NORMALMAP)
     varying vec4 vTexCoord;
     varying vec4 vTangent;
 #else
@@ -41,23 +45,35 @@ varying vec4 vWorldPos;
     #endif
 #endif
 
-float rand(vec2 co){
-    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+#ifdef LOGDEPTH
+    varying float fLogZ;
+#endif
+
+vec4 textureEquirect(sampler2D tex, vec3 dir)
+{
+    //vec2 dirFlat = normalize(dir.zx);
+    return texture2D(tex, vec2(atan(dir.z, dir.x) / (M_PI * 2), acos(dir.y) / M_PI));
 }
 
 void VS()
 {
     mat4 modelMatrix = iModelMatrix;
     vec3 worldPos = GetWorldPos(modelMatrix);
+    gl_Position = GetClipPos(worldPos) + vec4(0, 0, 0, 0);
     vNormal = GetWorldNormal(modelMatrix);
     vWorldPos = vec4(worldPos, GetDepth(gl_Position));
-    gl_Position = GetClipPos(worldPos);
+
+    #ifdef LOGDEPTH
+        float farCoeff = 2.0 / log2(cFarClip + 1.0);
+        gl_Position.z = log2(max(1e-6, 1.0 + gl_Position.w)) * farCoeff - 1.0;
+        fLogZ = 1.0 + gl_Position.w;
+    #endif
 
     #ifdef VERTEXCOLOR
         vColor = iColor;
     #endif
 
-    #ifdef NORMALMAP
+    #if defined(NORMALMAP) || defined(DIRBILLBOARD)
         vec4 tangent = GetWorldTangent(modelMatrix);
         vec3 bitangent = cross(tangent.xyz, vNormal) * tangent.w;
         vTexCoord = vec4(GetTexCoord(iTexCoord), bitangent.xy);
@@ -68,7 +84,7 @@ void VS()
 
     #ifdef PERPIXEL
         // Per-pixel forward lighting
-        vec4 projWorldPos = vec4(worldPos, 2.0);
+        vec4 projWorldPos = vec4(worldPos, 1.0);
 
         #ifdef SHADOW
             // Shadow projection: transform from world space to shadow space
@@ -80,7 +96,7 @@ void VS()
             // Spotlight projection: transform from world space to projector texture coordinates
             vSpotPos = projWorldPos * cLightMatrices[0];
         #endif
-    
+
         #ifdef POINTLIGHT
             vCubeMaskVec = (worldPos - cLightPos.xyz) * mat3(cLightMatrices[0][0].xyz, cLightMatrices[0][1].xyz, cLightMatrices[0][2].xyz);
         #endif
@@ -94,12 +110,12 @@ void VS()
         #else
             vVertexLight = GetAmbient(GetZonePos(worldPos));
         #endif
-        
+
         #ifdef NUMVERTEXLIGHTS
             for (int i = 0; i < NUMVERTEXLIGHTS; ++i)
                 vVertexLight += GetVertexLight(i, worldPos, vNormal) * cVertexLights[i * 3].rgb;
         #endif
-        
+
         vScreenPos = GetScreenPos(gl_Position);
 
         #ifdef ENVCUBEMAP
@@ -112,7 +128,16 @@ void PS()
 {
     // Get material diffuse albedo
     #ifdef DIFFMAP
-        vec4 diffInput = textureCube(sDiffCubeMap, vNormal);
+        #ifdef DIFFEQUIRECT
+            vec4 diffInput = textureEquirect(sDiffMap, vNormal);
+        #elif DIFFCUBEMAP
+            vec4 diffInput = textureCube(sDiffCubeMap, vNormal);
+        #else
+            vec4 diffInput = texture2D(sDiffMap, vTexCoord.xy);
+        #endif
+        
+        
+        
         #ifdef ALPHAMASK
             if (diffInput.a < 0.5)
                 discard;
@@ -125,18 +150,36 @@ void PS()
     #ifdef VERTEXCOLOR
         diffColor *= vColor;
     #endif
-    
-    // Get material specular albedo
-    #ifdef SPECMAP
-        vec3 specColor = cMatSpecColor.rgb * texture2D(sSpecMap, vTexCoord.xy).rgb;
+
+    #ifdef METALLIC
+        vec4 roughMetalSrc = texture2D(sSpecMap, vTexCoord.xy);
+
+        float roughness = roughMetalSrc.r + cRoughness;
+        float metalness = roughMetalSrc.g + cMetallic;
     #else
-        vec3 specColor = cMatSpecColor.rgb;
+        float roughness = cRoughness;
+        float metalness = cMetallic;
     #endif
 
+    roughness *= roughness;
+
+    roughness = clamp(roughness, ROUGHNESS_FLOOR, 1.0);
+    metalness = clamp(metalness, METALNESS_FLOOR, 1.0);
+
+    vec3 specColor = mix(0.08 * cMatSpecColor.rgb, diffColor.rgb, metalness);
+    diffColor.rgb = diffColor.rgb - diffColor.rgb * metalness;
+
     // Get normal
+    #if defined(NORMALMAP) || defined(DIRBILLBOARD)
+        vec3 tangent = vTangent.xyz;
+        vec3 bitangent = vec3(vTexCoord.zw, vTangent.w);
+        mat3 tbn = mat3(tangent, bitangent, vNormal);
+    #endif
+
     #ifdef NORMALMAP
-        mat3 tbn = mat3(vTangent.xyz, vec3(vTexCoord.zw, vTangent.w), vNormal);
-        vec3 normal = normalize(tbn * DecodeNormal(texture2D(sNormalMap, vTexCoord.xy)));
+        vec3 nn = DecodeNormal(texture2D(sNormalMap, vTexCoord.xy));
+        //nn.rg *= 2.0;
+        vec3 normal = normalize(tbn * nn);
     #else
         vec3 normal = normalize(vNormal);
     #endif
@@ -148,18 +191,37 @@ void PS()
         float fogFactor = GetFogFactor(vWorldPos.w);
     #endif
 
+    //const float near = 0.03;
+    //const float far = 200;
+    //float aaa = gl_FragCoord.z / gl_FragCoord.w;
+    //gl_FragDepth =  (2.0f * log(near * aaa + 1.0) / log(near * far + 1.0) - 1.0) * aaa;
+    
+    #ifdef LOGDEPTH
+        float farCoeff = 2.0 / log2(cFarClipPS + 1.0);
+        gl_FragDepth = log2(fLogZ) * farCoeff * 0.5;
+    #endif
+
     #if defined(PERPIXEL)
         // Per-pixel forward lighting
         vec3 lightColor;
         vec3 lightDir;
         vec3 finalColor;
 
-        float diff = GetDiffuse(normal, vWorldPos.xyz, lightDir);
+        float atten = 1;
 
-        #ifdef SHADOW
-            //diff *= GetShadow(vShadowPos, vWorldPos.w);
+        #if defined(DIRLIGHT)
+            atten = GetAtten(normal, vWorldPos.xyz, lightDir);
+        #elif defined(SPOTLIGHT)
+            atten = GetAttenSpot(normal, vWorldPos.xyz, lightDir);
+        #else
+            atten = GetAttenPoint(normal, vWorldPos.xyz, lightDir);
         #endif
-    
+
+        float shadow = 1.0;
+        #ifdef SHADOW
+            shadow = GetShadow(vShadowPos, vWorldPos.w);
+        #endif
+
         #if defined(SPOTLIGHT)
             lightColor = vSpotPos.w > 0.0 ? texture2DProj(sLightSpotMap, vSpotPos).rgb * cLightColor.rgb : vec3(0.0, 0.0, 0.0);
         #elif defined(CUBEMASK)
@@ -167,54 +229,28 @@ void PS()
         #else
             lightColor = cLightColor.rgb;
         #endif
-    
-        #ifdef SPECULAR
-            float spec = GetSpecular(normal, cCameraPosPS - vWorldPos.xyz, lightDir, cMatSpecColor.a);
-            finalColor = diff * lightColor * (diffColor.rgb + spec * specColor * cLightColor.a);
-        #else
-            finalColor = diff * lightColor * diffColor.rgb;
-        #endif
+        vec3 toCamera = normalize(cCameraPosPS - vWorldPos.xyz);
+        vec3 lightVec = normalize(lightDir);
+        float ndl = clamp((dot(normal, lightVec)), M_EPSILON, 1.0);
+
+        vec3 BRDF = GetBRDF(vWorldPos.xyz, lightDir, lightVec, toCamera, normal, roughness, diffColor.rgb, specColor);
+
+        finalColor.rgb = BRDF * lightColor * (atten * shadow) / M_PI;
 
         #ifdef AMBIENT
             finalColor += cAmbientColor.rgb * diffColor.rgb;
             finalColor += cMatEmissiveColor;
-
             gl_FragColor = vec4(GetFog(finalColor, fogFactor), diffColor.a);
         #else
             gl_FragColor = vec4(GetLitFog(finalColor, fogFactor), diffColor.a);
         #endif
-    #elif defined(PREPASS)
-        // Fill light pre-pass G-Buffer
-        float specPower = cMatSpecColor.a / 255.0;
-
-        gl_FragData[0] = vec4(normal * 0.5 + 0.5, specPower);
-        gl_FragData[1] = vec4(EncodeDepth(vWorldPos.w), 0.0);
+        
     #elif defined(DEFERRED)
         // Fill deferred G-buffer
-        float specIntensity = specColor.g;
-        float specPower = cMatSpecColor.a / 255.0;
-
-        vec3 finalColor = vVertexLight * diffColor.rgb;
-        #ifdef AO
-            // If using AO, the vertex light ambient is black, calculate occluded ambient here
-            finalColor += texture2D(sEmissiveMap, vTexCoord2).rgb * cAmbientColor.rgb * diffColor.rgb;
-        #endif
-
-        #ifdef ENVCUBEMAP
-            finalColor += cMatEnvMapColor * textureCube(sEnvCubeMap, reflect(vReflectionVec, normal)).rgb;
-        #endif
-        #ifdef LIGHTMAP
-            finalColor += texture2D(sEmissiveMap, vTexCoord2).rgb * diffColor.rgb;
-        #endif
-        #ifdef EMISSIVEMAP
-            finalColor += cMatEmissiveColor * texture2D(sEmissiveMap, vTexCoord.xy).rgb;
-        #else
-            finalColor += cMatEmissiveColor;
-        #endif
-
-        gl_FragData[0] = vec4(GetFog(finalColor, fogFactor), 1.0);
-        gl_FragData[1] = fogFactor * vec4(diffColor.rgb, specIntensity);
-        gl_FragData[2] = vec4(normal * 0.5 + 0.5, specPower);
+        const vec3 spareData = vec3(0,0,0); // Can be used to pass more data to deferred renderer
+        gl_FragData[0] = vec4(specColor, spareData.r);
+        gl_FragData[1] = vec4(diffColor.rgb, spareData.g);
+        gl_FragData[2] = vec4(normal * roughness, spareData.b);
         gl_FragData[3] = vec4(EncodeDepth(vWorldPos.w), 0.0);
     #else
         // Ambient & per-vertex lighting
@@ -223,7 +259,7 @@ void PS()
             // If using AO, the vertex light ambient is black, calculate occluded ambient here
             finalColor += texture2D(sEmissiveMap, vTexCoord2).rgb * cAmbientColor.rgb * diffColor.rgb;
         #endif
-        
+
         #ifdef MATERIAL
             // Add light pre-pass accumulation result
             // Lights are accumulated at half intensity. Bring back to full intensity now
@@ -231,6 +267,17 @@ void PS()
             vec3 lightSpecColor = lightInput.a * lightInput.rgb / max(GetIntensity(lightInput.rgb), 0.001);
 
             finalColor += lightInput.rgb * diffColor.rgb + lightSpecColor * specColor;
+        #endif
+
+        vec3 toCamera = normalize(vWorldPos.xyz - cCameraPosPS);
+        vec3 reflection = normalize(reflect(toCamera, normal));
+
+        vec3 cubeColor = vVertexLight.rgb;
+
+        #ifdef IBL
+          vec3 iblColor = ImageBasedLighting(reflection, normal, toCamera, diffColor.rgb, specColor.rgb, roughness, cubeColor);
+          float gamma = 0.0;
+          finalColor.rgb += iblColor;
         #endif
 
         #ifdef ENVCUBEMAP
@@ -247,4 +294,5 @@ void PS()
 
         gl_FragColor = vec4(GetFog(finalColor, fogFactor), diffColor.a);
     #endif
+
 }

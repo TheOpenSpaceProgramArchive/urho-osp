@@ -123,8 +123,8 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
     //GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("Gotzietek/TestFan/testfan.sturdy.gltf");
     //f->GetScene(0, category);
 
-    // Make 20 rocket cubes
-    for (int i = 0; i < 20; i ++)
+    // Make 8 rocket cubes
+    for (int i = 12; i < 20; i ++)
     {
         // Make a new child in the dbg category
         Node* aPart = category->CreateChild("dbg_" + String(i));

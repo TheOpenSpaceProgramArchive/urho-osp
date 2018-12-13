@@ -1,0 +1,181 @@
+{
+	"id": 1,
+	"attributes": {
+		"Name": "",
+		"Time Scale": 1.0,
+		"Smoothing Constant": 50.0,
+		"Snap Threshold": 5.0,
+		"Elapsed Time": 0.0,
+		"Next Replicated Node ID": 8,
+		"Next Replicated Component ID": 11,
+		"Next Local Node ID": 16777218,
+		"Next Local Component ID": 16777240,
+		"Variables": {},
+		"Variable Names": ""
+	},
+	"components": [
+		{
+			"type": "Octree",
+			"id": 1,
+			"attributes": null
+		},
+		{
+			"type": "DebugRenderer",
+			"id": 2,
+			"attributes": null
+		},
+		{
+			"type": "Zone",
+			"id": 9,
+			"attributes": null
+		}
+	],
+	"children": [
+		{
+			"id": 2,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Sphere",
+				"Tags": [],
+				"Position": "0 -0.460977 0",
+				"Rotation": "1 0 0 0",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 3,
+					"attributes": {
+						"Model": "Model;Models/ezsphere.mdl",
+						"Material": "Material;Materials/Planet.xml",
+						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 3,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "",
+				"Tags": [],
+				"Position": "2.25169 0.30263 -1.47577",
+				"Rotation": "0.969129 0.240611 -0.0522149 -0.0129637",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "Light",
+					"id": 4,
+					"attributes": {
+						"Light Type": "Directional",
+						"Brightness Multiplier": 4000.0,
+						"Temperature": 5590.0,
+						"Use Physical Values": true,
+						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 4,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Box",
+				"Tags": [],
+				"Position": "0.428865 0.902444 -2.04212",
+				"Rotation": "1 0 0 0",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 5,
+					"attributes": {
+						"Model": "Model;Models/Box.mdl",
+						"Material": "Material;",
+						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 5,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Box",
+				"Tags": [],
+				"Position": "0.578868 -1.10414 -0.721038",
+				"Rotation": "1 0 0 0",
+				"Scale": "7.70785 0.187156 10.5673",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 6,
+					"attributes": {
+						"Model": "Model;Models/Box.mdl",
+						"Material": "Material;Materials/Floor0.json",
+						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 6,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Sphere",
+				"Tags": [],
+				"Position": "0.267663 -0.498778 1.30225",
+				"Rotation": "1 0 0 0",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 7,
+					"attributes": {
+						"Model": "Model;Models/ezsphere.mdl",
+						"Material": "Material;Materials/Planet.xml",
+						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 7,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "RenderCamera",
+				"Tags": [],
+				"Position": "0 0 0",
+				"Rotation": "1 0 0 0",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "Camera",
+					"id": 10,
+					"attributes": {
+						"Near Clip": 0.009999999776482582,
+						"FOV": 90.0,
+						"Auto Aspect Ratio": false
+					}
+				}
+			],
+			"children": []
+		}
+	]
+}

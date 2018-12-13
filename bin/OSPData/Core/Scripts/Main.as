@@ -68,6 +68,15 @@ void construct_apparatus()
     camera.position = Vector3(0, 0, -8);
     renderer.viewports[0].camera = camera.CreateComponent("Camera");
 
+    // Add a light to make it easier to see
+    
+    Light@ mothBait = cameraCenter.CreateComponent("Light");
+    mothBait.usePhysicalValues = true;
+    mothBait.range = 500;
+    mothBait.brightness = 7000;
+    mothBait.temperature = 6700;
+    
+
     // Locate the cursor
     // Cursor has the drop sound in it
     // Cursor will soon have the move tool handles
@@ -207,7 +216,7 @@ void solidify_prototype(Node@ prototype)
 
     centerOfMass /= totalMass;
     Print("total mass: " + totalMass);
-
+  
     // Create a single rigid body with all the colliders
     Array<Node@> childrenColliders = prototype.GetChildrenWithComponent("CollisionShape", true);
 
@@ -234,6 +243,7 @@ void solidify_prototype(Node@ prototype)
     osp.make_craft(prototype);
     RigidBody@ body = prototype.CreateComponent("RigidBody");
     body.mass = totalMass;
+    body.friction = 3;
 }
 
 Node@ get_part_from_node(Node@ node)
@@ -254,7 +264,25 @@ void construct_update(StringHash eventType, VariantMap& eventData)
 
     // Handle camera movement by arrow keys
     Vector2 arrowKeys(bint(input.keyDown[KEY_RIGHT]) - bint(input.keyDown[KEY_LEFT]), bint(input.keyDown[KEY_UP]) - bint(input.keyDown[KEY_DOWN]));
-    cameraCenter.rotation = Quaternion(Clamp(cameraCenter.rotation.pitch + arrowKeys.y * delta * 90, -80.0f, 80.0f), cameraCenter.rotation.yaw - arrowKeys.x * delta * 90, 0.0);
+    
+    // Roll the camera to level with the horizon
+    Quaternion toHorizon;
+    Node@ terrain = g_scene.GetChild("PlanetTerrain");
+    if (terrain !is null)
+    {
+        toHorizon.FromLookRotation(camera.worldRotation * Vector3(0, 0, 1), (cameraCenter.position - terrain.position).Normalized());
+        
+    }
+    else
+    {
+        toHorizon.FromLookRotation(camera.worldRotation * Vector3(0, 0, 1), Vector3(0, 1, 0));
+    }
+    
+    cameraCenter.rotation = toHorizon;
+    //cameraCenter.rotation *= toHorizon.Inverse();
+    //cameraCenter.rotation = Quaternion(Clamp(cameraCenter.rotation.pitch + arrowKeys.y * delta * 90, -80.0f, 80.0f), cameraCenter.rotation.yaw - arrowKeys.x * delta * 90, 0.0);
+    //cameraCenter.rotation *= toHorizon;
+    cameraCenter.rotation *= Quaternion(arrowKeys.y * delta * 90, -arrowKeys.x * delta * 90, 0.0);
 
     camera.position = Vector3(0, 0, camera.position.z + delta * 10.0 * (bint(input.keyDown[KEY_Z]) - bint(input.keyDown[KEY_X])));
     //cameraCenter.rotation.FromEulerAngles(cameraCenter.rotation.yaw, cameraCenter.rotation.pitch, 0.0);

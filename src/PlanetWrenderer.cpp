@@ -57,7 +57,7 @@ PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFre
     // This is intended to reduce the number of distance checks
 
     m_indCount = 0;
-    m_maxDepth = 7;
+    m_maxDepth = 4;
 
     //m_hqDepth = 4;
 }
@@ -231,7 +231,7 @@ void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size
     {
 
         // Again, magic numbers
-        m_maxChunks = 100;
+        m_maxChunks = 1000;
 
         m_chunkCount = 0;
 
@@ -949,7 +949,7 @@ void PlanetWrenderer::generate_chunk(trindex t)
                 pos = normal * (m_radius + (100.0f * m_heightMap->GetPixelBilinear(Mod(Atan2(normal.z_, normal.x_) + 360.0f, 360.0f) / 360.0f, Acos(normal.y_) / 180.0f).r_));
 
                 // Position and normal
-                Vector3 vertM[2] = {pos, Vector3(0, 1, 0)};
+                Vector3 vertM[2] = {pos, normal};
                 m_vertBufChunk->SetDataRange(vertM, vertIndex, 1);
 
             }
