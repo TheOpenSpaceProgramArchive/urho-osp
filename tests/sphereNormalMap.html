@@ -97,8 +97,12 @@
 
     application.srcfile = null;
     application.img = null;
+    application.imageData = null;
     application.paint = [];
     application.time = 0;
+    application.sampleCount = 6;
+    application.sampleRadius = 0;
+    application.scale = [0, 0];
 
     application.init = function() {
         application.timeStart = new Date().getTime();
@@ -112,20 +116,15 @@
         
     }
 
-    application.loadimg = function() {
-        this.img = new Image();
-        this.img.onload = function() {
-            application.generate();
-        };
-        this.img.src = window.URL.createObjectURL(this.srcfile);
-        
+    application.equiPixelToVec = function(pixel) {
+        //var scale = [this.img.width / (Math.PI * 2.0), this.img.height / Math.PI];
+        var angles = [pixel[0] / this.scale[0], -(pixel[1] - this.img.height / 2) / this.scale[1]];
+        var pitchCos = Math.cos(angles[1]);
+        return [Math.cos(angles[0]) * pitchCos, Math.sin(angles[1]), Math.sin(angles[0]) * pitchCos];
     }
 
-    application.equiPixelToVec = function(pixel) {
-        var scale = [this.img.width / (Math.PI * 2.0), this.img.height / Math.PI];
-        var angles = [pixel[0] / scale[0], -(pixel[1] - this.img.height / 2) / scale[1]];
-        var pitchCos = Math.cos(angles[1]);
-        return [Math.sin(angles[0]) * pitchCos, Math.sin(angles[1]), Math.cos(angles[0]) * pitchCos];
+    application.equiVecToPixel = function(vec) {
+        return [Math.round((Math.atan2(vec[2], vec[0]) * this.scale[0] + this.img.width) % this.img.width), Math.round(Math.acos(vec[1]) * this.img.height / Math.PI)];
     }
 
     application.vecToNormalMapColor = function(vec) {
@@ -136,25 +135,114 @@
         return "rgb(" + a[0] + "," + a[1] + "," + a[2] + ")";
     }
 
+    application.getPixelR = function(x, y) {
+        return this.imageData.data[4 * (this.img.width * y + x)];
+    }
+
+    // When generate button is pressed
+    application.loadimg = function() {
+        this.img = new Image();
+        this.img.onload = function() {
+            application.generate();
+        };
+        this.img.src = window.URL.createObjectURL(this.srcfile);
+        
+    }
+
+    // Called when the image is loaded
     application.generate = function() {
         if (this.img == null) {
             return;
         }
+
+        // Set canvas width and height
         canvasdraw.width = this.img.width;
         canvasdraw.height = this.img.height;
-        //var i = 0;
+
+        // Draw image onto canvas, and get a copy of its pixel data
+        ctx.drawImage(this.img, 0, 0);
+        this.imageData = ctx.getImageData(0, 0, this.img.width, this.img.height);
+
+        // Set scale and sample radius for calculations later
+        this.scale = [this.img.width / (Math.PI * 2.0), this.img.height / Math.PI];
+        this.sampleRadius = (Math.PI * 2) / this.img.width * 1.3;
+
+        // Start evaluating pixels
         setTimeout(function() {
             application.rowEval(0);
         }, 0);
-        //ctx.drawImage(this.img, 0, 0);
     }
-    
+
+    // Evaluate an entire row of pixels
     application.rowEval = function(y) {
         for (var x = 0; x < this.img.width; x ++) {
-            var vec = application.equiPixelToVec([x, y]);
-            ctx.fillStyle = application.vecToNormalMapColor(vec);
+            // Vector straight out of the center of the sphere to the surface
+            var vec = this.equiPixelToVec([x, y]);
+
+            // Calculate tangent and bitangent (probably unoptimized af)
+            var bitangent = vec3.cross([], vec, [0, 1, 0]);
+            var tangent = vec3.cross([], vec, bitangent);
+            vec3.normalize(bitangent, bitangent);
+            vec3.normalize(tangent, tangent);
+
+            // Apply elevation from height map
+            vec3.scale(vec, vec, 1 + this.getPixelR(x, y) / 255);
+
+            // Sample multiple points in a circle around this pixel, while accounting for map distortion
+
+            var average = [0, 0, 0];
+            for (var i = 0; i < this.sampleCount; i ++) {
+
+                // Current position on circle
+                var angle = Math.PI * 2 * i / this.sampleCount
+
+                // Using X and Y axis (tangent and bitangent), transform the circle point onto it
+                var vX = vec3.scale([], bitangent, Math.cos(angle) * this.sampleRadius);
+                var vY = vec3.scale([], tangent, Math.sin(angle) * this.sampleRadius);
+
+                // Add them together to get xyz coordinate of point to sample
+                var beside = [0, 0, 0];
+                vec3.add(beside, beside, vec);
+                vec3.add(beside, beside, vX);
+                vec3.add(beside, beside, vY);
+                vec3.normalize(beside, beside);
+
+                // Get height data on this point
+                var pixel = this.equiVecToPixel(beside);
+                vec3.scale(beside, beside, 1 + this.getPixelR(pixel[0], pixel[1]) / 255);
+
+                var radius = [0, 0, 0];
+                var surface = [0, 0, 0];
+
+                // Set radius as a vector between the two points being sampled, pointing towards the center
+                vec3.sub(radius, vec, beside);
+
+                // Use cross products to calculate surface normal (global coordinate)
+                vec3.cross(surface, vec, radius);
+                vec3.cross(surface, radius, surface);
+
+                // surface is now a vector that points from the surface based on slope
+                vec3.normalize(surface, surface);
+
+                // Add it to average out with other samples
+                vec3.add(average, average, surface);
+            }
+
+            // Divide by sampleCount to get the average
+            vec3.scale(average, average, 1 / this.sampleCount);
+
+            // Transform to tangent space
+            var matrix = mat3.fromValues(tangent[0], tangent[1], tangent[2], -bitangent[0], -bitangent[1], -bitangent[2], vec[0], vec[1], vec[2]);
+            mat3.invert(matrix, matrix);
+            vec3.transformMat3(average, average, matrix);
+            vec3.normalize(average, average);
+
+            // Now draw the single pixel
+            ctx.fillStyle = this.vecToNormalMapColor(average);
             ctx.fillRect(x, y, 1, 1);
         }
+        
+        // Evaluate the next row of pixels
         y ++;
         if (y < application.img.height) {
             setTimeout(function() {
@@ -173,7 +261,7 @@
     </script>
     <input id="uploader" type="file" name="name" style="display: none;" onchange="application.srcfile = this.files[0];" />
     <div>
-      <p>Upload planet bump map file, then generate normal maps. Right click and "save as" for the image above.</p>
+      <p>Upload a planet bump map file, then hit Generate. Results shown above can be saved with [right click] -> save as.</p>
       <button type="button" onclick="document.getElementById('uploader').click();">Upload File</button>
       <button type="button" onclick="alert('Hello world!')">Input: Equirectangular</button>
       <br>
