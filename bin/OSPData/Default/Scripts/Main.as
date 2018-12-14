@@ -66,7 +66,11 @@ void construct_apparatus()
     camera = cameraCenter.CreateChild("Camera");
     // Distanced from the center a bit
     camera.position = Vector3(0, 0, -8);
-    renderer.viewports[0].camera = camera.CreateComponent("Camera");
+    
+    // Create component
+    Camera@ cam = camera.CreateComponent("Camera");
+    cam.farClip = 65536;
+    renderer.viewports[0].camera = cam;
 
     // Add a light to make it easier to see
     

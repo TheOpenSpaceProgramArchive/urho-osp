@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <title>Normal map generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <style>
+    @font-face {
+      font-family: 'Bowman';
+      src: url('Bowman.ttf') format('truetype');
+    }
+    
+    body {
+      background-color: #eeeeec;
+      height:100%;
+      text-align: center;
+    }
+
+    body, button {
+      font-family: 'Bowman';
+      color: #262c50;
+      font-size: 14px;
+      line-height: 22px;
+    }
+
+    button {
+      background-color: #e9edfd;
+      padding: 8px;
+      padding-bottom: 5px;
+      margin-top: 3px;
+      margin-bottom: 3px;
+      border-width: 1px;
+      border-color: #262c50;
+      border-radius: 3px;
+    }
+
+    button:hover {background-color: #cbd6fc;}
+    button:focus {background-color: #b6c5fb;}
+
+    canvas, div {
+      margin: auto;
+      margin-top: 20px;
+    }
+
+    canvas {
+      top: 0%;
+      width: 512px;
+      height: 256px;
+      box-shadow: 0px 4px 10px -4px rgba(0,0,0,0.75);
+      background-color: white;
+      border-radius: 3px;
+    }
+    
+    div {
+      text-align: left;
+      padding: 12px;
+      width: 488px;
+      box-shadow: 0px 4px 10px -4px rgba(0,0,0,0.75);
+      background-color: white;
+      border-radius: 3px;
+    }
+    
+    
+  </style>
+  </head>
+  <body>
+    <script>
+
+    // Make canvas and setup some variables
+    var canvasdraw = document.createElement("canvas");
+    var ctx = canvasdraw.getContext("2d");
+    var input = {mouseX: 0, mouseY: 0, shiftKey: false}
+    var application = {};
+
+    // Put canvas on the document
+    canvasdraw.width = 5120;
+    canvasdraw.height = 256;  
+    document.body.appendChild(canvasdraw);
+
+    // Keep track of mouse position
+    //canvasdraw.onmousemove = function(e) {
+    //  var g = canvasdraw.getBoundingClientRect();
+    //  input.shiftKey = e.shiftKey;
+    //  input.mouseX = Math.floor(e.x - g.x);
+    //  input.mouseY = Math.floor(e.y - g.y);
+    //  ctx.fillText("This is test", input.mouseX, input.mouseY);
+    //  ctx.fillRect(input.mouseX, input.mouseY, 2, 2);
+    //  application.mouseMove();
+    //}
+
+    var drawLoop = function() {
+        application.time = (new Date().getTime() - application.timeStart) / 1000;
+        application.draw();
+        window.requestAnimationFrame(drawLoop);
+    }
+
+    // Actual stuff starts  here  ----------------------------------------------
+
+    application.srcfile = null;
+    application.img = null;
+    application.paint = [];
+    application.time = 0;
+
+    application.init = function() {
+        application.timeStart = new Date().getTime();
+    }
+
+    application.mouseMove = function() {
+        
+    }
+
+    application.draw = function() {
+        
+    }
+
+    application.loadimg = function() {
+        this.img = new Image();
+        this.img.onload = function() {
+            application.generate();
+        };
+        this.img.src = window.URL.createObjectURL(this.srcfile);
+        
+    }
+
+    application.equiPixelToVec = function(pixel) {
+        var scale = [this.img.width / (Math.PI * 2.0), this.img.height / Math.PI];
+        var angles = [pixel[0] / scale[0], -(pixel[1] - this.img.height / 2) / scale[1]];
+        var pitchCos = Math.cos(angles[1]);
+        return [Math.sin(angles[0]) * pitchCos, Math.sin(angles[1]), Math.cos(angles[0]) * pitchCos];
+    }
+
+    application.vecToNormalMapColor = function(vec) {
+        var a = vec3.add([], vec3.scale([], vec, 127.5), [127.5, 127.5, 127.5]);
+        a[0] = Math.round(a[0]);
+        a[1] = Math.round(a[1]);
+        a[2] = Math.round(a[2]);
+        return "rgb(" + a[0] + "," + a[1] + "," + a[2] + ")";
+    }
+
+    application.generate = function() {
+        if (this.img == null) {
+            return;
+        }
+        canvasdraw.width = this.img.width;
+        canvasdraw.height = this.img.height;
+        //var i = 0;
+        setTimeout(function() {
+            application.rowEval(0);
+        }, 0);
+        //ctx.drawImage(this.img, 0, 0);
+    }
+    
+    application.rowEval = function(y) {
+        for (var x = 0; x < this.img.width; x ++) {
+            var vec = application.equiPixelToVec([x, y]);
+            ctx.fillStyle = application.vecToNormalMapColor(vec);
+            ctx.fillRect(x, y, 1, 1);
+        }
+        y ++;
+        if (y < application.img.height) {
+            setTimeout(function() {
+                application.rowEval(y);
+            }, 0);
+        }
+    }
+
+    // End of actual stuff
+
+    ctx.font = "14px Bowman";
+    ctx.fillText("LoadTheDamnFont", 0, -40);
+    application.init();
+    window.requestAnimationFrame(drawLoop);
+
+    </script>
+    <input id="uploader" type="file" name="name" style="display: none;" onchange="application.srcfile = this.files[0];" />
+    <div>
+      <p>Upload planet bump map file, then generate normal maps. Right click and "save as" for the image above.</p>
+      <button type="button" onclick="document.getElementById('uploader').click();">Upload File</button>
+      <button type="button" onclick="alert('Hello world!')">Input: Equirectangular</button>
+      <br>
+        <button type="button" onclick="application.loadimg();">Generate</button>
+        <button type="button" onclick="alert('Hello world!')">Output: Equirectangular</button>
+      </br>
+    </div>
+  </body>
+</html>
