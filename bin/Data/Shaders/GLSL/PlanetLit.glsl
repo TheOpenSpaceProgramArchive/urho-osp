@@ -7,6 +7,7 @@
 #include "Fog.glsl"
 #include "PBR.glsl"
 #include "IBL.glsl"
+
 #line 30010
 
 #if defined(NORMALMAP)
@@ -16,6 +17,7 @@
     varying vec2 vTexCoord;
 #endif
 varying vec3 vNormal;
+varying vec3 vNormalLocal;
 varying vec4 vWorldPos;
 #ifdef VERTEXCOLOR
     varying vec4 vColor;
@@ -49,6 +51,13 @@ varying vec4 vWorldPos;
     varying float fLogZ;
 #endif
 
+#ifdef DISPLACE
+    uniform sampler2D sHeight6;
+#endif
+
+uniform float cTerrainNormalHeight;
+uniform float cTerrainDeformAmount;
+
 vec4 textureEquirect(sampler2D tex, vec3 dir)
 {
     //vec2 dirFlat = normalize(dir.zx);
@@ -59,8 +68,22 @@ void VS()
 {
     mat4 modelMatrix = iModelMatrix;
     vec3 worldPos = GetWorldPos(modelMatrix);
-    gl_Position = GetClipPos(worldPos) + vec4(0, 0, 0, 0);
+
     vNormal = GetWorldNormal(modelMatrix);
+    vNormalLocal = iNormal;
+
+    #ifdef DISPLACE
+        float heightInput = textureEquirect(sHeight6, vNormalLocal).r;
+        vec3 extendDir = vNormal * heightInput * cTerrainDeformAmount;
+        extendDir.x *= length(modelMatrix[0]);
+        extendDir.y *= length(modelMatrix[1]);
+        extendDir.z *= length(modelMatrix[2]);
+
+        gl_Position = GetClipPos(worldPos + extendDir);
+    #else
+        gl_Position = GetClipPos(worldPos);
+    #endif
+
     vWorldPos = vec4(worldPos, GetDepth(gl_Position));
 
     #ifdef LOGDEPTH
@@ -129,9 +152,9 @@ void PS()
     // Get material diffuse albedo
     #ifdef DIFFMAP
         #ifdef DIFFEQUIRECT
-            vec4 diffInput = textureEquirect(sDiffMap, vNormal);
+            vec4 diffInput = textureEquirect(sDiffMap, vNormalLocal);
         #elif DIFFCUBEMAP
-            vec4 diffInput = textureCube(sDiffCubeMap, vNormal);
+            vec4 diffInput = textureCube(sDiffCubeMap, vNormalLocal);
         #else
             vec4 diffInput = texture2D(sDiffMap, vTexCoord.xy);
         #endif
@@ -181,7 +204,20 @@ void PS()
         //nn.rg *= 2.0;
         vec3 normal = normalize(tbn * nn);
     #else
-        vec3 normal = normalize(vNormal);
+        //vec3 normal = normalize(vNormal);
+        #ifdef ENORMALMAP
+            //vec3 nn = DecodeNormal();
+            //nn.rg *= 2.0
+            vec3 normIn = DecodeNormal(textureEquirect(sNormalMap, vNormalLocal) + vec4(0, 0, 1 / max(0.0001, cTerrainNormalHeight), 0));
+            vec3 normal = normalize(vNormal);
+
+            vec3 altBiTangent = -normalize(cross(vec3(0, 1, 0), normal));
+            vec3 altTangent = normalize(cross(normal, altBiTangent));
+
+            normal = normalize(normIn.x * altBiTangent + normIn.y * altTangent + normIn.z * normal);
+        #else
+            vec3 normal = normalize(vNormal);
+        #endif
     #endif
 
     // Get fog factor

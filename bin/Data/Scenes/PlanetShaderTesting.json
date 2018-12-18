@@ -6,10 +6,10 @@
 		"Smoothing Constant": 50.0,
 		"Snap Threshold": 5.0,
 		"Elapsed Time": 0.0,
-		"Next Replicated Node ID": 8,
-		"Next Replicated Component ID": 11,
-		"Next Local Node ID": 16777218,
-		"Next Local Component ID": 16777240,
+		"Next Replicated Node ID": 9,
+		"Next Replicated Component ID": 12,
+		"Next Local Node ID": 16777221,
+		"Next Local Component ID": 16777276,
 		"Variables": {},
 		"Variable Names": ""
 	},
@@ -27,7 +27,10 @@
 		{
 			"type": "Zone",
 			"id": 9,
-			"attributes": null
+			"attributes": {
+				"Is Enabled": false,
+				"Ambient Color": "0.4 0.4 0.4 1"
+			}
 		}
 	],
 	"children": [
@@ -37,9 +40,9 @@
 				"Is Enabled": true,
 				"Name": "Sphere",
 				"Tags": [],
-				"Position": "0 -0.460977 0",
-				"Rotation": "1 0 0 0",
-				"Scale": "1 1 1",
+				"Position": "0 4.28717 0",
+				"Rotation": "0.459762 0 0.888041 0",
+				"Scale": "8 8 8",
 				"Variables": {}
 			},
 			"components": [
@@ -47,7 +50,7 @@
 					"type": "StaticModel",
 					"id": 3,
 					"attributes": {
-						"Model": "Model;Models/ezsphere.mdl",
+						"Model": "Model;Models/Icosphere.mdl",
 						"Material": "Material;Materials/Planet.xml",
 						"Cast Shadows": true
 					}
@@ -61,9 +64,9 @@
 				"Is Enabled": true,
 				"Name": "",
 				"Tags": [],
-				"Position": "2.25169 0.30263 -1.47577",
-				"Rotation": "0.969129 0.240611 -0.0522149 -0.0129637",
-				"Scale": "1 1 1",
+				"Position": "0.734181 3.83866 5.24908",
+				"Rotation": "-0.0872643 0.777024 0.065884 -0.619897",
+				"Scale": "1 0.7861 1",
 				"Variables": {}
 			},
 			"components": [
@@ -72,33 +75,9 @@
 					"id": 4,
 					"attributes": {
 						"Light Type": "Directional",
-						"Brightness Multiplier": 4000.0,
+						"Brightness Multiplier": 2000.0,
 						"Temperature": 5590.0,
 						"Use Physical Values": true,
-						"Cast Shadows": true
-					}
-				}
-			],
-			"children": []
-		},
-		{
-			"id": 4,
-			"attributes": {
-				"Is Enabled": true,
-				"Name": "Box",
-				"Tags": [],
-				"Position": "0.428865 0.902444 -2.04212",
-				"Rotation": "1 0 0 0",
-				"Scale": "1 1 1",
-				"Variables": {}
-			},
-			"components": [
-				{
-					"type": "StaticModel",
-					"id": 5,
-					"attributes": {
-						"Model": "Model;Models/Box.mdl",
-						"Material": "Material;",
 						"Cast Shadows": true
 					}
 				}
@@ -111,7 +90,7 @@
 				"Is Enabled": true,
 				"Name": "Box",
 				"Tags": [],
-				"Position": "0.578868 -1.10414 -0.721038",
+				"Position": "0.578868 -5.9479 -8.54908",
 				"Rotation": "1 0 0 0",
 				"Scale": "7.70785 0.187156 10.5673",
 				"Variables": {}
@@ -135,7 +114,7 @@
 				"Is Enabled": true,
 				"Name": "Sphere",
 				"Tags": [],
-				"Position": "0.267663 -0.498778 1.30225",
+				"Position": "1.71797 -0.498778 -2.78097",
 				"Rotation": "1 0 0 0",
 				"Scale": "1 1 1",
 				"Variables": {}
@@ -145,7 +124,7 @@
 					"type": "StaticModel",
 					"id": 7,
 					"attributes": {
-						"Model": "Model;Models/ezsphere.mdl",
+						"Model": "Model;Models/Box.mdl",
 						"Material": "Material;Materials/Planet.xml",
 						"Cast Shadows": true
 					}
@@ -172,6 +151,30 @@
 						"Near Clip": 0.009999999776482582,
 						"FOV": 90.0,
 						"Auto Aspect Ratio": false
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 4,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Box",
+				"Tags": [],
+				"Position": "-0.750301 0.902444 -3.72535",
+				"Rotation": "0.997406 0.00493969 -0.00901984 -0.029147",
+				"Scale": "1.0122 1.02748 1.01515",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 5,
+					"attributes": {
+						"Model": "Model;Models/Box.mdl",
+						"Material": "Material;",
+						"Cast Shadows": true
 					}
 				}
 			],

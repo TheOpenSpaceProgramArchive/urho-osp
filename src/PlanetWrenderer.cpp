@@ -236,15 +236,15 @@ void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size
         m_chunkCount = 0;
 
         // chunk size / vertex count is the (chunk resolution)th triangular number
-        m_chunkResolution = 12;
+        m_chunkResolution = 32;
         m_chunkSize = m_chunkResolution * (m_chunkResolution + 1) / 2;
 
         // This is how many triangles is in a chunk
         m_chunkSizeInd = Pow(m_chunkResolution - 1, 2u);
         m_chunkSharedCount = (m_chunkResolution - 1) * 3;
 
-        m_maxVertChunk = 40000;
-        m_maxVertChunkShared = 10000; // magic number for how much of m_maxVertChunk is reserved for shared vertices (must be smaller)
+        m_maxVertChunk = 400000;
+        m_maxVertChunkShared = 100000; // magic number for how much of m_maxVertChunk is reserved for shared vertices (must be smaller)
 
         m_vertCountChunk[0] = 0;
         m_vertCountChunk[1] = 0;
@@ -450,7 +450,8 @@ void PlanetWrenderer::subdivide(trindex t)
             Vector3 vertM[2];
             vertM[1] = ((vertA + vertB) / 2).Normalized();
 
-            vertM[0] = vertM[1] * (m_radius + (m_heightMap->GetPixelBilinear(Mod(Atan2(vertM[1].z_, vertM[1].x_) + 360.0f, 360.0f) / 360.0f, Acos(vertM[1].y_) / 180.0f).r_ * 100.0f));
+            vertM[0] = vertM[1] * m_radius;
+            // * (m_radius + (m_heightMap->GetPixelBilinear(Mod(Atan2(vertM[1].z_, vertM[1].x_) + 360.0f, 360.0f) / 360.0f, Acos(vertM[1].y_) / 180.0f).r_ * 100.0f));
             //printf("VA %s, VB: %s, \n", vertA.ToString().CString(), vertB.ToString().CString());
 
             //printf("DataRange: %u\n", tri->m_midVerts[i]);
@@ -751,6 +752,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
             if (tri->m_depth == m_maxDepth - 1)
             {
                 generate_chunk(t);
+                //subdivide(t);
             }
             else if (tri->m_depth < m_maxDepth)
             {
@@ -946,7 +948,8 @@ void PlanetWrenderer::generate_chunk(trindex t)
                 Vector3 pos = verts[0] + (dirRight * x + dirDown * y);
                 Vector3 normal = pos.Normalized();
 
-                pos = normal * (m_radius + (100.0f * m_heightMap->GetPixelBilinear(Mod(Atan2(normal.z_, normal.x_) + 360.0f, 360.0f) / 360.0f, Acos(normal.y_) / 180.0f).r_));
+                pos = normal * m_radius;
+                // * (m_radius + (100.0f * m_heightMap->GetPixelBilinear(Mod(Atan2(normal.z_, normal.x_) + 360.0f, 360.0f) / 360.0f, Acos(normal.y_) / 180.0f).r_));
 
                 // Position and normal
                 Vector3 vertM[2] = {pos, normal};

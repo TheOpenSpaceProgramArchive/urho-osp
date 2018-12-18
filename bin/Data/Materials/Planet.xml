@@ -2,15 +2,19 @@
 <material>
 	<technique name="Techniques/DiffPlanet.xml" quality="0" loddistance="0" />
 	<texture unit="diffuse" name="Textures/EquirectangularHeight.png" />
-	<shader psdefines="DIFFEQUIRECT" />
+	<texture unit="normal" name="Textures/EquirectangularNormal.png" />
+	<texture unit="custom1" name="Textures/EquirectangularHeight.png" />
+	<shader vsdefines="DISPLACE" psdefines="DIFFEQUIRECT ENORMALMAP" />
 	<parameter name="UOffset" value="1 0 0 0" />
 	<parameter name="VOffset" value="0 1 0 0" />
 	<parameter name="MatDiffColor" value="1 1 1 1" />
 	<parameter name="MatEmissiveColor" value="0 0 0" />
 	<parameter name="MatEnvMapColor" value="1 1 1" />
 	<parameter name="MatSpecColor" value="1 1 1 1" />
-	<parameter name="Roughness" value="0.7" />
+	<parameter name="Roughness" value="1" />
 	<parameter name="Metallic" value="0" />
+	<parameter name="TerrainNormalHeight" value="0.5" />
+	<parameter name="TerrainDeformAmount" value="0.1" />
 	<cull value="none" />
 	<shadowcull value="ccw" />
 	<fill value="solid" />

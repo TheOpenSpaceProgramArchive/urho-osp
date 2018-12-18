@@ -100,9 +100,10 @@
     application.imageData = null;
     application.paint = [];
     application.time = 0;
-    application.sampleCount = 6;
+    application.sampleCount = 18;
     application.sampleRadius = 0;
     application.scale = [0, 0];
+    application.busy = false;
 
     application.init = function() {
         application.timeStart = new Date().getTime();
@@ -143,18 +144,13 @@
     application.loadimg = function() {
         this.img = new Image();
         this.img.onload = function() {
-            application.generate();
+            application.drawImg();
         };
         this.img.src = window.URL.createObjectURL(this.srcfile);
         
     }
 
-    // Called when the image is loaded
-    application.generate = function() {
-        if (this.img == null) {
-            return;
-        }
-
+    application.drawImg = function() {
         // Set canvas width and height
         canvasdraw.width = this.img.width;
         canvasdraw.height = this.img.height;
@@ -163,9 +159,20 @@
         ctx.drawImage(this.img, 0, 0);
         this.imageData = ctx.getImageData(0, 0, this.img.width, this.img.height);
 
+    }
+
+    // Called when the image is loaded
+    application.generate = function() {
+        if (this.img == null || this.busy) {
+            return;
+        }
+
         // Set scale and sample radius for calculations later
         this.scale = [this.img.width / (Math.PI * 2.0), this.img.height / Math.PI];
-        this.sampleRadius = (Math.PI * 2) / this.img.width * 1.3;
+        this.sampleRadius = (Math.PI * 2) / this.img.width * 2;
+
+        this.busy = true;
+        document.getElementById("generate").innerText = "Processing..";
 
         // Start evaluating pixels
         setTimeout(function() {
@@ -175,13 +182,22 @@
 
     // Evaluate an entire row of pixels
     application.rowEval = function(y) {
+        var vX = [0, 0, 0];
+        var vY = [0, 0, 0];
+        var tangent = [0, 0, 0]
+        var bitangent = [0, 0, 0];
+        var beside = [0, 0, 0];
+        var radius = [0, 0, 0];
+        var surface = [0, 0, 0];
+        var average = [0, 0, 0];
+        var angle;
         for (var x = 0; x < this.img.width; x ++) {
             // Vector straight out of the center of the sphere to the surface
             var vec = this.equiPixelToVec([x, y]);
 
             // Calculate tangent and bitangent (probably unoptimized af)
-            var bitangent = vec3.cross([], vec, [0, 1, 0]);
-            var tangent = vec3.cross([], vec, bitangent);
+            vec3.cross(bitangent, [0, 1, 0], vec);
+            vec3.cross(tangent, vec, bitangent);
             vec3.normalize(bitangent, bitangent);
             vec3.normalize(tangent, tangent);
 
@@ -190,18 +206,18 @@
 
             // Sample multiple points in a circle around this pixel, while accounting for map distortion
 
-            var average = [0, 0, 0];
+            vec3.set(average, 0, 0, 0);
             for (var i = 0; i < this.sampleCount; i ++) {
 
                 // Current position on circle
-                var angle = Math.PI * 2 * i / this.sampleCount
+                angle = Math.PI * 2 * i / this.sampleCount
 
                 // Using X and Y axis (tangent and bitangent), transform the circle point onto it
-                var vX = vec3.scale([], bitangent, Math.cos(angle) * this.sampleRadius);
-                var vY = vec3.scale([], tangent, Math.sin(angle) * this.sampleRadius);
+                vec3.scale(vX, bitangent, Math.cos(angle) * this.sampleRadius);
+                vec3.scale(vY, tangent, Math.sin(angle) * this.sampleRadius);
 
                 // Add them together to get xyz coordinate of point to sample
-                var beside = [0, 0, 0];
+                vec3.set(beside, 0, 0, 0);
                 vec3.add(beside, beside, vec);
                 vec3.add(beside, beside, vX);
                 vec3.add(beside, beside, vY);
@@ -210,9 +226,6 @@
                 // Get height data on this point
                 var pixel = this.equiVecToPixel(beside);
                 vec3.scale(beside, beside, 1 + this.getPixelR(pixel[0], pixel[1]) / 255);
-
-                var radius = [0, 0, 0];
-                var surface = [0, 0, 0];
 
                 // Set radius as a vector between the two points being sampled, pointing towards the center
                 vec3.sub(radius, vec, beside);
@@ -232,9 +245,10 @@
             vec3.scale(average, average, 1 / this.sampleCount);
 
             // Transform to tangent space
-            var matrix = mat3.fromValues(tangent[0], tangent[1], tangent[2], -bitangent[0], -bitangent[1], -bitangent[2], vec[0], vec[1], vec[2]);
+            var matrix = mat3.fromValues(bitangent[0], bitangent[1], bitangent[2], tangent[0], tangent[1], tangent[2], vec[0], vec[1], vec[2]);
             mat3.invert(matrix, matrix);
             vec3.transformMat3(average, average, matrix);
+            average[0] *= -1;
             vec3.normalize(average, average);
 
             // Now draw the single pixel
@@ -245,10 +259,24 @@
         // Evaluate the next row of pixels
         y ++;
         if (y < application.img.height) {
-            setTimeout(function() {
+            if (y % 12 == 0) {
+                setTimeout(function() {
+                    application.rowEval(y);
+                }, 0);
+            } else {
                 application.rowEval(y);
-            }, 0);
+            }
+        } else {
+            this.busy = false; 
+            document.getElementById("generate").innerText = "Generate....";
         }
+
+    }
+
+    application.save = function() {
+        canvasdraw.toBlob(function(blob){
+            window.open(URL.createObjectURL(blob));
+        },'image/png');
     }
 
     // End of actual stuff
@@ -259,15 +287,17 @@
     window.requestAnimationFrame(drawLoop);
 
     </script>
-    <input id="uploader" type="file" name="name" style="display: none;" onchange="application.srcfile = this.files[0];" />
+    <input id="uploader" type="file" name="name" style="display: none;" onchange="application.srcfile = this.files[0]; application.loadimg();" />
     <div>
-      <p>Upload a planet bump map file, then hit Generate. Results shown above can be saved with [right click] -> save as.</p>
-      <button type="button" onclick="document.getElementById('uploader').click();">Upload File</button>
-      <button type="button" onclick="alert('Hello world!')">Input: Equirectangular</button>
+      <p>Upload a planet bump map file, then hit Generate.</p>
+      <button type="button" onclick="if (!application.busy) document.getElementById('uploader').click();">Select File.</button>
+      <button type="button" onclick="alert('This is not implemented yet')">Input: Equirectangular</button>
       <br>
-        <button type="button" onclick="application.loadimg();">Generate</button>
-        <button type="button" onclick="alert('Hello world!')">Output: Equirectangular</button>
+        <button id="generate" type="button" onclick="application.generate();">Generate....</button>
+        <button type="button" onclick="application.save();">Save</button>
+        <button type="button" onclick="alert('This is not implemented yet')">Output: Equirectangular</button>
       </br>
+      
     </div>
   </body>
 </html>

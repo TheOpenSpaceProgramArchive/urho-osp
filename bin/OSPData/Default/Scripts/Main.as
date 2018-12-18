@@ -77,7 +77,7 @@ void construct_apparatus()
     Light@ mothBait = cameraCenter.CreateComponent("Light");
     mothBait.usePhysicalValues = true;
     mothBait.range = 500;
-    mothBait.brightness = 7000;
+    mothBait.brightness = 2000;
     mothBait.temperature = 6700;
     
 
