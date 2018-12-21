@@ -90,6 +90,16 @@ struct SubTriangle
     buindex m_chunkIndex; // Index to index data in the index buffer
 };
 
+struct UpdateRange
+{
+    buindex m_start, m_end;
+    // initialize with maximum buindex value for start (2^32), and minimum buindex for end (0)
+    // the first min and max operations will replace them
+    UpdateRange(): m_start(Pow(2ul, sizeof(buindex) * 8) - 1u), m_end(0)
+    {
+    }
+};
+
 //struct TriChunk
 //{
 //    buindex[3]
@@ -102,8 +112,7 @@ class PlanetWrenderer
     double m_radius;
 
     unsigned m_maxDepth;
-
-    buindex m_maxTriangles;
+    unsigned m_previewDepth; // minimum depth
 
     Vector3 m_offset;
     Vector3 m_camera;
@@ -118,8 +127,11 @@ class PlanetWrenderer
 
     Geometry* m_geometry;
 
+    SharedPtr<IndexBuffer> m_preview;
     SharedPtr<IndexBuffer> m_indBuf;
+    PODVector<trindex> m_indDomain; // Maps index buffer indices to triangles
     buindex m_indCount;
+
     buindex m_maxIndices;
 
     SharedPtr<VertexBuffer> m_vertBuf;
@@ -128,8 +140,9 @@ class PlanetWrenderer
 
     PODVector<SubTriangle> m_triangles; // List of all triangles
     PODVector<trindex> m_trianglesFree; // Empty spaces in the triangle class array
+    buindex m_maxTriangles;
+
     PODVector<buindex> m_vertFree; // Empty spaces in vertex buffer GPU data
-    PODVector<trindex> m_indDomain; // Maps index buffer indices to triangles
     // use "m_indDomain[buindex]" to get a triangle index
 
     // Geometry for chunks
@@ -173,22 +186,25 @@ protected:
 
     static inline void set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte);
     static inline void set_neighbours(SubTriangle& tri, trindex bot, trindex rte, trindex lft);
-    static inline uint8_t neighboor_index(SubTriangle& tri, trindex lookingFor);
-
-    void subdivide(trindex t);
-    void unsubdivide(trindex t);
-    void calculate_center(SubTriangle& tri);
+    static inline const uint8_t neighboor_index(SubTriangle& tri, trindex lookingFor);
 
     void set_side_recurse(SubTriangle& tri, uint8_t side, trindex to);
-    void set_visible(trindex t, bool visible);
+    void set_visible(trindex t, bool visible, UpdateRange* gpuInd = nullptr);
     void sub_recurse(trindex t);
 
-    void generate_chunk(trindex t);
+    void subdivide_add(trindex t, UpdateRange* gpuVert = nullptr, UpdateRange* gpuInd = nullptr);
+    void subdivide_remove(trindex t, UpdateRange* gpuVert = nullptr, UpdateRange* gpuInd = nullptr);
+    void calculate_center(SubTriangle& tri);
 
-    inline SubTriangle* get_triangle(trindex t) { return m_triangles.Buffer() + t; }
+    void chunk_add(trindex t, UpdateRange* gpuIgnore = nullptr);
+    void chunk_remove(trindex t, UpdateRange* gpuIgnore = nullptr);
 
-    inline unsigned get_index(int x, int y);
-    unsigned get_index_ringed(int x, int y);
+    inline SubTriangle* get_triangle(trindex t) const { return m_triangles.Buffer() + t; }
+
+    inline const unsigned get_index(int x, int y) const;
+    const unsigned get_index_ringed(int x, int y) const;
+
+    const uint64_t get_memory_usage() const;
 
     // for debugging only
     void find_refs(SubTriangle& tri);

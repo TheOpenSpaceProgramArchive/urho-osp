@@ -1,4 +1,4 @@
-<technique vs="PlanetLit" ps="PlanetLit" psdefines="DIFFMAP PBR IBL" vsdefines="" >
+<technique vs="PlanetLit" ps="PlanetLit" psdefines="PBR IBL" vsdefines="" >
     <pass name="base" />
     <pass name="light" depthtest="equal" depthwrite="false" blend="add" />
     <pass name="material" psdefines="MATERIAL" depthtest="equal" depthwrite="false" />

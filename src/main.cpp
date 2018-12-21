@@ -184,6 +184,9 @@ public:
             m_osp->process_directory(ospDir + name);
         }
 
+        // remove this later
+        GetSubsystem<ResourceCache>()->BackgroundLoadResource<Material>("Materials/Planet.xml");
+
         // Don't grab the mouse
         GetSubsystem<Input>()->SetMouseGrabbed(false);
         GetSubsystem<Input>()->SetMouseVisible(true);

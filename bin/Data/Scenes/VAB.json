@@ -8,8 +8,8 @@
 		"Elapsed Time": 3.1755282878875734,
 		"Next Replicated Node ID": 18,
 		"Next Replicated Component ID": 38,
-		"Next Local Node ID": 16777237,
-		"Next Local Component ID": 16777468,
+		"Next Local Node ID": 16777239,
+		"Next Local Component ID": 16777492,
 		"Variables": {},
 		"Variable Names": ""
 	},
@@ -30,7 +30,7 @@
 			"attributes": {
 				"Bounding Box Min": "-900000 -900000 -900000",
 				"Bounding Box Max": "900000 900000 900000",
-				"Ambient Color": "0.1 0.08 0.1 1",
+				"Ambient Color": "0 0 0 1",
 				"Fog Color": "0 0 0 0",
 				"Fog Start": 100000000.0,
 				"Fog End": 1000000000.0
@@ -44,7 +44,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -7657504
+				"Play Position": 8654768
 			}
 		},
 		{
@@ -102,10 +102,10 @@
 			"id": 3,
 			"attributes": {
 				"Is Enabled": true,
-				"Name": "CeilLight",
+				"Name": "Sun",
 				"Tags": [],
 				"Position": "0 1.74172 0",
-				"Rotation": "0.970818 0.239813 0 0",
+				"Rotation": "0.948871 0.31566 0 0",
 				"Scale": "1 1 1",
 				"Variables": {}
 			},
@@ -115,10 +115,12 @@
 					"id": 4,
 					"attributes": {
 						"Light Type": "Directional",
-						"Color": "1 1 1.01 1",
-						"Brightness Multiplier": 3000.0,
-						"Temperature": 5700.0,
+						"Specular Intensity": 0.0,
+						"Brightness Multiplier": 1800.0,
+						"Temperature": 6200.0,
 						"Use Physical Values": true,
+						"Radius": 1.0,
+						"Range": 0.0,
 						"Cast Shadows": true
 					}
 				}
@@ -157,8 +159,8 @@
 				"Is Enabled": true,
 				"Name": "Box",
 				"Tags": [],
-				"Position": "3.00322 -1.04452 -4.35253",
-				"Rotation": "1 0 0 0",
+				"Position": "3.94254 -1.04452 -4.35253",
+				"Rotation": "-0.902254 0 0.431205 0",
 				"Scale": "1 1 1",
 				"Variables": {}
 			},
@@ -167,8 +169,8 @@
 					"type": "StaticModel",
 					"id": 18,
 					"attributes": {
-						"Model": "Model;Models/Box.mdl",
-						"Material": "Material;Materials/Floor0.json",
+						"Model": "Model;Models/Icosphere.mdl",
+						"Material": "Material;Materials/Planet.xml",
 						"Cast Shadows": true
 					}
 				},
@@ -176,14 +178,18 @@
 					"type": "RigidBody",
 					"id": 36,
 					"attributes": {
-						"Physics Position": "3.00322 -1.04452 -4.35253",
+						"Physics Rotation": "0.902254 0 -0.431205 0",
+						"Physics Position": "3.94254 -1.04452 -4.35253",
 						"Mass": 1.0
 					}
 				},
 				{
 					"type": "CollisionShape",
 					"id": 37,
-					"attributes": null
+					"attributes": {
+						"Shape Type": "Sphere",
+						"Size": "2 2 2"
+					}
 				}
 			],
 			"children": []

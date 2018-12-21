@@ -1,10 +1,9 @@
 <?xml version="1.0"?>
 <material>
 	<technique name="Techniques/DiffPlanet.xml" quality="0" loddistance="0" />
-	<texture unit="diffuse" name="Textures/EquirectangularHeight.png" />
 	<texture unit="normal" name="Textures/EquirectangularNormal.png" />
 	<texture unit="custom1" name="Textures/EquirectangularHeight.png" />
-	<shader vsdefines="DISPLACE" psdefines="DIFFEQUIRECT ENORMALMAP" />
+	<shader vsdefines="DISPLACE" psdefines="ENORMALMAP" />
 	<parameter name="UOffset" value="1 0 0 0" />
 	<parameter name="VOffset" value="0 1 0 0" />
 	<parameter name="MatDiffColor" value="1 1 1 1" />
