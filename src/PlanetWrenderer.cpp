@@ -742,7 +742,7 @@ void PlanetWrenderer::update(const Vector3& camera)
         //sub_recurse(i);
     }
 
-    URHO3D_LOGINFOF("Memory Usage: %fMb", float(get_memory_usage()) / 1000000.0f);
+    //URHO3D_LOGINFOF("Memory Usage: %fMb", float(get_memory_usage()) / 1000000.0f);
 
     assert(m_indCount < m_maxIndices);
     assert(m_vertCount < m_maxVertice);

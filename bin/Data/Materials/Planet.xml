@@ -13,8 +13,8 @@
 	<parameter name="Roughness" value="1" />
 	<parameter name="Metallic" value="0" />
 	<parameter name="TerrainNormalHeight" value="0.5" />
-	<parameter name="TerrainDeformAmount" value="0.1" />
-	<cull value="none" />
+	<parameter name="TerrainDeformAmount" value="0.4" />
+	<cull value="cw" />
 	<shadowcull value="ccw" />
 	<fill value="solid" />
 	<depthbias constant="0" slopescaled="0" />

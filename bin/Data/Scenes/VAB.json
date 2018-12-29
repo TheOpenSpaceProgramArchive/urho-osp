@@ -5,19 +5,22 @@
 		"Time Scale": 1.0,
 		"Smoothing Constant": 50.0,
 		"Snap Threshold": 5.0,
-		"Elapsed Time": 3.1755282878875734,
-		"Next Replicated Node ID": 18,
-		"Next Replicated Component ID": 38,
-		"Next Local Node ID": 16777239,
-		"Next Local Component ID": 16777492,
+		"Elapsed Time": 3.175529956817627,
+		"Next Replicated Node ID": 19,
+		"Next Replicated Component ID": 41,
+		"Next Local Node ID": 16777245,
+		"Next Local Component ID": 16777564,
 		"Variables": {},
-		"Variable Names": ""
+		"Variable Names": "RemoveDistance"
 	},
 	"components": [
 		{
 			"type": "Octree",
 			"id": 1,
-			"attributes": null
+			"attributes": {
+				"Bounding Box Min": "-10 -10 -10",
+				"Bounding Box Max": "10 10 10"
+			}
 		},
 		{
 			"type": "DebugRenderer",
@@ -44,7 +47,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": 8654768
+				"Play Position": -767072
 			}
 		},
 		{
@@ -63,7 +66,12 @@
 				"Position": "0 -2.1 0",
 				"Rotation": "1 0 0 0",
 				"Scale": "20 0.2 20",
-				"Variables": {}
+				"Variables": {
+					"33DF7139": {
+						"type": "Float",
+						"value": 300.0
+					}
+				}
 			},
 			"components": [
 				{
@@ -79,8 +87,7 @@
 					"id": 19,
 					"attributes": {
 						"Physics Position": "0 -2.1 0",
-						"Friction": 5.0,
-						"Anisotropic Friction": "0 0 0",
+						"Friction": 50.0,
 						"Linear Factor": "0 0 0",
 						"Angular Factor": "0 0 0",
 						"Linear Rest Threshold": 0.0,
@@ -159,10 +166,15 @@
 				"Is Enabled": true,
 				"Name": "Box",
 				"Tags": [],
-				"Position": "3.94254 -1.04452 -4.35253",
+				"Position": "3.94254 1 -4.35253",
 				"Rotation": "-0.902254 0 0.431205 0",
-				"Scale": "1 1 1",
-				"Variables": {}
+				"Scale": "-1 -1 -1",
+				"Variables": {
+					"33DF7139": {
+						"type": "Float",
+						"value": 300.0
+					}
+				}
 			},
 			"components": [
 				{
@@ -179,7 +191,7 @@
 					"id": 36,
 					"attributes": {
 						"Physics Rotation": "0.902254 0 -0.431205 0",
-						"Physics Position": "3.94254 -1.04452 -4.35253",
+						"Physics Position": "3.94254 1 -4.35253",
 						"Mass": 1.0
 					}
 				},
@@ -259,6 +271,52 @@
 						"Shape Type": "StaticPlane",
 						"Offset Position": "0 0.5 0",
 						"Model": "Model;Models/Box.mdl"
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 18,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Box",
+				"Tags": [],
+				"Position": "3.94254 -1.04452 -4.35253",
+				"Rotation": "-0.902254 0 0.431205 0",
+				"Scale": "-1 -1 -1",
+				"Variables": {
+					"33DF7139": {
+						"type": "Float",
+						"value": 300.0
+					}
+				}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 38,
+					"attributes": {
+						"Model": "Model;Models/Icosphere.mdl",
+						"Material": "Material;Materials/Planet.xml",
+						"Cast Shadows": true
+					}
+				},
+				{
+					"type": "RigidBody",
+					"id": 39,
+					"attributes": {
+						"Physics Rotation": "0.902254 0 -0.431205 0",
+						"Physics Position": "3.94254 -1.04452 -4.35253",
+						"Mass": 1.0
+					}
+				},
+				{
+					"type": "CollisionShape",
+					"id": 40,
+					"attributes": {
+						"Shape Type": "Sphere",
+						"Size": "2 2 2"
 					}
 				}
 			],

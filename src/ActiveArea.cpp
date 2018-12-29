@@ -21,14 +21,55 @@ void ActiveArea::FixedUpdate(float timeStep)
 {
     if (m_terrain.NotNull())
     {
+        PhysicsWorld* pw = node_->GetScene()->GetComponent<PhysicsWorld>();//scene->CreateComponent<PhysicsWorld>();
+
         Vector3 cameraPos = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetWorldPosition();
         Vector3 planetPos = m_terrain->GetNode()->GetPosition();
-        m_terrain->GetPlanet()->update(cameraPos - planetPos);
-        m_terrain->UpdatePosition(m_localBodyPos);
-        //CollisionShape* cs = m_terrain->GetNode()->GetComponent<CollisionShape>();
+
+         //CollisionShape* cs = m_terrain->GetNode()->GetComponent<CollisionShape>();
         //cs->SetTriangleMesh(m_terrain->GetPlanet()->get_model(), 0, Vector3::ONE);
 
-        PhysicsWorld* pw = node_->GetScene()->GetComponent<PhysicsWorld>();//scene->CreateComponent<PhysicsWorld>();
+        const float originDistance = cameraPos.Length();
+        const float threshold = 30.0f;
+
+        if (originDistance > threshold) {
+            Vector3 offsetDist = cameraPos * -1000.0f;
+            offsetDist.x_ = Floor(offsetDist.x_);
+            offsetDist.y_ = Floor(offsetDist.y_);
+            offsetDist.z_ = Floor(offsetDist.z_);
+            relocate(m_localBody, m_localBodyPos - LongVector3(offsetDist.x_, offsetDist.y_, offsetDist.z_));
+
+            offsetDist *= 0.001f;
+
+            URHO3D_LOGINFOF("move!");
+            // Translate all nodes to move the camera back to the center
+            PODVector<Node*> rigidBodies;
+            node_->GetChildren(rigidBodies);
+            for (Node* rbNode : rigidBodies)
+            {
+                rbNode->Translate(offsetDist, TS_WORLD);
+
+
+                // Delete far away nodes
+                const VariantMap& vars = rbNode->GetVars();
+                Variant removeDistance;
+                if (vars.TryGetValue("RemoveDistance", removeDistance))
+                {
+                    if (rbNode->GetPosition().Length() > removeDistance.GetFloat())
+                    {
+                        rbNode->Remove();
+                        URHO3D_LOGINFO("Distant node removed");
+                    }
+                }
+            }
+
+            //GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetParent()->Translate(offsetDist, TS_WORLD);
+        }
+
+        m_terrain->GetPlanet()->update(cameraPos - planetPos);
+        m_terrain->UpdatePosition(m_localBodyPos);
+
+
         //pw->SetGravity(Vector3::ZERO);
 
         // some gravity for temporary fun

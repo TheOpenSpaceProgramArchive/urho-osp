@@ -75,9 +75,9 @@ void VS()
     #ifdef DISPLACE
         float heightInput = textureEquirect(sHeight6, vNormalLocal).r;
         vec3 extendDir = vNormal * heightInput * cTerrainDeformAmount;
-        extendDir.x *= length(modelMatrix[0]);
-        extendDir.y *= length(modelMatrix[1]);
-        extendDir.z *= length(modelMatrix[2]);
+        extendDir.x *= length(modelMatrix[0].xyz);
+        extendDir.y *= length(modelMatrix[1].xyz);
+        extendDir.z *= length(modelMatrix[2].xyz);
 
         gl_Position = GetClipPos(worldPos + extendDir);
     #else

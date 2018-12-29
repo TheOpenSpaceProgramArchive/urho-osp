@@ -75,7 +75,7 @@ void PlanetTerrain::initialize(AstronomicalBody* body)
     m_planet.initialize(context_, GetSubsystem<ResourceCache>()->GetResource<Image>("Textures/EquirectangularHeight.png"), body->get_radius());
     Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Planet.xml");
     SetModel(m_planet.get_model());
-    m->SetCullMode(CULL_NONE);
+    //m->SetCullMode(CULL_NONE);
     //m->SetFillMode(FILL_WIREFRAME);
     SetMaterial(m);
     SetCastShadows(false);
