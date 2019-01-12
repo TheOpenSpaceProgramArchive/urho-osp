@@ -129,14 +129,19 @@ void PS()
     #ifdef METALLIC
         vec4 roughMetalSrc = texture2D(sSpecMap, vTexCoord.xy);
 
-        float roughness = roughMetalSrc.r + cRoughness;
-        float metalness = roughMetalSrc.g + cMetallic;
+        #ifdef GLTF
+            float roughness = roughMetalSrc.g * cRoughness;
+            float metalness = roughMetalSrc.b * cMetallic;
+        #else
+            float roughness = roughMetalSrc.r + cRoughness;
+            float metalness = roughMetalSrc.g + cMetallic;
+        #endif
     #else
         float roughness = cRoughness;
         float metalness = cMetallic;
     #endif
 
-    roughness *= roughness;
+    //roughness *= roughness;
 
     roughness = clamp(roughness, ROUGHNESS_FLOOR, 1.0);
     metalness = clamp(metalness, METALNESS_FLOOR, 1.0);

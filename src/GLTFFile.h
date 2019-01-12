@@ -6,6 +6,7 @@
 #include <Urho3D/Graphics/Texture2D.h>
 #include <Urho3D/Graphics/Material.h>
 #include <Urho3D/IO/File.h>
+#include <Urho3D/Math/Matrix3x4.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Resource/JSONFile.h>
 #include <Urho3D/Resource/Image.h>
@@ -26,6 +27,7 @@ struct BufferAccessor
     unsigned bufferLength; // in bytes
     unsigned bufferOffset; // also in bytes
     unsigned bufferTarget; // not sure if this is needed
+    unsigned bufferStride;
 
     unsigned vertexOffset; // Used when assembling VertexBuffer
 
@@ -64,6 +66,7 @@ public:
     static void ComponentTypeByteSize(unsigned componentType);
     static unsigned TypeComponentCount(const String& type);
     static const Vector3 ParseVector3(const JSONValue* value);
+    static const Matrix3x4 ParseMatrix(const JSONValue* value);
     static const Quaternion ParseQuaternion(const JSONValue* value);
     static const String StringValue(const JSONValue* value);
 

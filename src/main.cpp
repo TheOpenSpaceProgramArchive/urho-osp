@@ -134,6 +134,10 @@ public:
 
         // Add a single viewport
         Renderer* renderer = GetSubsystem<Renderer>();
+        renderer->SetHDRRendering(true);
+
+
+
         SharedPtr<Viewport> viewport(new Viewport(context_));
         viewport->SetScene(m_scene);
         renderer->SetViewport(0, viewport);

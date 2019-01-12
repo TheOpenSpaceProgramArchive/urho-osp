@@ -6,10 +6,10 @@
 		"Smoothing Constant": 50.0,
 		"Snap Threshold": 5.0,
 		"Elapsed Time": 3.175529956817627,
-		"Next Replicated Node ID": 19,
-		"Next Replicated Component ID": 41,
-		"Next Local Node ID": 16777245,
-		"Next Local Component ID": 16777564,
+		"Next Replicated Node ID": 20,
+		"Next Replicated Component ID": 42,
+		"Next Local Node ID": 16777253,
+		"Next Local Component ID": 16777660,
 		"Variables": {},
 		"Variable Names": "RemoveDistance"
 	},
@@ -36,7 +36,8 @@
 				"Ambient Color": "0 0 0 1",
 				"Fog Color": "0 0 0 0",
 				"Fog Start": 100000000.0,
-				"Fog End": 1000000000.0
+				"Fog End": 1000000000.0,
+				"Zone Texture": "TextureCube;Textures/Skybox2.xml"
 			}
 		},
 		{
@@ -47,7 +48,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -767072
+				"Play Position": -420512
 			}
 		},
 		{
@@ -61,7 +62,7 @@
 			"id": 2,
 			"attributes": {
 				"Is Enabled": true,
-				"Name": "Plane",
+				"Name": "Platform",
 				"Tags": [],
 				"Position": "0 -2.1 0",
 				"Rotation": "1 0 0 0",
@@ -112,7 +113,7 @@
 				"Name": "Sun",
 				"Tags": [],
 				"Position": "0 1.74172 0",
-				"Rotation": "0.948871 0.31566 0 0",
+				"Rotation": "0.819152 0.573576 0 0",
 				"Scale": "1 1 1",
 				"Variables": {}
 			},
@@ -122,11 +123,10 @@
 					"id": 4,
 					"attributes": {
 						"Light Type": "Directional",
-						"Specular Intensity": 0.0,
-						"Brightness Multiplier": 1800.0,
-						"Temperature": 6200.0,
+						"Brightness Multiplier": 1300.0,
+						"Temperature": 5500.0,
 						"Use Physical Values": true,
-						"Radius": 1.0,
+						"Radius": 10.0,
 						"Range": 0.0,
 						"Cast Shadows": true
 					}
@@ -164,7 +164,7 @@
 			"id": 14,
 			"attributes": {
 				"Is Enabled": true,
-				"Name": "Box",
+				"Name": "Ball",
 				"Tags": [],
 				"Position": "3.94254 1 -4.35253",
 				"Rotation": "-0.902254 0 0.431205 0",
@@ -182,7 +182,7 @@
 					"id": 18,
 					"attributes": {
 						"Model": "Model;Models/Icosphere.mdl",
-						"Material": "Material;Materials/Planet.xml",
+						"Material": "Material;Materials/Floor0.json",
 						"Cast Shadows": true
 					}
 				},
@@ -201,30 +201,6 @@
 					"attributes": {
 						"Shape Type": "Sphere",
 						"Size": "2 2 2"
-					}
-				}
-			],
-			"children": []
-		},
-		{
-			"id": 15,
-			"attributes": {
-				"Is Enabled": true,
-				"Name": "Cursor",
-				"Tags": [],
-				"Position": "0 -3.94427 7.88854",
-				"Rotation": "1 0 0 0",
-				"Scale": "1 1 1",
-				"Variables": {}
-			},
-			"components": [
-				{
-					"type": "SoundSource",
-					"id": 24,
-					"attributes": {
-						"Sound": "Sound;Sfx/MetalHit.ogg",
-						"Frequency": 44100.0,
-						"Gain": 0.699999988079071
 					}
 				}
 			],
@@ -277,14 +253,38 @@
 			"children": []
 		},
 		{
+			"id": 15,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Cursor",
+				"Tags": [],
+				"Position": "0 -3.94427 7.88854",
+				"Rotation": "1 0 0 0",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "SoundSource",
+					"id": 24,
+					"attributes": {
+						"Sound": "Sound;Sfx/MetalHit.ogg",
+						"Frequency": 44100.0,
+						"Gain": 0.699999988079071
+					}
+				}
+			],
+			"children": []
+		},
+		{
 			"id": 18,
 			"attributes": {
 				"Is Enabled": true,
-				"Name": "Box",
+				"Name": "Ball",
 				"Tags": [],
 				"Position": "3.94254 -1.04452 -4.35253",
-				"Rotation": "-0.902254 0 0.431205 0",
-				"Scale": "-1 -1 -1",
+				"Rotation": "1 0 0 0",
+				"Scale": "1 1 1",
 				"Variables": {
 					"33DF7139": {
 						"type": "Float",
@@ -298,7 +298,7 @@
 					"id": 38,
 					"attributes": {
 						"Model": "Model;Models/Icosphere.mdl",
-						"Material": "Material;Materials/Planet.xml",
+						"Material": "Material;Materials/Floor0.json",
 						"Cast Shadows": true
 					}
 				},
@@ -306,7 +306,6 @@
 					"type": "RigidBody",
 					"id": 39,
 					"attributes": {
-						"Physics Rotation": "0.902254 0 -0.431205 0",
 						"Physics Position": "3.94254 -1.04452 -4.35253",
 						"Mass": 1.0
 					}

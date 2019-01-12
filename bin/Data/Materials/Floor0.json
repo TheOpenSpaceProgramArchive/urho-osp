@@ -14,10 +14,10 @@
 		"VOffset": "0 1 0 0",
 		"MatDiffColor": "1 1 1 1",
 		"MatEmissiveColor": "0 0 0",
-		"MatEnvMapColor": "1 1 1",
+		"MatEnvMapColor": "0 0 0",
 		"MatSpecColor": "1 1 1 1",
-		"Roughness": "5",
-		"Metallic": "0"
+		"Roughness": "0",
+		"Metallic": "0.3"
 	},
 	"shaderParameterAnimations": null,
 	"cull": "none",

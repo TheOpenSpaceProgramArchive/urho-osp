@@ -159,16 +159,23 @@ void click_drop(StringHash eventType, VariantMap& eventData)
 
 void clickpart(StringHash eventType, VariantMap& eventData)
 {
-    Node@ part = cast<Node@>(cast<UIElement@>(eventData["Element"].GetPtr()).vars["N"].GetPtr());
+    Node@ prototype = cast<Node@>(cast<UIElement@>(eventData["Element"].GetPtr()).vars["N"].GetPtr());
     Print("Part clicked");
     
-    Print("Display Name : " + part.vars["name"].GetString());
-    Print("Description  : " + part.vars["description"].GetString());
-    Print("Manufacturer : " + part.vars["manufacturer"].GetString());
-    Print("Country      : " + part.vars["country"].GetString());
+    Print("Display Name : " + prototype.vars["name"].GetString());
+    Print("Description  : " + prototype.vars["description"].GetString());
+    Print("Manufacturer : " + prototype.vars["manufacturer"].GetString());
+    Print("Country      : " + prototype.vars["country"].GetString());
     
-    Node@ clone = part.Clone();
+    Node@ clone = prototype.Clone();
     clone.enabled = true;
+   
+    Array<Node@> models = prototype.GetChildrenWithComponent("StaticModel", true);
+    
+    for (uint i = 0; i < models.length; i ++) 
+    {
+        cast<StaticModel>(models[i].GetComponent("StaticModel")).material.scene = g_scene;
+    }
     
     grabbed = clone;
     subject.AddChild(clone);
