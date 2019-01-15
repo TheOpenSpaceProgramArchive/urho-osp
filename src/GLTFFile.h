@@ -66,6 +66,7 @@ public:
     static void ComponentTypeByteSize(unsigned componentType);
     static unsigned TypeComponentCount(const String& type);
     static const Vector3 ParseVector3(const JSONValue* value);
+    static const Vector4 ParseVector4(const JSONValue* value);
     static const Matrix3x4 ParseMatrix(const JSONValue* value);
     static const Quaternion ParseQuaternion(const JSONValue* value);
     static const String StringValue(const JSONValue* value);

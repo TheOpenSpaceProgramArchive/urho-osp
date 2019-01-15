@@ -89,13 +89,13 @@ void MachineRocket::FixedUpdate(float timeStep)
 
     // Thrust related things
     Vector3 what(collider->GetPosition());
-    rb->ApplyForce(rb->GetRotation() * Vector3(0, m_thrust.get_float(10.0f), 0), rb->GetRotation() * collider->GetPosition() + rb->GetCenterOfMass());
+    rb->ApplyForce(rb->GetRotation() * Vector3(0, m_thrust.get_float(100.0f), 0), rb->GetRotation() * collider->GetPosition() + rb->GetCenterOfMass());
     //rb->GetBody()->applyForce(ToBtVector3(rb->GetRotation() * Vector3(0, m_thrust.get_float(10.0f), 0)), rb->GetRotation() * collider->GetPosition());
 
     // Rotation control (temporary)
     Scene* scene = GetScene();
     rb->SetAngularDamping(0.6f);
-    Vector3 torque = Vector3((int(i->GetKeyDown(KEY_W)) - i->GetKeyDown(KEY_S)) * 0.5f, 0, (int(i->GetKeyDown(KEY_A)) - i->GetKeyDown(KEY_D)) * 0.5f);
+    Vector3 torque = Vector3((int(i->GetKeyDown(KEY_W)) - i->GetKeyDown(KEY_S)), 0, (int(i->GetKeyDown(KEY_A)) - i->GetKeyDown(KEY_D)));
     Quaternion cameraRot = scene->GetChild("CameraCenter")->GetChild("Camera")->GetWorldRotation();
     torque = cameraRot * torque;
 

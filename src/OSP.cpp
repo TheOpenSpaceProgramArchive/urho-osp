@@ -134,7 +134,7 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         aPart->SetVar("description", "A simple oddly shaped cube");
         aPart->SetVar("manufacturer", "Gotzietec Industries");
         aPart->SetVar("name", "Cube "  + String(i));
-        aPart->SetVar("massdry", Pow(0.05f * (i + 1), 3.0f));
+        aPart->SetVar("massdry", Pow(0.05f * (i + 1), 10.0f));
         aPart->SetVar("prototype", aPart); // stored as WeakPtr
 
         // Tweakscale it based on i
@@ -327,27 +327,33 @@ void SystemOsp::register_parts(const GLTFFile* gltf)
 void SystemOsp::part_node_recurse(Node* partRoot, Node* node)
 {
     const VariantMap& vars = node->GetVars();
-    //const JSONObject* extras = reinterpret_cast<JSONObject*>(vars["extras"]->GetVoidPtr());
+
+    const JSONObject* extras = (vars["extras"]) ? reinterpret_cast<JSONObject*>(vars["extras"]->GetVoidPtr()) : nullptr;
 
     if (node->GetName().StartsWith("col_"))
     {
+
+        // Parse a collider
+
         const Vector3& pos = node->GetPosition();
         const Vector3& scale = node->GetScale();
         const Quaternion& rot = node->GetRotation();
 
-        const String& shapeType = "";//GLTFFile::StringValue((*extras)["shape"]);
+        const String& shapeType = extras ? GLTFFile::StringValue((*extras)["shape"]) : "";
 
         CollisionShape* shape = node->GetParent()->CreateComponent<CollisionShape>();
 
         if (shapeType == "cylinder")
         {
-            shape->SetCylinder(Min(scale.x_, scale.z_), scale.y_, pos, rot);
+            shape->SetCylinder(Min(scale.x_, scale.z_) * 2.0f, scale.y_ * 2.0f, pos, rot);
         }
         else
         {
             // Cube is default shape
             shape->SetBox(scale * 2.0f, pos, rot);
         }
+
+        URHO3D_LOGINFOF("Shape type: %s", shapeType.CString());
 
         URHO3D_LOGINFOF("Shape made on: %s", node->GetParent()->GetName().CString());
 

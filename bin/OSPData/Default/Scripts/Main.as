@@ -79,7 +79,6 @@ void construct_apparatus()
     mothBait.range = 500;
     mothBait.brightness = 2000;
     mothBait.temperature = 6700;
-    
 
     // Locate the cursor
     // Cursor has the drop sound in it
@@ -244,6 +243,7 @@ void solidify_prototype(Node@ prototype)
             colliders.Push(Variant(shapeA));
             shapeA.SetBox(Vector3(1, 1, 1)); // this is too avoid a weird glitch
             shapeA.position = childrenColliders[i].worldPosition + childrenColliders[i].rotation * shapeB.position * childrenColliders[i].scale;
+            shapeA.rotation = shapeB.rotation * childrenColliders[i].worldRotation;
             shapeA.size = childrenColliders[i].scale * shapeB.size * 1.01f;
             shapeA.shapeType = shapeB.shapeType;
             Print("shape added " + shapeA.position.x);
@@ -317,7 +317,7 @@ void construct_update(StringHash eventType, VariantMap& eventData)
 
 void test_update(StringHash eventType, VariantMap& eventData)
 {
-    
+    cast<PhysicsWorld>(g_scene.GetComponent("PhysicsWorld")).DrawDebugGeometry(true);   
     cameraCenter.position = subject.position;
 }
 

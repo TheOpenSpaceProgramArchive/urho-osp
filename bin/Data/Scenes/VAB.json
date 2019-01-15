@@ -8,8 +8,8 @@
 		"Elapsed Time": 3.175529956817627,
 		"Next Replicated Node ID": 20,
 		"Next Replicated Component ID": 42,
-		"Next Local Node ID": 16777253,
-		"Next Local Component ID": 16777660,
+		"Next Local Node ID": 16777254,
+		"Next Local Component ID": 16777672,
 		"Variables": {},
 		"Variable Names": "RemoveDistance"
 	},
@@ -48,7 +48,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -420512
+				"Play Position": -448256
 			}
 		},
 		{
@@ -123,7 +123,7 @@
 					"id": 4,
 					"attributes": {
 						"Light Type": "Directional",
-						"Brightness Multiplier": 1300.0,
+						"Brightness Multiplier": 600.0,
 						"Temperature": 5500.0,
 						"Use Physical Values": true,
 						"Radius": 10.0,

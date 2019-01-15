@@ -139,40 +139,6 @@
         {
             "bufferView" : 16,
             "componentType" : 5126,
-            "count" : 144,
-            "max" : [
-                1.0075671672821045,
-                0.058639660477638245,
-                1.0006086826324463
-            ],
-            "min" : [
-                -1.0075671672821045,
-                -0.1076059639453888,
-                -1.0006086826324463
-            ],
-            "type" : "VEC3"
-        },
-        {
-            "bufferView" : 17,
-            "componentType" : 5126,
-            "count" : 144,
-            "type" : "VEC3"
-        },
-        {
-            "bufferView" : 18,
-            "componentType" : 5126,
-            "count" : 144,
-            "type" : "VEC2"
-        },
-        {
-            "bufferView" : 19,
-            "componentType" : 5123,
-            "count" : 360,
-            "type" : "SCALAR"
-        },
-        {
-            "bufferView" : 20,
-            "componentType" : 5126,
             "count" : 530,
             "max" : [
                 1,
@@ -187,19 +153,19 @@
             "type" : "VEC3"
         },
         {
-            "bufferView" : 21,
+            "bufferView" : 17,
             "componentType" : 5126,
             "count" : 530,
             "type" : "VEC3"
         },
         {
-            "bufferView" : 22,
+            "bufferView" : 18,
             "componentType" : 5126,
             "count" : 530,
             "type" : "VEC2"
         },
         {
-            "bufferView" : 23,
+            "bufferView" : 19,
             "componentType" : 5123,
             "count" : 1056,
             "type" : "SCALAR"
@@ -292,48 +258,28 @@
         },
         {
             "buffer" : 0,
-            "byteLength" : 1728,
+            "byteLength" : 6360,
             "byteOffset" : 110112
         },
         {
             "buffer" : 0,
-            "byteLength" : 1728,
-            "byteOffset" : 111840
-        },
-        {
-            "buffer" : 0,
-            "byteLength" : 1152,
-            "byteOffset" : 113568
-        },
-        {
-            "buffer" : 0,
-            "byteLength" : 720,
-            "byteOffset" : 114720
-        },
-        {
-            "buffer" : 0,
             "byteLength" : 6360,
-            "byteOffset" : 115440
-        },
-        {
-            "buffer" : 0,
-            "byteLength" : 6360,
-            "byteOffset" : 121800
+            "byteOffset" : 116472
         },
         {
             "buffer" : 0,
             "byteLength" : 4240,
-            "byteOffset" : 128160
+            "byteOffset" : 122832
         },
         {
             "buffer" : 0,
             "byteLength" : 2112,
-            "byteOffset" : 132400
+            "byteOffset" : 127072
         }
     ],
     "buffers" : [
         {
-            "byteLength" : 134512,
+            "byteLength" : 129184,
             "uri" : "hexelr.sturdy.bin"
         }
     ],
@@ -365,19 +311,6 @@
             }
         },
         {
-            "name" : "Material.002",
-            "pbrMetallicRoughness" : {
-                "baseColorFactor" : [
-                    0.008861763402819633,
-                    0.008387676440179348,
-                    0.012216866947710514,
-                    1
-                ],
-                "metallicFactor" : 1,
-                "roughnessFactor" : 0.8109244108200073
-            }
-        },
-        {
             "name" : "Lazy",
             "pbrMetallicRoughness" : {
                 "baseColorFactor" : [
@@ -393,7 +326,7 @@
     ],
     "meshes" : [
         {
-            "name" : "NozzleMesh.001",
+            "name" : "ThingThatHousesExplosions.001",
             "primitives" : [
                 {
                     "attributes" : {
@@ -407,7 +340,7 @@
             ]
         },
         {
-            "name" : "NozzleMesh.001",
+            "name" : "ThingThatHousesExplosions.001",
             "primitives" : [
                 {
                     "attributes" : {
@@ -421,7 +354,7 @@
             ]
         },
         {
-            "name" : "NozzleMesh.001",
+            "name" : "ThingThatHousesExplosions.001",
             "primitives" : [
                 {
                     "attributes" : {
@@ -435,7 +368,7 @@
             ]
         },
         {
-            "name" : "NozzleMesh.001",
+            "name" : "ThingThatHousesExplosions.001",
             "primitives" : [
                 {
                     "attributes" : {
@@ -449,7 +382,7 @@
             ]
         },
         {
-            "name" : "Circle.001",
+            "name" : "Cylinder.002",
             "primitives" : [
                 {
                     "attributes" : {
@@ -461,23 +394,119 @@
                     "material" : 1
                 }
             ]
-        },
-        {
-            "name" : "Cylinder.000",
-            "primitives" : [
-                {
-                    "attributes" : {
-                        "NORMAL" : 21,
-                        "POSITION" : 20,
-                        "TEXCOORD_0" : 22
-                    },
-                    "indices" : 23,
-                    "material" : 2
-                }
-            ]
         }
     ],
     "nodes" : [
+        {
+            "extras" : {
+                "shape" : "cylinder"
+            },
+            "name" : "col_LargeCylinder",
+            "rotation" : [
+                0.7071068286895752,
+                0,
+                0,
+                0.7071068286895752
+            ],
+            "scale" : [
+                0.32541102170944214,
+                0.42099887132644653,
+                0.32541102170944214
+            ],
+            "translation" : [
+                0,
+                0.03999999910593033,
+                -0.43989989161491394
+            ]
+        },
+        {
+            "extras" : {
+                "shape" : "cylinder"
+            },
+            "name" : "col_SmallCylinder",
+            "rotation" : [
+                0.7071068286895752,
+                0,
+                0,
+                0.7071068286895752
+            ],
+            "scale" : [
+                0.0944858267903328,
+                0.4033913314342499,
+                0.0944858267903328
+            ],
+            "translation" : [
+                0,
+                0.1866299957036972,
+                0.31580981612205505
+            ]
+        },
+        {
+            "extras" : {
+                "shape" : "cylinder"
+            },
+            "name" : "col_SmallCylinder.001",
+            "rotation" : [
+                -0.7071068286895752,
+                0,
+                0,
+                0.7071068286895752
+            ],
+            "scale" : [
+                0.0944858267903328,
+                0.4033913314342499,
+                0.0944858267903328
+            ],
+            "translation" : [
+                0,
+                -0.1866299957036972,
+                0.31580981612205505
+            ]
+        },
+        {
+            "extras" : {
+                "shape" : "cylinder"
+            },
+            "name" : "col_SmallCylinder.002",
+            "rotation" : [
+                0.7071068286895752,
+                0,
+                0,
+                0.7071068286895752
+            ],
+            "scale" : [
+                0.0944858267903328,
+                0.4033913314342499,
+                0.0944858267903328
+            ],
+            "translation" : [
+                0.10978200286626816,
+                0,
+                0.31580981612205505
+            ]
+        },
+        {
+            "extras" : {
+                "shape" : "cylinder"
+            },
+            "name" : "col_SmallCylinder.003",
+            "rotation" : [
+                0.7071068286895752,
+                0,
+                0,
+                0.7071068286895752
+            ],
+            "scale" : [
+                0.0944858267903328,
+                0.4033913314342499,
+                0.0944858267903328
+            ],
+            "translation" : [
+                -0.10978200286626816,
+                0,
+                0.31580981612205505
+            ]
+        },
         {
             "mesh" : 0,
             "name" : "Nozzle0",
@@ -560,26 +589,6 @@
         },
         {
             "mesh" : 4,
-            "name" : "Strap",
-            "rotation" : [
-                -0.7071068286895752,
-                0,
-                0,
-                0.7071068286895752
-            ],
-            "scale" : [
-                0.20950163900852203,
-                0.3265725374221802,
-                0.2896464467048645
-            ],
-            "translation" : [
-                0,
-                0,
-                0.6114104390144348
-            ]
-        },
-        {
-            "mesh" : 5,
             "name" : "TopCylinder",
             "rotation" : [
                 -0.7071068286895752,
@@ -605,7 +614,11 @@
                 2,
                 3,
                 4,
-                5
+                5,
+                6,
+                7,
+                8,
+                9
             ],
             "extras" : {
                 "country" : "Canarda",
@@ -622,7 +635,7 @@
         {
             "name" : "Scene",
             "nodes" : [
-                6
+                10
             ]
         }
     ],
