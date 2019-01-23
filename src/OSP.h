@@ -35,18 +35,6 @@ public:
 };
 
 /**
- * @brief Base class for adding functionality to parts, like rockets
- */
-class Machine : public LogicComponent
-{
-    URHO3D_OBJECT(Machine, LogicComponent)
-
-public:
-    Machine(Context* context) : LogicComponent(context) {}
-
-};
-
-/**
  * @brief Class containing data describing an astronomical body (star, planet, asteroid), and their properties (size, water level, mass)
  */
 class AstronomicalBody : public Satellite
@@ -122,6 +110,9 @@ class SystemOsp : public Object
     SharedPtr<Node> m_parts;
     SharedPtr<Node> m_solarSystem;
     Vector<SharedPtr<Scene>> m_activeScenes;
+
+    //HashMap<StringHash, SharedPtr<ObjectFactory> > m_machines;
+
     //Vector<OspPart>
     // list of countried, manufacturers, and other stuff
 
@@ -134,6 +125,7 @@ public:
     void debug_function(const StringHash which);
     void process_directory(const String& path);
     void register_parts(const GLTFFile* gltf);
+    //void register_machine(ObjectFactory* factory);
     void make_craft(Node* node);
     
 private:

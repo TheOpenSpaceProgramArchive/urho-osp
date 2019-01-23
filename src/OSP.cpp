@@ -12,7 +12,7 @@
 
 #include "ActiveArea.h"
 #include "OSP.h"
-#include "Machines.h"
+#include "MachineRocket.h"
 
 using namespace osp;
 
@@ -308,6 +308,40 @@ void SystemOsp::register_parts(const GLTFFile* gltf)
             //URHO3D_LOGINFOF("Description: %s", GLTFFile::StringValue((*extras)["description"]).CString());
             //URHO3D_LOGINFOF("Cost: %s", GLTFFile::StringValue((*extras)["cost"]).CString());
 
+            // Start considering machines
+
+            if (JSONValue* machines = (*extras)["machines"])
+            {
+                if (machines->IsArray())
+                {
+                    for (JSONValue machineValue : machines->GetArray())
+                    {
+                        if (!machineValue.IsObject())
+                        {
+                            continue;
+                        }
+
+                        const JSONObject& machineObject = machineValue.GetObject();
+
+                        String type = GLTFFile::StringValue(machineObject["type"]);
+
+                        SharedPtr<Machine> machineComponent = DynamicCast<Machine>(context_->CreateObject("Machine" + type));
+
+                        if (machineComponent.NotNull())
+                        {
+                            // Machine exists and is a machine
+                            part->AddComponent(machineComponent, 0, REPLICATED);
+                            machineComponent->load_json(machineObject);
+                            URHO3D_LOGINFOF("Machine Type: %s %p %i", type.CString(), machineComponent, machineComponent.NotNull());
+                        }
+                        else
+                        {
+                            URHO3D_LOGERRORF("Unknown Machine type: %s", type.CString());
+                        }
+                    }
+                }
+            }
+
             part->SetName(partName.Substring(5));
             part->SetPosition(Vector3::ZERO);
 
@@ -319,7 +353,7 @@ void SystemOsp::register_parts(const GLTFFile* gltf)
             }
 
             m_parts->GetChild("dbg")->AddChild(part.Get());
-
+ 
         }
     }
 }

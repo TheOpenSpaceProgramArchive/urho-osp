@@ -37,7 +37,7 @@ public:
 
     PerformanceCurves(HashMap<StringHash, float>* inputs, float range, float minimum);
 
-    void add_factor(StringHash factor, float range, float minimum);
+    void add_factor(StringHash factor, float range = 1.0f, float minimum = 0.0f);
     void set_linear(StringHash factor, uint16_t low, uint16_t high);
     float get_float(float f);
 

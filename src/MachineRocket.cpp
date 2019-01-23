@@ -1,11 +1,10 @@
 #include <Urho3D/Graphics/ParticleEmitter.h>
 
-#include "Machines.h"
+#include "MachineRocket.h"
 
 using namespace osp;
 
 MachineRocket::MachineRocket(Context* context) : Machine(context),
-    m_curveInputs(),
     m_thrust(&m_curveInputs, 0.0f, 10.0f),
     m_efficiency(&m_curveInputs, 0.0f, 10.0f)
 {
@@ -98,6 +97,26 @@ void MachineRocket::FixedUpdate(float timeStep)
     Vector3 torque = Vector3((int(i->GetKeyDown(KEY_W)) - i->GetKeyDown(KEY_S)), 0, (int(i->GetKeyDown(KEY_A)) - i->GetKeyDown(KEY_D)));
     Quaternion cameraRot = scene->GetChild("CameraCenter")->GetChild("Camera")->GetWorldRotation();
     torque = cameraRot * torque;
+    torque *= rb->GetMass();
 
     rb->ApplyTorque(torque);
+}
+
+void MachineRocket::load_json(const JSONObject& machine)
+{
+    if (JSONValue* thrustFactorsValue = machine["thrust"])
+    {
+        if (thrustFactorsValue->IsObject())
+        {
+            parse_factors(m_thrust, thrustFactorsValue->GetObject());
+        }
+    }
+
+    if (JSONValue* efficiencyFactorsValue = machine["efficiency"])
+    {
+        if (efficiencyFactorsValue->IsObject())
+        {
+            parse_factors(m_thrust, efficiencyFactorsValue->GetObject());
+        }
+    }
 }

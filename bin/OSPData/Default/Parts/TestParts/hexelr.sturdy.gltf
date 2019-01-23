@@ -139,6 +139,40 @@
         {
             "bufferView" : 16,
             "componentType" : 5126,
+            "count" : 144,
+            "max" : [
+                1.0075671672821045,
+                0.058639660477638245,
+                1.0006086826324463
+            ],
+            "min" : [
+                -1.0075671672821045,
+                -0.1076059639453888,
+                -1.0006086826324463
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 17,
+            "componentType" : 5126,
+            "count" : 144,
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 18,
+            "componentType" : 5126,
+            "count" : 144,
+            "type" : "VEC2"
+        },
+        {
+            "bufferView" : 19,
+            "componentType" : 5123,
+            "count" : 360,
+            "type" : "SCALAR"
+        },
+        {
+            "bufferView" : 20,
+            "componentType" : 5126,
             "count" : 530,
             "max" : [
                 1,
@@ -153,19 +187,19 @@
             "type" : "VEC3"
         },
         {
-            "bufferView" : 17,
+            "bufferView" : 21,
             "componentType" : 5126,
             "count" : 530,
             "type" : "VEC3"
         },
         {
-            "bufferView" : 18,
+            "bufferView" : 22,
             "componentType" : 5126,
             "count" : 530,
             "type" : "VEC2"
         },
         {
-            "bufferView" : 19,
+            "bufferView" : 23,
             "componentType" : 5123,
             "count" : 1056,
             "type" : "SCALAR"
@@ -258,28 +292,48 @@
         },
         {
             "buffer" : 0,
-            "byteLength" : 6360,
+            "byteLength" : 1728,
             "byteOffset" : 110112
         },
         {
             "buffer" : 0,
+            "byteLength" : 1728,
+            "byteOffset" : 111840
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 1152,
+            "byteOffset" : 113568
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 720,
+            "byteOffset" : 114720
+        },
+        {
+            "buffer" : 0,
             "byteLength" : 6360,
-            "byteOffset" : 116472
+            "byteOffset" : 115440
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 6360,
+            "byteOffset" : 121800
         },
         {
             "buffer" : 0,
             "byteLength" : 4240,
-            "byteOffset" : 122832
+            "byteOffset" : 128160
         },
         {
             "buffer" : 0,
             "byteLength" : 2112,
-            "byteOffset" : 127072
+            "byteOffset" : 132400
         }
     ],
     "buffers" : [
         {
-            "byteLength" : 129184,
+            "byteLength" : 134512,
             "uri" : "hexelr.sturdy.bin"
         }
     ],
@@ -308,6 +362,19 @@
                     "index" : 1,
                     "texCoord" : 0
                 }
+            }
+        },
+        {
+            "name" : "Material.002",
+            "pbrMetallicRoughness" : {
+                "baseColorFactor" : [
+                    0.008861763402819633,
+                    0.008387676440179348,
+                    0.012216866947710514,
+                    1
+                ],
+                "metallicFactor" : 1,
+                "roughnessFactor" : 0.8109244108200073
             }
         },
         {
@@ -382,7 +449,7 @@
             ]
         },
         {
-            "name" : "Cylinder.002",
+            "name" : "Circle.003",
             "primitives" : [
                 {
                     "attributes" : {
@@ -392,6 +459,20 @@
                     },
                     "indices" : 19,
                     "material" : 1
+                }
+            ]
+        },
+        {
+            "name" : "Cylinder.002",
+            "primitives" : [
+                {
+                    "attributes" : {
+                        "NORMAL" : 21,
+                        "POSITION" : 20,
+                        "TEXCOORD_0" : 22
+                    },
+                    "indices" : 23,
+                    "material" : 2
                 }
             ]
         }
@@ -415,7 +496,7 @@
             ],
             "translation" : [
                 0,
-                0.03999999910593033,
+                0,
                 -0.43989989161491394
             ]
         },
@@ -589,6 +670,26 @@
         },
         {
             "mesh" : 4,
+            "name" : "Strap",
+            "rotation" : [
+                -0.7071068286895752,
+                0,
+                0,
+                0.7071068286895752
+            ],
+            "scale" : [
+                0.20950163900852203,
+                0.3265725374221802,
+                0.2896464467048645
+            ],
+            "translation" : [
+                0,
+                0,
+                0.6114104390144348
+            ]
+        },
+        {
+            "mesh" : 5,
             "name" : "TopCylinder",
             "rotation" : [
                 -0.7071068286895752,
@@ -618,11 +719,58 @@
                 6,
                 7,
                 8,
-                9
+                9,
+                10
             ],
             "extras" : {
                 "country" : "Canarda",
                 "description" : "A slightly primitive rocket design with 4 combustion chambers. Made for propelling aircraft to supersonic speeds.",
+                "machines" : [
+                    {
+                        "baseEfficiency" : 300,
+                        "baseThrust" : 1000,
+                        "efficiency" : {
+                            "pressure" : [
+                                100,
+                                50
+                            ]
+                        },
+                        "loopTimePeriod" : 0,
+                        "maxHeat" : 1770,
+                        "maxPressure" : 200000,
+                        "maxSignificantProximity" : 1,
+                        "thrust" : {
+                            "acceleration" : [
+                                100
+                            ],
+                            "dotAcceleration" : [
+                                100
+                            ],
+                            "mach" : [
+                                100
+                            ],
+                            "pressure" : [
+                                100,
+                                0
+                            ],
+                            "proximity" : [
+                                140,
+                                100
+                            ],
+                            "throttle" : [
+                                0,
+                                4,
+                                80,
+                                100
+                            ],
+                            "time" : [
+                                100
+                            ]
+                        },
+                        "timePeriod" : 2,
+                        "type" : "Rocket"
+                    }
+                ],
                 "manufacturer" : "Gotzietek",
                 "massdry" : 95,
                 "name" : "Hexelr-11"
@@ -635,7 +783,7 @@
         {
             "name" : "Scene",
             "nodes" : [
-                10
+                11
             ]
         }
     ],

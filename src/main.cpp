@@ -51,7 +51,8 @@
 #include "ActiveArea.h"
 #include "config.h"
 #include "GLTFFile.h"
-#include "Machines.h"
+#include "Machine.h"
+#include "MachineRocket.h"
 #include "OSP.h"
 
 using namespace Urho3D;
@@ -83,6 +84,7 @@ public:
         PlanetTerrain::RegisterObject(context);
 
         MachineRocket::RegisterObject(context);
+        Machine::RegisterObject(context);
     }
 
     /**

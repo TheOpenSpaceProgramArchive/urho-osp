@@ -317,8 +317,8 @@ void construct_update(StringHash eventType, VariantMap& eventData)
 
 void test_update(StringHash eventType, VariantMap& eventData)
 {
-    cast<PhysicsWorld>(g_scene.GetComponent("PhysicsWorld")).DrawDebugGeometry(true);   
     cameraCenter.position = subject.position;
+    cast<PhysicsWorld>(g_scene.GetComponent("PhysicsWorld")).DrawDebugGeometry(true);   
 }
 
 void grid_arrange(UIElement@ p)
