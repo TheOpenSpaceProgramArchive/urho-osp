@@ -165,7 +165,7 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
         CollisionShape* shape = aPart->CreateComponent<CollisionShape>();
 
         // Make the part into a functioning rocket
-        MachineRocket* rocket = aPart->CreateComponent<MachineRocket>();
+        //MachineRocket* rocket = aPart->CreateComponent<MachineRocket>();
     }
 }
 
@@ -314,7 +314,7 @@ void SystemOsp::register_parts(const GLTFFile* gltf)
             {
                 if (machines->IsArray())
                 {
-                    for (JSONValue machineValue : machines->GetArray())
+                    for (const JSONValue& machineValue : machines->GetArray())
                     {
                         if (!machineValue.IsObject())
                         {

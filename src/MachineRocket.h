@@ -9,6 +9,7 @@
 #include <Urho3D/Audio/SoundSource.h>
 #include <Urho3D/Audio/SoundSource3D.h>
 #include <Urho3D/Container/HashMap.h>
+#include <Urho3D/Core/Variant.h>
 
 #include "PerformanceCurves.h"
 
@@ -35,24 +36,40 @@ public:
     {
         context->RegisterFactory<MachineRocket>();
 
-        URHO3D_ACCESSOR_ATTRIBUTE("Enable Thrust Curves", is_curve_thrust_enabled, enable_curve_thrust, bool, true, AM_DEFAULT);
-        URHO3D_ACCESSOR_ATTRIBUTE("Enable Efficiency Curves", is_curve_efficiency_enabled, enable_curve_efficiency, bool, true, AM_DEFAULT);
+        URHO3D_ACCESSOR_ATTRIBUTE("Enable Thrust Curves", is_curve_thrust_enabled, set_enable_curve_thrust, bool, true, AM_DEFAULT);
+        URHO3D_ACCESSOR_ATTRIBUTE("Enable Efficiency Curves", is_curve_efficiency_enabled, set_enable_curve_efficiency, bool, true, AM_DEFAULT);
+        URHO3D_ACCESSOR_ATTRIBUTE("Enable Efficiency Curves", is_curve_efficiency_enabled, set_enable_curve_efficiency, bool, true, AM_DEFAULT);
+
+        // I have a feeling this doesn't work when netowrking.
+        //URHO3D_ACCESSOR_ATTRIBUTE("Curve Thrust", get_curve_thrust_buffer, set_curve_thrust_buffer, PODVector<unsigned char>, Variant::emptyBuffer, AM_DEFAULT);
+
+        //URHO3D_ACCESSOR_ATTRIBUTE("Curve Thrust", get_curve_thrust, set_curve_thrust, long long, 0, AM_DEFAULT);
     }
 
     bool is_curve_thrust_enabled() const { return m_curveThrustEnabled; }
-    void enable_curve_thrust(bool enable) { m_curveThrustEnabled = enable; }
+    void set_enable_curve_thrust(bool enable) { m_curveThrustEnabled = enable; }
 
     bool is_curve_efficiency_enabled() const { return m_curveEfficiencyEnabled; }
-    void enable_curve_efficiency(bool enable) { m_curveEfficiencyEnabled = enable; }
+    void set_enable_curve_efficiency(bool enable) { m_curveEfficiencyEnabled = enable; }
 
+    PODVector<unsigned char> get_curve_thrust_buffer() const { return m_thrust->to_buffer(); }
+    void set_curve_thrust_buffer(const PODVector<unsigned char>& curves) { m_thrust->from_buffer(curves); }
+
+    PerformanceCurves* get_curve_thrust() const { return m_thrust; }
+    void set_curve_thrust(PerformanceCurves* curves) { m_thrust = curves; }
+
+    PerformanceCurves* get_curve_efficiency() const { return m_efficiency; }
+    void set_curve_efficiency(PerformanceCurves* curves) { m_efficiency = curves; }
+
+    void DelayedStart() override;
     void FixedUpdate(float timeStep) override;
 
     void load_json(const JSONObject& machine) override;
 
 private:
 
-    PerformanceCurves m_thrust;
-    PerformanceCurves m_efficiency;
+    SharedPtr<PerformanceCurves> m_thrust;
+    SharedPtr<PerformanceCurves> m_efficiency;
     WeakPtr<SoundSource> m_rocketSound;
     WeakPtr<Node> m_plume;
 

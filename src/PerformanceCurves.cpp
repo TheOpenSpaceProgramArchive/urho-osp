@@ -1,69 +1,114 @@
 #include <iostream>
 
+#include <Urho3D/IO/Log.h>
+
 #include "PerformanceCurves.h"
 
 using namespace Urho3D;
 using namespace osp;
 
-PerformanceCurves::PerformanceCurves(HashMap<StringHash, float> *inputs, float range, float minimum) : m_curveInputs(inputs), m_curves()
+PerformanceCurves::PerformanceCurves(Context* context) : Object(context), m_factors()
 {
 }
 
-float PerformanceCurves::get_float(float f)
+float PerformanceCurves::calculate_float(const HashMap<StringHash, float>& curveInputs, float f) const
 {
     float value = f;
-    for (int i = 0; i < m_curves.Size(); i ++)
+    URHO3D_LOGINFOF("Factor count: %i", m_factors.Size());
+    for (const FactorCurve& curve : m_factors)
     {
-        Curve* curve = &(m_curves[i]);
         // get the number, then scale to array index
-        float factor = (*m_curveInputs)[curve->m_factor];
-        factor = Clamp((factor - curve->m_inputMinimum) * (curve->m_points.Size() - 1) / curve->m_inputRange, 0.0f, float(curve->m_points.Size() - 1));
-        // see which 2 numbers in m_points correspond
-        float a = curve->m_points[FloorToInt(factor)] / 65535.0f;
-        float b = curve->m_points[CeilToInt(factor)] / 65535.0f;
-        //printf("F: %i %i, A: %f B: %f\n", FloorToInt(factor), CeilToInt(factor), a, b);
-        // Interpolate between the two numbers
-        value *= Lerp(a, b, Fract(factor));
+        if (float* in = curveInputs[curve.m_name])
+        {
+            float factor = *in;
+            factor = Clamp((factor - curve.m_inputMinimum) * (curve.m_points.Size() - 1) / curve.m_inputRange, 0.0f, float(curve.m_points.Size() - 1));
+            // see which 2 numbers in m_points correspond
+            float a = curve.m_points[FloorToInt(factor)] / 65535.0f;
+            float b = curve.m_points[CeilToInt(factor)] / 65535.0f;
+            //printf("F: %i %i, A: %f B: %f\n", FloorToInt(factor), CeilToInt(factor), a, b);
+            // Interpolate between the two numbers
+            value *= Lerp(a, b, Fract(factor));
 
+            URHO3D_LOGINFOF("factor!: %i, %i", curve.m_name, curve.m_points.Size());
+        }
     }
     //printf("Out: %f\n", value);
     return value;
 }
 
-void PerformanceCurves::add_factor(StringHash factor, float range, float minimum)
+FactorCurve* PerformanceCurves::get_factor(StringHash name)
 {
-
-    Curve curve;
-    curve.m_inputMinimum = minimum;
-    curve.m_inputRange = range;
-    curve.m_points.Push(65535);
-    curve.m_points.Push(65535);
-    curve.m_factor = factor;
-
-    // Put curve into the array in ascending order
-    for (int i = 0; i < m_curves.Size(); i ++)
+    // Loop through all factors and return the one with matching name
+    // consider changing this to a binary search or something later on
+    for (FactorCurve& factor : m_factors)
     {
-        if (m_curves[i].m_factor > factor)
+        if (factor.m_name == name)
         {
-            m_curves.Insert(i, curve);
-            return;
+            return &factor;
         }
     }
-    // Push to end if array is empty or there's no value larger than hash
-    m_curves.Push(curve);
+
+    return nullptr;
 }
 
-void PerformanceCurves::set_linear(StringHash factor, uint16_t low, uint16_t high)
+FactorCurve* PerformanceCurves::add_factor(StringHash factor, float range, float minimum)
 {
-    for (int i = 0; i < m_curves.Size(); i ++)
+
+    FactorCurve curve;
+    curve.m_inputMinimum = minimum;
+    curve.m_inputRange = range;
+    //curve.m_points.Push(65535);
+    curve.m_points.Push(65535);
+    curve.m_name = factor;
+
+    // Put curve into the array in ascending order
+    //for (int i = 0; i < m_factors.Size(); i ++)
+    //{
+    //    if (m_factors[i].m_name > factor)
+    //    {
+    //         m_factors.Insert(i, curve);
+    //        return nullptr;
+    //    }
+    //}
+
+    // Push to end if array is empty or there's no value larger than hash
+    m_factors.Push(curve);
+
+    URHO3D_LOGINFOF("saDAsdadasd: %i:", m_factors.Size());
+    return (m_factors.End() - 1).ptr_;
+}
+
+void PerformanceCurves::set_linear(StringHash name, uint16_t low, uint16_t high)
+{
+    if (FactorCurve* curve = get_factor(name))
     {
-        if (m_curves[i].m_factor == factor)
-        {
-            m_curves[i].m_points.Resize(2);
-            m_curves[i].m_points[0] = low;
-            m_curves[i].m_points[1] = high;
-            return;
-        }
+        curve->m_points.Resize(2);
+        curve->m_points[0] = low;
+        curve->m_points[1] = high;
     }
-    // talk about how the factor wasn't found
+    // else talk about how the factor wasn't found
+}
+
+
+PODVector<unsigned char> PerformanceCurves::to_buffer() const
+{
+    // This probably isn't a good method but it works
+
+    PODVector<unsigned char> buffer;
+
+    unsigned bufferSize;
+
+    URHO3D_LOGINFOF("Float size: %i, StringHash size: %i, P");
+
+    bufferSize += sizeof(StringHash);
+    bufferSize += sizeof(float) * 2;
+
+    buffer.Reserve((sizeof(float) * 2 + sizeof(StringHash) + sizeof(unsigned) ));
+
+    return buffer;
+}
+
+void PerformanceCurves::from_buffer(const PODVector<unsigned char>& buffer)
+{
+
 }

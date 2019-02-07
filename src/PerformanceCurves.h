@@ -8,38 +8,60 @@
 #include <Urho3D/Math/StringHash.h>
 #include <Urho3D/Math/MathDefs.h>
 
+#include <Urho3D/Core/Object.h>
+
 
 using namespace Urho3D;
 
 namespace osp
 {
 
-struct Curve
+class FactorCurve
 {
+
+    friend class PerformanceCurves;
+
+public:
+
+    FactorCurve() : m_points(1) {}
+
+    PODVector<uint16_t>& get_points() { return m_points; }
+    StringHash get_name() { return m_name; }
+
+protected:
     float m_inputRange, m_inputMinimum;
+    StringHash m_name;
     PODVector<uint16_t> m_points;
-    StringHash m_factor;
+
+
 };
 
 /**
  * @brief Inputs factors, like heat, pressure, or throttle, to scale a number
  *
  */
-class PerformanceCurves
+class PerformanceCurves : public Object
 {
 
-    float m_range, m_minimum;
+    URHO3D_OBJECT(PerformanceCurves, Object)
+
+    //float m_range, m_minimum;
     //SharedPtr<HashMap<StringHash, float>> m_curveInputs;
-    HashMap<StringHash, float>* m_curveInputs;
-    Vector<Curve> m_curves;
+    //HashMap<StringHash, float>* m_curveInputs;
+    Vector<FactorCurve> m_factors;
 
 public:
 
-    PerformanceCurves(HashMap<StringHash, float>* inputs, float range, float minimum);
+    PerformanceCurves(Context* context);
 
-    void add_factor(StringHash factor, float range = 1.0f, float minimum = 0.0f);
+    FactorCurve* add_factor(StringHash factor, float range = 1.0f, float minimum = 0.0f);
+    FactorCurve* get_factor(StringHash factor);
+
     void set_linear(StringHash factor, uint16_t low, uint16_t high);
-    float get_float(float f);
+    float calculate_float(const HashMap<StringHash, float>& curveInputs, float f) const;
+
+    PODVector<unsigned char> to_buffer() const;
+    void from_buffer(const PODVector<unsigned char>& buffer);
 
 };
 

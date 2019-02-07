@@ -4,18 +4,16 @@
 
 using namespace osp;
 
-MachineRocket::MachineRocket(Context* context) : Machine(context),
-    m_thrust(&m_curveInputs, 0.0f, 10.0f),
-    m_efficiency(&m_curveInputs, 0.0f, 10.0f)
+MachineRocket::MachineRocket(Context* context) : Machine(context)
 {
     //m_curveInputs = new HashMap<StringHash, float>();
     //m_thrust(m_curveInputs, 0.0f, 10.0f);
     //m_efficiency(m_curveInputs, 0.0f, 10.0f);
 
     // Add throttle as a curve input from 0.0-100.0 linear
-    m_curveInputs["Throttle"] = 0.0f;
-    m_thrust.add_factor("Throttle", 100.0f, 0.0f);
-    m_thrust.set_linear("Throttle", 0, 65535);
+    //m_curveInputs["throttle"] = 0.0f;
+    //m_thrust.add_factor("throttle", 100.0f, 0.0f);
+    //m_thrust.set_linear("throttle", 0, 65535);
 
     // TODO: on activate event
 }
@@ -23,6 +21,51 @@ MachineRocket::MachineRocket(Context* context) : Machine(context),
 MachineRocket::~MachineRocket()
 {
     //delete m_curveInputs;
+}
+
+void MachineRocket::DelayedStart()
+{
+    // Load some data if there's a prototype
+    if (Node* prototype = reinterpret_cast<Node*>(node_->GetVar("prototype").GetVoidPtr()))
+    {
+        URHO3D_LOGINFOF("Prototype type, %s", prototype->GetTypeName().CString());
+        if (prototype->GetType() == "Node")
+        {
+            // yes, there is a "prototype" var that is a node
+            URHO3D_LOGINFOF("Q: What colour is the crow? A: Yes.");
+
+            if (MachineRocket* protoRocket = prototype->GetComponent<MachineRocket>())
+            {
+                // Get te performance curve pointers
+
+                m_thrust = protoRocket->get_curve_thrust();
+                m_efficiency = protoRocket->get_curve_efficiency();
+            }
+
+        }
+
+    }
+
+
+    // Start hard-coded thing that look cool
+
+    m_rocketSound = node_->CreateComponent<SoundSource>();
+    m_rocketSound->SetSoundType(SOUND_EFFECT);
+    Sound* sound = GetSubsystem<ResourceCache>()->GetResource<Sound>("Sfx/Rocket2.ogg");
+    sound->SetLooped(true);
+    m_rocketSound->SetFrequency(44100.0f);
+    m_rocketSound->Play(sound);
+
+    Node* plume = GetScene()->InstantiateJSON(GetSubsystem<ResourceCache>()->GetResource<JSONFile>("Data/Objects/Plume1.json")->GetRoot(), Vector3(0.0f, -0.5f, 0.0f), Quaternion(0, 0, 0));
+    plume->Scale(2.3f);
+
+    PODVector<ParticleEmitter*> plumes;
+    plume->GetComponents<ParticleEmitter>(plumes);
+    plumes[0]->SetEmitting(true);
+    plumes[1]->SetEmitting(true);
+
+    node_->AddChild(plume);
+    m_plume = plume;
 }
 
 void MachineRocket::FixedUpdate(float timeStep)
@@ -35,30 +78,7 @@ void MachineRocket::FixedUpdate(float timeStep)
     {
         return;
     }
-    if (m_rocketSound == NULL)
-    {
-        m_rocketSound = node_->CreateComponent<SoundSource>();
-        m_rocketSound->SetSoundType(SOUND_EFFECT);
-        Sound* sound = GetSubsystem<ResourceCache>()->GetResource<Sound>("Sfx/Rocket2.ogg");
-        sound->SetLooped(true);
-        m_rocketSound->SetFrequency(44100.0f);
-        m_rocketSound->Play(sound);
-    }
 
-    // hard coded just to look cool
-    if (m_plume.Null())
-    {
-        Node* plume = GetScene()->InstantiateJSON(GetSubsystem<ResourceCache>()->GetResource<JSONFile>("Data/Objects/Plume1.json")->GetRoot(), Vector3(0.0f, -0.5f, 0.0f), Quaternion(0, 0, 0));
-        plume->Scale(2.3f);
-
-        PODVector<ParticleEmitter*> plumes;
-        plume->GetComponents<ParticleEmitter>(plumes);
-        plumes[0]->SetEmitting(true);
-        plumes[1]->SetEmitting(true);
-
-        node_->AddChild(plume);
-        m_plume = plume;
-    }
     //CollisionShape* collider = static_cast<CollisionShape*>(&(node_->GetParent()->GetComponents().At[node_->GetVar("colliderIndices").Get<Vector<int>>()[0]]));
     //Vector<int>* indices = static_cast<Vector<int>*>(node_->GetVar("Colliders").GetVoidPtr());
     //const VariantVector* colliders = node_->GetVar("Colliders").GetVariantVector();
@@ -73,22 +93,24 @@ void MachineRocket::FixedUpdate(float timeStep)
     //printf("COM: %s\n", rb->GetCenterOfMass().ToString().CString());
 
     Input* i = GetSubsystem<Input>();
-    m_curveInputs["Throttle"] = Clamp(m_curveInputs["Throttle"] + (int(i->GetKeyDown(KEY_F)) - i->GetKeyDown(KEY_G)) * 1.0f, 0.0f, 100.0f);
+    m_curveInputs["throttle"] = Clamp(m_curveInputs["throttle"] + (int(i->GetKeyDown(KEY_F)) - i->GetKeyDown(KEY_G)) * 1.0f, 0.0f, 100.0f);
 
     // This is mostly temporary
-    m_rocketSound->SetFrequency(44100.0f * (m_curveInputs["Throttle"] / 70.0f + 0.3f));
-    m_rocketSound->SetGain(m_curveInputs["Throttle"] / 100.0f);
+    m_rocketSound->SetFrequency(44100.0f * (m_curveInputs["throttle"] / 70.0f + 0.3f));
+    m_rocketSound->SetGain(m_curveInputs["throttle"] / 100.0f);
 
     // Set rocket plume
-    //m_plume->SetScale(m_curveInputs["Throttle"] > 2 ? 2.6f : 0.0f);
+    //m_plume->SetScale(m_curveInputs["throttle"] > 2 ? 2.6f : 0.0f);
     PODVector<ParticleEmitter*> plumes;
     m_plume->GetComponents<ParticleEmitter>(plumes);
-    plumes[0]->SetEmitting(m_curveInputs["Throttle"] > 2);
-    plumes[1]->SetEmitting(m_curveInputs["Throttle"] > 2);
+    plumes[0]->SetEmitting(m_curveInputs["throttle"] > 2);
+    plumes[1]->SetEmitting(m_curveInputs["throttle"] > 2);
 
     // Thrust related things
+    // Calculate thrust from curves
+    float thrustCalculated = m_thrust->calculate_float(m_curveInputs, 100.0f);
     Vector3 what(collider->GetPosition());
-    rb->ApplyForce(rb->GetRotation() * Vector3(0, m_thrust.get_float(100.0f), 0), rb->GetRotation() * collider->GetPosition() + rb->GetCenterOfMass());
+    rb->ApplyForce(rb->GetRotation() * Vector3(0, thrustCalculated, 0), rb->GetRotation() * collider->GetPosition() + rb->GetCenterOfMass());
     //rb->GetBody()->applyForce(ToBtVector3(rb->GetRotation() * Vector3(0, m_thrust.get_float(10.0f), 0)), rb->GetRotation() * collider->GetPosition());
 
     // Rotation control (temporary)
@@ -104,11 +126,17 @@ void MachineRocket::FixedUpdate(float timeStep)
 
 void MachineRocket::load_json(const JSONObject& machine)
 {
+
+    m_thrust.Reset();
+    m_efficiency.Reset();
+    m_thrust = new PerformanceCurves(context_);
+    m_efficiency = new PerformanceCurves(context_);
+
     if (JSONValue* thrustFactorsValue = machine["thrust"])
     {
         if (thrustFactorsValue->IsObject())
         {
-            parse_factors(m_thrust, thrustFactorsValue->GetObject());
+            parse_factors(*m_thrust, thrustFactorsValue->GetObject());
         }
     }
 
@@ -116,7 +144,7 @@ void MachineRocket::load_json(const JSONObject& machine)
     {
         if (efficiencyFactorsValue->IsObject())
         {
-            parse_factors(m_thrust, efficiencyFactorsValue->GetObject());
+            parse_factors(*m_efficiency, efficiencyFactorsValue->GetObject());
         }
     }
 }
