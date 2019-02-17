@@ -14,7 +14,6 @@ PerformanceCurves::PerformanceCurves(Context* context) : Object(context), m_fact
 float PerformanceCurves::calculate_float(const HashMap<StringHash, float>& curveInputs, float f) const
 {
     float value = f;
-    URHO3D_LOGINFOF("Factor count: %i", m_factors.Size());
     for (const FactorCurve& curve : m_factors)
     {
         // get the number, then scale to array index
@@ -28,8 +27,6 @@ float PerformanceCurves::calculate_float(const HashMap<StringHash, float>& curve
             //printf("F: %i %i, A: %f B: %f\n", FloorToInt(factor), CeilToInt(factor), a, b);
             // Interpolate between the two numbers
             value *= Lerp(a, b, Fract(factor));
-
-            URHO3D_LOGINFOF("factor!: %i, %i", curve.m_name, curve.m_points.Size());
         }
     }
     //printf("Out: %f\n", value);

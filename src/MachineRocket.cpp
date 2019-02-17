@@ -46,6 +46,7 @@ void MachineRocket::DelayedStart()
 
     }
 
+    m_curveInputs["throttle"] = 0;
 
     // Start hard-coded thing that look cool
 
@@ -56,13 +57,13 @@ void MachineRocket::DelayedStart()
     m_rocketSound->SetFrequency(44100.0f);
     m_rocketSound->Play(sound);
 
-    Node* plume = GetScene()->InstantiateJSON(GetSubsystem<ResourceCache>()->GetResource<JSONFile>("Data/Objects/Plume1.json")->GetRoot(), Vector3(0.0f, -0.5f, 0.0f), Quaternion(0, 0, 0));
+    Node* plume = GetScene()->InstantiateJSON(GetSubsystem<ResourceCache>()->GetResource<JSONFile>("Data/Objects/Plume1.json")->GetRoot(), Vector3(0.0f, 0.0f, 0.0f), Quaternion(0, 0, 0));
     plume->Scale(2.3f);
 
     PODVector<ParticleEmitter*> plumes;
     plume->GetComponents<ParticleEmitter>(plumes);
-    plumes[0]->SetEmitting(true);
-    plumes[1]->SetEmitting(true);
+    plumes[0]->SetEmitting(false);
+    plumes[1]->SetEmitting(false);
 
     node_->AddChild(plume);
     m_plume = plume;
@@ -110,7 +111,7 @@ void MachineRocket::FixedUpdate(float timeStep)
     // Calculate thrust from curves
     float thrustCalculated = m_thrust->calculate_float(m_curveInputs, 100.0f);
     Vector3 what(collider->GetPosition());
-    rb->ApplyForce(rb->GetRotation() * Vector3(0, thrustCalculated, 0), rb->GetRotation() * collider->GetPosition() + rb->GetCenterOfMass());
+    rb->ApplyForce(rb->GetRotation() * Vector3(0, 0, thrustCalculated*50.0f), rb->GetRotation() * collider->GetPosition() + rb->GetCenterOfMass());
     //rb->GetBody()->applyForce(ToBtVector3(rb->GetRotation() * Vector3(0, m_thrust.get_float(10.0f), 0)), rb->GetRotation() * collider->GetPosition());
 
     // Rotation control (temporary)
