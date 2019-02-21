@@ -1,13 +1,7 @@
 // "PlanetRenderer is a little too boring" -- Capital Asterisk, 2018
 #include "OSP.h"
 
-/**
- * A quick way to set neighbours of a triangle
- * @param tri [ref] Reference to triangle
- * @param bot [in] Bottom
- * @param rte [in] Right
- * @param lft [in] Left
- */
+
 inline void PlanetWrenderer::set_neighbours(SubTriangle& tri, trindex bot, trindex rte, trindex lft)
 {
     tri.m_neighbours[0] = bot;
@@ -15,13 +9,6 @@ inline void PlanetWrenderer::set_neighbours(SubTriangle& tri, trindex bot, trind
     tri.m_neighbours[2] = lft;
 }
 
-/**
- * A quick way to set vertices of a triangle
- * @param tri [ref] Reference to triangle
- * @param top [in] Top
- * @param lft Left
- * @param rte Right
- */
 inline void PlanetWrenderer::set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte)
 {
     tri.m_corners[0] = top;
@@ -29,12 +16,6 @@ inline void PlanetWrenderer::set_verts(SubTriangle& tri, trindex top, trindex lf
     tri.m_corners[2] = rte;
 }
 
-/**
- * Find which side a triangle is on another triangle
- * @param [ref] tri Reference to triangle to be searched
- * @param [in] lookingFor Index of triangle to search for
- * @return Neighbour index (0 - 2), or bottom, left, or right
- */
 inline const uint8_t PlanetWrenderer::neighboor_index(SubTriangle& tri, trindex lookingFor)
 {
     // Loop through neighbours on the edges. child 4 (center) is not considered as all it's neighbours are its siblings
@@ -52,11 +33,27 @@ inline const uint8_t PlanetWrenderer::neighboor_index(SubTriangle& tri, trindex 
 
 PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFree()
 {
-    // Chunk profile determines which triangles should be subdivided multiple times after a single subdivide call
-    // as if the triangle can subdivide into 64 triangles instead of just 4
-    // This is intended to reduce the number of distance checks
+    // Calculate ideal numbers later
 
-    //m_hqDepth = 4;
+    m_chunkAreaThreshold = 0.02f;
+    m_subdivAreaThreshold = 0.02f;
+
+    m_maxTriangles = 480000;
+
+    m_maxIndices = 480000;
+    m_maxVertice = 1600000;
+
+    m_maxDepth = 7;
+    m_previewDepth = 4;
+
+    m_maxChunks = 100;
+
+    m_chunkResolution = 16;
+
+    m_maxVertChunk = 40000;
+    m_maxVertChunkShared = 10000;
+
+
 }
 
 PlanetWrenderer::~PlanetWrenderer()
@@ -67,33 +64,18 @@ PlanetWrenderer::~PlanetWrenderer()
     //delete[] m_indDomain;
 }
 
-/**
- * Calculate initial icosahedron and initialize buffers. Call before drawing
- * @param context [in] Context used to initialize Urho3D objects
- * @param size [in] Minimum height of planet, or radius
- */
 void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size) {
 
     m_radius = size;
     m_heightMap = heightMap;
 
     // calculate proper numbers later, use magic numbers for now
-    m_maxTriangles = 480000;
 
     m_model = new Model(context);
     m_model->SetNumGeometries(2);
     m_model->SetBoundingBox(BoundingBox(Sphere(Vector3(0, 0, 0), size * 2)));
 
-    //
     {
-        // Calculate ideal numbers later, for now magic numbers
-        m_maxIndices = 480000;
-        m_maxVertice = 1600000;
-
-        m_vertCount = 12;
-        m_indCount = 0;
-
-        m_maxDepth = 10;
 
         // Pentagon stuff, from wolfram alpha
         // This part is kind of messy and should be revised
@@ -149,6 +131,9 @@ void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size
         vertInit[67] = -256;
         vertInit[68] = 0;
 
+        m_vertCount = 12; // 12 Vertices make up a basic icosahedron
+        m_indCount = 0; // Start with 0 faces, set_visible increases this
+
         // Shape into the right sized sphere
         double vx, vy, vz;
         for (int i = 0; i < 68; i += 6)
@@ -196,7 +181,7 @@ void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size
         m_geometry->SetNumVertexBuffers(1);
         m_geometry->SetVertexBuffer(0, m_vertBuf);
         m_geometry->SetIndexBuffer(m_indBuf);
-        m_geometry->SetDrawRange(TRIANGLE_LIST, 0, 20 * 3);
+        m_geometry->SetDrawRange(TRIANGLE_LIST, 0, sc_icosahedronFaceCount * 3);
 
         // Add geometry to model, urho3d specific
         m_model->SetGeometry(0, 0, m_geometry);
@@ -224,7 +209,6 @@ void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size
 
     // Preview model
     {
-        m_previewDepth = 5;
 
         UpdateRange vertRange, indRange;
         // Generate preview
@@ -253,22 +237,13 @@ void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size
 
     // Chunks
     {
-
-        // Again, magic numbers
-        m_maxChunks = 1000;
-
         m_chunkCount = 0;
 
-        // chunk size / vertex count is the (chunk resolution)th triangular number
-        m_chunkResolution = 32;
         m_chunkSize = m_chunkResolution * (m_chunkResolution + 1) / 2;
 
         // This is how many triangles is in a chunk
         m_chunkSizeInd = Pow(m_chunkResolution - 1, 2u);
         m_chunkSharedCount = (m_chunkResolution - 1) * 3;
-
-        m_maxVertChunk = 40000;
-        m_maxVertChunkShared = 10000; // magic number for how much of m_maxVertChunk is reserved for shared vertices (must be smaller)
 
         m_vertCountChunk[0] = 0;
         m_vertCountChunk[1] = 0;
@@ -296,7 +271,7 @@ void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size
         m_geometryChunk->SetNumVertexBuffers(1);
         m_geometryChunk->SetVertexBuffer(0, m_vertBufChunk);
         m_geometryChunk->SetIndexBuffer(m_indBufChunk);
-        m_geometryChunk->SetDrawRange(TRIANGLE_LIST, 0, 20 * 3);
+        m_geometryChunk->SetDrawRange(TRIANGLE_LIST, 0, sc_icosahedronFaceCount * 3);
 
         // Add geometry to model, urho3d specific
         m_model->SetGeometry(1, 0, m_geometryChunk);
@@ -320,11 +295,6 @@ void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size
     m_ready = true;
 }
 
-/**
- * Show or hide a triangle.
- * @param t [in] Index to the triangle
- * @param visible [in] To hide or to show
- */
 void PlanetWrenderer::set_visible(trindex t, bool visible, UpdateRange* gpuInd)
 {
     //printf("Setting visible: %u\n", t);
@@ -422,10 +392,6 @@ void PlanetWrenderer::set_visible(trindex t, bool visible, UpdateRange* gpuInd)
     tri->m_bitmask ^= E_VISIBLE;
 }
 
-/**
- * Subdivide a triangle into 4 more
- * @param [out] Triangle to subdivide
- */
 void PlanetWrenderer::subdivide_add(trindex t, UpdateRange* gpuVert, UpdateRange* gpuInd)
 {
     // if bottom triangle is deeper, use that vertex
@@ -530,7 +496,7 @@ void PlanetWrenderer::subdivide_add(trindex t, UpdateRange* gpuVert, UpdateRange
             // Which side tri is on triB
             int sideB = neighboor_index(*triB, t);
             //printf("Vertex is being shared\n");
-
+ 
             // Instead of creating a new vertex, use the one from triB since it's already subdivided
             tri->m_midVerts[i] = triB->m_midVerts[sideB];
             //console.log(i + ": Used existing vertex");
@@ -597,10 +563,6 @@ void PlanetWrenderer::subdivide_add(trindex t, UpdateRange* gpuVert, UpdateRange
 
 }
 
-/**
- * @brief A debug function to search for use of deleted triangles
- * @param tri
- */
 void PlanetWrenderer::find_refs(SubTriangle& tri)
 {
     //uint ohno = neighboor_index(tri, what);
@@ -630,10 +592,6 @@ void PlanetWrenderer::find_refs(SubTriangle& tri)
     }
 }
 
-/**
- * Unsubdivide a triangle. Removes children and sets neighbours of neighbours
- * @param t [out] Index of triangle to unsubdivide
- */
 void PlanetWrenderer::subdivide_remove(trindex t, UpdateRange* gpuVert, UpdateRange* gpuInd)
 {
     SubTriangle* tri = get_triangle(t);
@@ -691,10 +649,6 @@ void PlanetWrenderer::subdivide_remove(trindex t, UpdateRange* gpuVert, UpdateRa
 
 }
 
-/**
- * Calculates and sets m_center
- * @param tri [ref] Reference to triangle
- */
 void PlanetWrenderer::calculate_center(SubTriangle &tri)
 {
     const unsigned char* vertData = m_vertBuf->GetShadowData();
@@ -722,10 +676,6 @@ void PlanetWrenderer::set_side_recurse(SubTriangle& tri, uint8_t side, trindex t
     }
 }
 
-/**
- * Recalculates camera positiona and sub_recurses the main 20 triangles. Call this when the camera moves.
- * @param camera [in] Position of camera center
- */
 void PlanetWrenderer::update(const Vector3& camera)
 {
     m_camera = camera;
@@ -739,7 +689,7 @@ void PlanetWrenderer::update(const Vector3& camera)
     //printf("vert count: %ux\n", m_vertCount);
     // printf("Triangle count: %u Visible: %u\n", m_triangles.Size(), m_indCount);
     for (int i = 0; i < sc_icosahedronFaceCount; i ++) {
-        //sub_recurse(i);
+        sub_recurse(i);
     }
 
     //URHO3D_LOGINFOF("Memory Usage: %fMb", float(get_memory_usage()) / 1000000.0f);
@@ -749,10 +699,6 @@ void PlanetWrenderer::update(const Vector3& camera)
     assert(m_triangles.Size() < m_maxTriangles);
 }
 
-/**
- * Recursively check every triangle for which ones need (un)subdividing or chunking
- * @param t [in] Triangle to start with
- */
 void PlanetWrenderer::sub_recurse(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
@@ -791,6 +737,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
                        / Pow(2, int(tri->m_depth));
 
     // Approximation of the triangle's area
+    // (Area of equalateral triangle)
     float triArea = Sqrt(3) * edgeLength * edgeLength / 4;
 
     // Distance squared from viewer
@@ -802,11 +749,12 @@ void PlanetWrenderer::sub_recurse(trindex t)
     float screenArea = triArea / (distanceSquared * 0.2f);
 
     // 0.1 is also a magic number, which is the maximum screen area a triangle can take before it's subdivided
-    shouldSubdivide = (screenArea > 0.1f);
+    shouldSubdivide = (screenArea > m_subdivAreaThreshold);
 
+    // Check if already subdivided
     if (tri->m_bitmask & E_SUBDIVIDED)
     {
-        // Test children if already subdivided and shouldn't be unsubdivided
+
         if (shouldSubdivide)
         {
             if (tri->m_depth < m_maxDepth)
@@ -818,56 +766,32 @@ void PlanetWrenderer::sub_recurse(trindex t)
                 sub_recurse(childs + 2);
                 sub_recurse(childs + 3);
             }
-        } else {
+        } else if (tri->m_depth > m_previewDepth) {
             subdivide_remove(t);
+            URHO3D_LOGINFOF("UNSUBDIVIDE CALLED");
         }
     } else {
         if (shouldSubdivide)
         {
-            if (tri->m_depth == m_maxDepth - 1)
+            //if (tri->m_depth == m_maxDepth - 1)
+            //{
+            //    chunk_add(t);
+            //    //subdivide(t);
+            //}
+            if (tri->m_depth < m_maxDepth)
             {
-                chunk_add(t);
-                //subdivide(t);
-            }
-            else if (tri->m_depth < m_maxDepth)
-            {
+                URHO3D_LOGINFOF("SUBDIVIDE! %i", tri->m_depth);
                 subdivide_add(t);
             }
         }
     }
 }
 
-/**
- * Convert XY coordinates to a triangular number index
- *
- * 0
- * 1  2
- * 3  4
- * 6  7  8  9
- * x = right, y = down
- *
- * @param x [in]
- * @param y [in]
- * @return
- */
 inline const unsigned PlanetWrenderer::get_index(int x, int y) const
 {
     return y * (y + 1) / 2 + x;
 }
 
-/**
- * Similar to the normal get_index, but the first possible indices returned makes a border around the triangle
- *
- * 6
- * 5  7
- * 4  9  8
- * 3  2  1  0
- * x = right, y = down
- *
- * @param x [in]
- * @param y [in]
- * @return
- */
 const unsigned PlanetWrenderer::get_index_ringed(int x, int y) const
 {
     // || (x == y) ||
@@ -894,10 +818,6 @@ const unsigned PlanetWrenderer::get_index_ringed(int x, int y) const
 
 }
 
-/**
- * @brief PlanetWrenderer::generate_chunk
- * @param t
- */
 void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuIgnore)
 {
     SubTriangle* tri = get_triangle(t);

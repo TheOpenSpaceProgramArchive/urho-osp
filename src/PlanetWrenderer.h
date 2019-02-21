@@ -57,6 +57,7 @@ static constexpr const uint8_t sc_icoTemplateneighbours[20 * 3] {
      8, 19, 16,   6, 15, 17,  14, 16, 18,  12, 17, 19,  10, 18, 15
 };
 
+// If this changes, then the universe is broken
 static const int sc_icosahedronFaceCount = 20;
 
 enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010, E_CHUNKED = 0b0100 };
@@ -112,12 +113,15 @@ class PlanetWrenderer
     double m_radius;
 
     unsigned m_maxDepth;
-    unsigned m_previewDepth; // minimum depth
+    unsigned m_previewDepth; // minimum depth. guarentee to never subdivide below this
 
     Vector3 m_offset;
     Vector3 m_camera;
     float m_cameraDist;
     float m_threshold;
+
+    float m_subdivAreaThreshold; // How much screen area a triangle can take before it should be subdivided
+    float m_chunkAreaThreshold; // How much screen area a triangle can take before it should be chunked
 
     Model* m_model;
 
@@ -175,38 +179,147 @@ public:
     ~PlanetWrenderer();
     bool is_ready() {return m_ready;}
 
+    /**
+     * Calculate initial icosahedron and initialize buffers. Call before drawing
+     * @param context [in] Context used to initialize Urho3D objects
+     * @param size [in] Minimum height of planet, or radius
+     */
     void initialize(Context* context, Image* heightMap, double size);
-    void update(const Vector3& camera);
 
+    /**
+     * Recalculates camera positiona and sub_recurses the main 20 triangles. Call this when the camera moves.
+     * @param camera [in] Position of camera center
+     */
+    void update(const Vector3& camera);
 
     Model* get_model() { return m_model; }
 
 
 protected:
 
-    static inline void set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte);
+    /**
+     * A quick way to set neighbours of a triangle
+     * @param tri [ref] Reference to triangle
+     * @param bot [in] Bottom
+     * @param rte [in] Right
+     * @param lft [in] Left
+     */
     static inline void set_neighbours(SubTriangle& tri, trindex bot, trindex rte, trindex lft);
+
+    /**
+     * A quick way to set vertices of a triangle
+     * @param tri [ref] Reference to triangle
+     * @param top [in] Top
+     * @param lft Left
+     * @param rte Right
+     */
+    static inline void set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte);
+
+    /**
+     * Find which side a triangle is on another triangle
+     * @param [ref] tri Reference to triangle to be searched
+     * @param [in] lookingFor Index of triangle to search for
+     * @return Neighbour index (0 - 2), or bottom, left, or right
+     */
     static inline const uint8_t neighboor_index(SubTriangle& tri, trindex lookingFor);
 
     void set_side_recurse(SubTriangle& tri, uint8_t side, trindex to);
+
+    /**
+     * Show or hide a triangle.
+     * @param t [in] Index to the triangle
+     * @param visible [in] To hide or to show
+     */
     void set_visible(trindex t, bool visible, UpdateRange* gpuInd = nullptr);
+
+    /**
+     * Recursively check every triangle for which ones need (un)subdividing or chunking
+     * @param t [in] Triangle to start with
+     */
     void sub_recurse(trindex t);
 
+    /**
+     * Subdivide a triangle into 4 more
+     * @param [in] Triangle to subdivide
+     */
     void subdivide_add(trindex t, UpdateRange* gpuVert = nullptr, UpdateRange* gpuInd = nullptr);
+
+    /**
+     * Unsubdivide a triangle. Removes children and sets neighbours of neighbours
+     * @param t [in] Index of triangle to unsubdivide
+     */
     void subdivide_remove(trindex t, UpdateRange* gpuVert = nullptr, UpdateRange* gpuInd = nullptr);
+
+    /**
+     * Calculates and sets m_center
+     * @param tri [ref] Reference to triangle
+     */
     void calculate_center(SubTriangle& tri);
 
+    /**
+     *
+     * @param t [in] Index of triangle to add chunk to
+     * @param gpuIgnore
+     */
     void chunk_add(trindex t, UpdateRange* gpuIgnore = nullptr);
+
+    /**
+     * @brief chunk_remove
+     * @param t
+     * @param gpuIgnore
+     */
     void chunk_remove(trindex t, UpdateRange* gpuIgnore = nullptr);
 
+    /**
+     * Get triangle from vector of triangles
+     * be careful of reallocation!
+     * @param t [in] Index to triangle
+     * @return Pointer to triangle
+     */
     inline SubTriangle* get_triangle(trindex t) const { return m_triangles.Buffer() + t; }
 
+    /**
+     * Convert XY coordinates to a triangular number index
+     *
+     * 0
+     * 1  2
+     * 3  4
+     * 6  7  8  9
+     * x = right, y = down
+     *
+     * @param x [in]
+     * @param y [in]
+     * @return
+     */
     inline const unsigned get_index(int x, int y) const;
+
+    /**
+     * Similar to the normal get_index, but the first possible indices returned makes a border around the triangle
+     *
+     * 6
+     * 5  7
+     * 4  9  8
+     * 3  2  1  0
+     * x = right, y = down
+     *
+     * 0, 1, 2, 3, 4, 5, 6, 7, 8 makes a ring
+     *
+     * @param x [in]
+     * @param y [in]
+     * @return
+     */
     const unsigned get_index_ringed(int x, int y) const;
 
+    /**
+     * Add up memory usages from most variables associated with this instance.
+     * @return Memory usage in bytes
+     */
     const uint64_t get_memory_usage() const;
 
-    // for debugging only
+    /**
+     * For debugging only: search for triangles that should have been deleted
+     * @param tri
+     */
     void find_refs(SubTriangle& tri);
 
 };
