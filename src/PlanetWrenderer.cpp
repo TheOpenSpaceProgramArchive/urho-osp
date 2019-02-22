@@ -46,13 +46,10 @@ PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(), m_vertFre
     m_maxDepth = 7;
     m_previewDepth = 4;
 
-    m_maxChunks = 100;
-
     m_chunkResolution = 16;
 
-    m_maxVertChunk = 40000;
+    m_maxChunks = 100;
     m_maxVertChunkShared = 10000;
-
 
 }
 
@@ -245,8 +242,11 @@ void PlanetWrenderer::initialize(Context* context, Image* heightMap, double size
         m_chunkSizeInd = Pow(m_chunkResolution - 1, 2u);
         m_chunkSharedCount = (m_chunkResolution - 1) * 3;
 
-        m_vertCountChunk[0] = 0;
-        m_vertCountChunk[1] = 0;
+
+        m_maxVertChunk = m_maxVertChunkShared + m_maxChunks * (m_chunkSize - m_chunkSharedCount);
+
+
+        m_vertCountChunkShared = 0;
 
         // Initialize objects for dealing with chunks
         m_indBufChunk = new IndexBuffer(context);
@@ -401,6 +401,9 @@ void PlanetWrenderer::subdivide_add(trindex t, UpdateRange* gpuVert, UpdateRange
 
     // if visible, then hide
     set_visible(t, false);
+
+    // Remove chunks if currently chunked
+    chunk_remove(t);
 
     // Add the 4 new triangles
     // Top Left Right Center
@@ -598,6 +601,7 @@ void PlanetWrenderer::subdivide_remove(trindex t, UpdateRange* gpuVert, UpdateRa
 
     if (!(tri->m_bitmask & E_SUBDIVIDED))
     {
+        // If not subdivided
         return;
     }
 
@@ -773,12 +777,12 @@ void PlanetWrenderer::sub_recurse(trindex t)
     } else {
         if (shouldSubdivide)
         {
-            //if (tri->m_depth == m_maxDepth - 1)
-            //{
-            //    chunk_add(t);
-            //    //subdivide(t);
-            //}
-            if (tri->m_depth < m_maxDepth)
+            if (tri->m_depth == m_maxDepth - 1)
+            {
+                chunk_add(t);
+                //subdivide(t);
+            }
+            else if (tri->m_depth < m_maxDepth)
             {
                 URHO3D_LOGINFOF("SUBDIVIDE! %i", tri->m_depth);
                 subdivide_add(t);
@@ -818,7 +822,7 @@ const unsigned PlanetWrenderer::get_index_ringed(int x, int y) const
 
 }
 
-void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuIgnore)
+void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk)
 {
     SubTriangle* tri = get_triangle(t);
 
@@ -828,9 +832,9 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuIgnore)
         return;
     }
 
-    if (tri->m_bitmask & E_CHUNKED)
+    if (tri->m_bitmask & (E_CHUNKED | E_SUBDIVIDED))
     {
-        // already chunked
+        // return if already chunked, or is subdivided
         return;
     }
 
@@ -850,6 +854,9 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuIgnore)
     unsigned char* vertData = m_vertBuf->GetShadowData();
     unsigned vertSize = m_vertBuf->GetVertexSize();
 
+    unsigned char* vertDataChunk = m_vertBufChunk->GetShadowData();
+    unsigned vertSizeChunk = m_vertBufChunk->GetVertexSize();
+
     // top, left, right
     const Vector3 verts[3] = {
         (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri->m_corners[0])),
@@ -867,27 +874,36 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuIgnore)
     for (int i = 0; i < 3; i ++)
     {
         SubTriangle* triB = get_triangle(tri->m_neighbours[i]);
-        chunkedNeighbours[i] = (triB->m_bitmask & E_CHUNKED)    ;
+        chunkedNeighbours[i] = (triB->m_bitmask & E_CHUNKED);
     }
 
-    //URHO3D_LOGINFOF("0; %f %f %f", verts[0].x_, verts[0].y_, verts[0].z_);
-    //URHO3D_LOGINFOF("1: %f %f %f", verts[1].x_, verts[1].y_, verts[1].z_);
-    //URHO3D_LOGINFOF("2: %f %f %f", verts[2].x_, verts[2].y_, verts[2].z_);
+    //URHO3D_LOGINFOF("DirDown: %f %f %f", dirDown.x_, dirDown.y_, dirDown.z_);
 
-    URHO3D_LOGINFOF("DirDown: %f %f %f", dirDown.x_, dirDown.y_, dirDown.z_);
+    // Find an empty space in middle vertices section of m_vertBufChunk
+    // Put the first index into middleVerts
+
+    buindex middleVerts = m_maxVertChunkShared + m_chunkCount * (m_chunkSize - m_chunkSharedCount);
+
+    if (m_vertFreeChunkMiddle.Size() != 0) {
+        // Use the empty space if one is available
+        middleVerts = m_vertFreeChunkMiddle[m_vertFreeChunkMiddle.Size() - 1];
+        m_vertFreeChunkMiddle.Pop();
+    }
 
     PODVector<unsigned> indices(m_chunkSize);
 
-    // Loop through the center triangle
+    int  middleIndex = 0;
     int i = 0;
     for (int y = 0; y < m_chunkResolution; y ++)
     {
         // Loops once, then twice, then thrice, etc...
+        // because a triangle starts with 1 vertex at the top
+        // 2 next row, 3 next, 4 next, 5 next, etc...
         for (int x = 0; x <= y; x ++)
         {
             unsigned vertIndex;
             bool shared = false;
-            bool generate = true;
+
             // Check if on edge
             if ((x == 0) || (x == y) || (y == m_chunkResolution - 1))
             {
@@ -909,48 +925,59 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuIgnore)
                 }
             }
 
-            if (generate)
+            //URHO3D_LOGINFOF("X:%i Y:%i I:%i", x, y, i);
+
+            if (shared)
             {
-                // Generate a new vertex and use it
+                // If the vertex is on the edge of the triangle
 
-                //URHO3D_LOGINFOF("X:%i Y:%i I:%i", x, y, i);
-
-                if (shared)
+                // Take a vertex from a neighbour
+                // Indices from 0 to m_maxVertChunkShared
+                if (m_vertCountChunkShared + 1 >= m_maxVertChunkShared)
                 {
-                    if (m_vertCountChunk[1] + 1 >= m_maxVertChunkShared)
-                    {
-                        URHO3D_LOGERROR("Max Shared Vertices for Chunk");
-                        return;
-                    }
-                    if (m_vertFreeChunk[1].Size() == 0) {
-                        vertIndex = m_vertCountChunk[1];
-                        m_vertCountChunk[1] ++;
-                    }
+                    URHO3D_LOGERROR("Max Shared Vertices for Chunk");
+                    return;
                 }
-                else
-                {
-                    if (m_vertCountChunk[0] + 1 >= m_maxVertChunk)
-                    {
-                        URHO3D_LOGERROR("Max Shared Vertices for Chunk");
-                        return;
-                    }
-                    if (m_vertFreeChunk[0].Size() == 0) {
-                        vertIndex = m_vertCountChunk[0] + m_maxVertChunkShared;
-                        m_vertCountChunk[0] ++;
-                    }
+                if (m_vertFreeChunkShared.Size() == 0) {
+                    vertIndex = m_vertCountChunkShared;
+                    m_vertCountChunkShared ++;
                 }
-
-                Vector3 pos = verts[0] + (dirRight * x + dirDown * y);
-                Vector3 normal = pos.Normalized();
-
-                pos = normal * m_radius;
-                // * (m_radius + (100.0f * m_heightMap->GetPixelBilinear(Mod(Atan2(normal.z_, normal.x_) + 360.0f, 360.0f) / 360.0f, Acos(normal.y_) / 180.0f).r_));
-
-                // Position and normal
-                Vector3 vertM[2] = {pos, normal};
-                m_vertBufChunk->SetDataRange(vertM, vertIndex, 1);
-
             }
+            else
+            {
+                // Use a vertex from the space allocated earler
+                vertIndex = middleVerts + middleIndex;
+
+                // Keep track of which middle index is being looped through
+                middleIndex ++;
+            }
+
+            Vector3 pos = verts[0] + (dirRight * x + dirDown * y);
+            Vector3 normal = pos.Normalized();
+
+            pos = normal * m_radius;
+            // * (m_radius + (100.0f * m_heightMap->GetPixelBilinear(Mod(Atan2(normal.z_, normal.x_) + 360.0f, 360.0f) / 360.0f, Acos(normal.y_) / 180.0f).r_));
+
+            // Position and normal
+            Vector3 vertM[2] = {pos, normal};
+
+            if (gpuVertChunk)
+            {
+                // Copy vertex data to shadow buffer, then set min/max update range for sending to the gpu later
+                // Intended to reduce buffer update calls to the gpu
+
+                memcpy(vertDataChunk + vertIndex * vertSizeChunk, vertM, vertSizeChunk);
+
+                //gpuVertChunk->m_start = Min(gpuVertChunk->m_start, vertSizeChunk);
+                //gpuVertChunk->m_end = Max(gpuVertChunk->m_start, (tri->m_midVerts[i] + 1));
+            }
+            else
+            {
+                // Update gpu buffers right away
+                m_vertBufChunk->SetDataRange(vertM, vertIndex, 1);
+            }
+
+
             indices[get_index_ringed(x, y)] = vertIndex;
             i ++;
         }
@@ -958,7 +985,6 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuIgnore)
 
     // The data that will be pushed directly into the chunk index buffer
     PODVector<unsigned> chunkIndData(m_chunkSizeInd * 3);
-
 
     i = 0;
     // indices array is now populated, connect the dots!
@@ -998,7 +1024,8 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuIgnore)
 
     // Actually set the data
     m_indBufChunk->SetDataRange(chunkIndData.Buffer(), m_chunkCount * chunkIndData.Size(), chunkIndData.Size());
-    tri->m_chunkIndex = m_chunkCount * chunkIndData.Size();
+    tri->m_chunkIndex = m_chunkCount;
+
     m_chunkCount ++;
 
     m_geometryChunk->SetDrawRange(TRIANGLE_LIST, 0, m_chunkCount * chunkIndData.Size());
@@ -1006,11 +1033,23 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuIgnore)
     // The triangle is now chunked
     tri->m_bitmask ^= E_CHUNKED;
 
+
 }
 
 
 void PlanetWrenderer::chunk_remove(trindex t, UpdateRange* gpuIgnore)
 {
+    SubTriangle* tri = get_triangle(t);
+
+    if (!(tri->m_bitmask & E_CHUNKED))
+    {
+        // If not chunked already
+        return;
+    }
+
+
+    buindex vertBufStart = tri->m_chunkIndex * (m_chunkSharedCount - m_chunkSize) + m_maxVertChunkShared;
+
 
 }
 
@@ -1030,9 +1069,9 @@ const uint64_t PlanetWrenderer::get_memory_usage() const
         total += m_triangles.Capacity() * sizeof(SubTriangle);
         total += m_trianglesFree.Capacity() * sizeof(trindex);
         total += m_vertFree.Capacity() * sizeof(buindex);
-        total += m_vertFreeChunk[0].Capacity() * sizeof(buindex);
+        total += m_vertFreeChunkMiddle.Capacity() * sizeof(buindex);
         total += m_chunkDomain.Capacity() * sizeof(trindex);
-        total += m_vertFreeChunk[1].Capacity() * sizeof(buindex);
+        total += m_vertFreeChunkShared.Capacity() * sizeof(buindex);
     }
     return total;
 }

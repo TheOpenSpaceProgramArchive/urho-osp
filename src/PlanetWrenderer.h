@@ -165,19 +165,27 @@ class PlanetWrenderer
     SharedPtr<VertexBuffer> m_vertBufChunk;
     buindex m_maxVertChunk; // How large the chunk vertex buffer is in total
     buindex m_maxVertChunkShared; // How much of it is reserved for shared vertices
-    buindex m_vertCountChunk[2];
-    //buindex m_vertCountChunkShared;
 
-    PODVector<buindex> m_vertFreeChunk[2];
+    // This one is commented out because it's equal to the (# of chunks) * (# of middle vertices)
+    //buindex m_vertCountChunkFixed; // Current number of fixed vertices
+    buindex m_vertCountChunkShared; // Current of shared vertices (edges of chunks)
+    PODVector<buindex> m_vertFreeChunkMiddle; // Empty spaces in chunk vertex buffer
+    PODVector<buindex> m_vertFreeChunkShared; // Empty spaces in chunk vertex buffer GPU data
 
-    // Vertex buffer is divided unevenly
-    // [shared vertex data] (m_maxVertChunkShared) [vertices unique to single chunks]
+    // Vertex buffer data is divided unevenly for chunks
+    // In m_vertBufChunk:
+    // [shared vertex data] (m_maxVertChunkShared) [middle vertices] (m_maxVertChunk)
+
+    // if chunk resolution is 16, then...
+    // Chunks are triangles of 136 vertices (m_chunkSize)
+    // There are 45 vertices on the edges, (sides + corners) = (14 + 14 + 14 + 3) = m_chunkSharedCount;
+    // Which means there is 91 vertices left in the middle (m_chunkSize - m_chunkSharedCount)
 
 public:
 
     PlanetWrenderer();
     ~PlanetWrenderer();
-    bool is_ready() {return m_ready;}
+    bool is_ready() { return m_ready; }
 
     /**
      * Calculate initial icosahedron and initialize buffers. Call before drawing
