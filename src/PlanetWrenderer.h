@@ -88,7 +88,9 @@ struct SubTriangle
     buindex m_index; // to index buffer
 
     // Data used when chunked
+    chindex m_chunk; // Index to chunk. (First triangle ever chunked will be 0, second is 1)
     buindex m_chunkIndex; // Index to index data in the index buffer
+    buindex m_chunkVerts; // Index to vertex data
 };
 
 struct UpdateRange
@@ -143,10 +145,10 @@ class PlanetWrenderer
     buindex m_maxVertice;
 
     PODVector<SubTriangle> m_triangles; // List of all triangles
-    PODVector<trindex> m_trianglesFree; // Empty spaces in the triangle class array
+    PODVector<trindex> m_trianglesFree; // Deleted triangles in the triangle class array
     buindex m_maxTriangles;
 
-    PODVector<buindex> m_vertFree; // Empty spaces in vertex buffer GPU data
+    PODVector<buindex> m_vertFree; // Deleted vertices in vertex buffer GPU data
     // use "m_indDomain[buindex]" to get a triangle index
 
     // Geometry for chunks
@@ -160,7 +162,8 @@ class PlanetWrenderer
     unsigned m_chunkSizeInd; // How many triangles in each chunk
     chindex m_maxChunks; // Max number of chunks
     chindex m_chunkCount; // How many chunks there are right now
-    PODVector<trindex> m_chunkDomain; // Maps chunks to triangles
+    PODVector<trindex> m_chunkIndDomain; // Maps chunks to triangles
+    PODVector<chindex> m_chunkIndDeleteMe; // Spots in the index buffer that want to die
 
     SharedPtr<VertexBuffer> m_vertBufChunk;
     buindex m_maxVertChunk; // How large the chunk vertex buffer is in total
@@ -169,8 +172,8 @@ class PlanetWrenderer
     // This one is commented out because it's equal to the (# of chunks) * (# of middle vertices)
     //buindex m_vertCountChunkFixed; // Current number of fixed vertices
     buindex m_vertCountChunkShared; // Current of shared vertices (edges of chunks)
-    PODVector<buindex> m_vertFreeChunkMiddle; // Empty spaces in chunk vertex buffer
-    PODVector<buindex> m_vertFreeChunkShared; // Empty spaces in chunk vertex buffer GPU data
+    PODVector<buindex> m_vertFreeChunk; // Deleted chunk vertices that can be overwritten
+    PODVector<buindex> m_vertFreeChunkShared; // Deleted shared chunk vertices that can be overwritten
 
     // Vertex buffer data is divided unevenly for chunks
     // In m_vertBufChunk:
@@ -269,14 +272,14 @@ protected:
      * @param t [in] Index of triangle to add chunk to
      * @param gpuIgnore
      */
-    void chunk_add(trindex t, UpdateRange* gpuIgnore = nullptr);
+    void chunk_add(trindex t, UpdateRange* gpuVertChunk = nullptr, UpdateRange* gpuVertInd = nullptr);
 
     /**
      * @brief chunk_remove
      * @param t
      * @param gpuIgnore
      */
-    void chunk_remove(trindex t, UpdateRange* gpuIgnore = nullptr);
+    void chunk_remove(trindex t, UpdateRange* gpuVertChunk = nullptr, UpdateRange* gpuVertInd = nullptr);
 
     /**
      * Get triangle from vector of triangles
