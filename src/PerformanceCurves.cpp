@@ -71,7 +71,6 @@ FactorCurve* PerformanceCurves::add_factor(StringHash factor, float range, float
     // Push to end if array is empty or there's no value larger than hash
     m_factors.Push(curve);
 
-    URHO3D_LOGINFOF("saDAsdadasd: %i:", m_factors.Size());
     return (m_factors.End() - 1).ptr_;
 }
 
@@ -94,8 +93,6 @@ PODVector<unsigned char> PerformanceCurves::to_buffer() const
     PODVector<unsigned char> buffer;
 
     unsigned bufferSize;
-
-    URHO3D_LOGINFOF("Float size: %i, StringHash size: %i, P");
 
     bufferSize += sizeof(StringHash);
     bufferSize += sizeof(float) * 2;

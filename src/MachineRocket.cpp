@@ -28,11 +28,9 @@ void MachineRocket::DelayedStart()
     // Load some data if there's a prototype
     if (Node* prototype = reinterpret_cast<Node*>(node_->GetVar("prototype").GetVoidPtr()))
     {
-        URHO3D_LOGINFOF("Prototype type, %s", prototype->GetTypeName().CString());
         if (prototype->GetType() == "Node")
         {
-            // yes, there is a "prototype" var that is a node
-            URHO3D_LOGINFOF("Q: What colour is the crow? A: Yes.");
+            //URHO3D_LOGINFOF("Q: What colour is the crow? A: Yes.");
 
             if (MachineRocket* protoRocket = prototype->GetComponent<MachineRocket>())
             {

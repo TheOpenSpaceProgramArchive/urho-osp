@@ -213,7 +213,7 @@ void SystemOsp::debug_function(const StringHash which)
         //shape->SetTriangleMesh(terrain->GetPlanet()->get_model(), 0, Vector3::ONE);
 
         ActiveArea* area = scene->CreateComponent<ActiveArea>();
-        area->relocate(ab, LongVector3(0, 4100 * 1000, 0));
+        area->relocate(ab, LongVector3(0, 4150 * 1000, 0));
         area->set_terrain(terrain);
 
     }
@@ -332,7 +332,7 @@ void SystemOsp::register_parts(const GLTFFile* gltf)
                             // Machine exists and is a machine
                             part->AddComponent(machineComponent, 0, REPLICATED);
                             machineComponent->load_json(machineObject);
-                            URHO3D_LOGINFOF("Machine Type: %s %p %i", type.CString(), machineComponent, machineComponent.NotNull());
+                            //URHO3D_LOGINFOF("Machine Type: %s %p %i", type.CString(), machineComponent, machineComponent.NotNull());
                         }
                         else
                         {
@@ -387,9 +387,8 @@ void SystemOsp::part_node_recurse(Node* partRoot, Node* node)
             shape->SetBox(scale * 2.0f, pos, rot);
         }
 
-        URHO3D_LOGINFOF("Shape type: %s", shapeType.CString());
-
-        URHO3D_LOGINFOF("Shape made on: %s", node->GetParent()->GetName().CString());
+        //URHO3D_LOGINFOF("Shape type: %s", shapeType.CString());
+        //URHO3D_LOGINFOF("Shape made on: %s", node->GetParent()->GetName().CString());
 
         // don't loop through children
         return;

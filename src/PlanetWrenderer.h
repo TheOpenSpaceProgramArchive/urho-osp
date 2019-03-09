@@ -162,22 +162,29 @@ class PlanetWrenderer
     unsigned m_chunkSizeInd; // How many triangles in each chunk
     chindex m_maxChunks; // Max number of chunks
     chindex m_chunkCount; // How many chunks there are right now
+
     PODVector<trindex> m_chunkIndDomain; // Maps chunks to triangles
     PODVector<chindex> m_chunkIndDeleteMe; // Spots in the index buffer that want to die
 
-    SharedPtr<VertexBuffer> m_vertBufChunk;
-    buindex m_maxVertChunk; // How large the chunk vertex buffer is in total
-    buindex m_maxVertChunkShared; // How much of it is reserved for shared vertices
+    SharedPtr<VertexBuffer> m_chunkVertBuf;
+    buindex m_chunkMaxVert; // How large the chunk vertex buffer is in total
+    buindex m_chunkMaxVertShared; // How much of it is reserved for shared vertices
 
     // This one is commented out because it's equal to the (# of chunks) * (# of middle vertices)
     //buindex m_vertCountChunkFixed; // Current number of fixed vertices
-    buindex m_vertCountChunkShared; // Current of shared vertices (edges of chunks)
-    PODVector<buindex> m_vertFreeChunk; // Deleted chunk vertices that can be overwritten
-    PODVector<buindex> m_vertFreeChunkShared; // Deleted shared chunk vertices that can be overwritten
+    buindex m_chunkVertCountShared; // Current of shared vertices (edges of chunks)
+    PODVector<buindex> m_chunkVertFree; // Deleted chunk vertices that can be overwritten
+    PODVector<buindex> m_chunkVertFreeShared; // Deleted shared chunk vertices that can be overwritten
+
+    // it's impossible for a vertex to have more than 6 users
+    // Delete a shared vertex when it's users goes to zero
+    // And use user count to calculate normals
+    PODVector<uint8_t> m_chunkVertUsers; // Count how many times each shared chunk vertex is being used
+    PODVector<buindex> m_chunkSharedIndices; // Indicies that point to shared vertices.
 
     // Vertex buffer data is divided unevenly for chunks
-    // In m_vertBufChunk:
-    // [shared vertex data] (m_maxVertChunkShared) [middle vertices] (m_maxVertChunk)
+    // In m_chunkVertBuf:
+    // [shared vertex data] (m_chunkMaxVertShared) [middle vertices] (m_chunkMaxVert)
 
     // if chunk resolution is 16, then...
     // Chunks are triangles of 136 vertices (m_chunkSize)

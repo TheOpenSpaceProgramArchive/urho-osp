@@ -4,16 +4,16 @@
 	<texture unit="normal" name="Textures/EquirectangularNormal.png" />
 	<texture unit="custom1" name="Textures/EquirectangularHeight.png" />
 	<shader vsdefines="DISPLACE" psdefines="ENORMALMAP" />
-	<parameter name="UOffset" value="1 0 0 0" />
+	<parameter name="UOffset" value="0 0 0 0" />
 	<parameter name="VOffset" value="0 1 0 0" />
 	<parameter name="MatDiffColor" value="1 1 1 1" />
 	<parameter name="MatEmissiveColor" value="0 0 0" />
 	<parameter name="MatEnvMapColor" value="1 1 1" />
 	<parameter name="MatSpecColor" value="0.1 0.1 0.1 1" />
-	<parameter name="Roughness" value="1" />
+	<parameter name="Roughness" value="0.5" />
 	<parameter name="Metallic" value="0" />
-	<parameter name="TerrainNormalHeight" value="0.5" />
-	<parameter name="TerrainDeformAmount" value="2000" />
+	<parameter name="TerrainNormalHeight" value="0.3" />
+	<parameter name="TerrainDeformAmount" value="200" />
 	<cull value="cw" />
 	<shadowcull value="ccw" />
 	<fill value="solid" />

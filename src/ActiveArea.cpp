@@ -41,7 +41,7 @@ void ActiveArea::FixedUpdate(float timeStep)
 
             offsetDist *= 0.001f;
 
-            URHO3D_LOGINFOF("move!");
+            //URHO3D_LOGINFOF("move!");
             // Translate all nodes to move the camera back to the center
             PODVector<Node*> rigidBodies;
             node_->GetChildren(rigidBodies);

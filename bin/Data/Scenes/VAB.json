@@ -8,8 +8,8 @@
 		"Elapsed Time": 3.175529956817627,
 		"Next Replicated Node ID": 20,
 		"Next Replicated Component ID": 42,
-		"Next Local Node ID": 16777254,
-		"Next Local Component ID": 16777672,
+		"Next Local Node ID": 16777258,
+		"Next Local Component ID": 16777720,
 		"Variables": {},
 		"Variable Names": "RemoveDistance"
 	},
@@ -48,7 +48,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -448256
+				"Play Position": -804832
 			}
 		},
 		{
@@ -64,15 +64,10 @@
 				"Is Enabled": true,
 				"Name": "Platform",
 				"Tags": [],
-				"Position": "0 -2.1 0",
+				"Position": "0 -16 0",
 				"Rotation": "1 0 0 0",
-				"Scale": "20 0.2 20",
-				"Variables": {
-					"33DF7139": {
-						"type": "Float",
-						"value": 300.0
-					}
-				}
+				"Scale": "20 28 20",
+				"Variables": {}
 			},
 			"components": [
 				{
@@ -87,7 +82,7 @@
 					"type": "RigidBody",
 					"id": 19,
 					"attributes": {
-						"Physics Position": "0 -2.1 0",
+						"Physics Position": "0 -16 0",
 						"Friction": 50.0,
 						"Linear Factor": "0 0 0",
 						"Angular Factor": "0 0 0",
@@ -123,11 +118,11 @@
 					"id": 4,
 					"attributes": {
 						"Light Type": "Directional",
-						"Brightness Multiplier": 600.0,
-						"Temperature": 5500.0,
+						"Brightness Multiplier": 700.0,
+						"Temperature": 5000.0,
 						"Use Physical Values": true,
 						"Radius": 10.0,
-						"Range": 0.0,
+						"Range": 20.0,
 						"Cast Shadows": true
 					}
 				}

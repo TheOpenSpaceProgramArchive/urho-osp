@@ -1195,7 +1195,7 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
 
     if (nodeObject.Contains("matrix"))
     {
-        URHO3D_LOGINFO(ParseMatrix(nodeObject["matrix"]).ToString()); 
+        //URHO3D_LOGINFO(ParseMatrix(nodeObject["matrix"]).ToString());
         node->SetTransform(ParseMatrix(nodeObject["matrix"]));   
     }
     else
@@ -1237,7 +1237,7 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
         {
 
             unsigned index = meshIndex.GetUInt();
-            URHO3D_LOGINFOF("Mesh used: %u", index);
+            //URHO3D_LOGINFOF("Mesh used: %u", index);
 
             if (meshes_.Size() > index)
             {
@@ -1265,7 +1265,7 @@ SharedPtr<Node> GLTFFile::GetNode(unsigned index) const
         }
     }
 
-    URHO3D_LOGINFOF("Node: %s", node->GetName().CString());
+    //URHO3D_LOGINFOF("Node: %s", node->GetName().CString());
 
     if (nodeObject.Contains("children"))
     {

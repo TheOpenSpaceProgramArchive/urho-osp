@@ -76,7 +76,7 @@ void construct_apparatus()
     
     Light@ mothBait = cameraCenter.CreateComponent("Light");
     mothBait.usePhysicalValues = true;
-    mothBait.range = 500;
+    mothBait.range = 100;
     mothBait.brightness = 2000;
     mothBait.temperature = 6700;
 
@@ -295,7 +295,8 @@ void construct_update(StringHash eventType, VariantMap& eventData)
     //cameraCenter.rotation *= toHorizon;
     cameraCenter.rotation *= Quaternion(arrowKeys.y * delta * 90, -arrowKeys.x * delta * 90, 0.0);
 
-    camera.position = Vector3(0, 0, camera.position.z + delta * 10.0 * (bint(input.keyDown[KEY_Z]) - bint(input.keyDown[KEY_X])));
+    // zoom
+    camera.position = Vector3(0, 0, camera.position.z + delta * 100.0 * (bint(input.keyDown[KEY_Z]) - bint(input.keyDown[KEY_X])));
     //cameraCenter.rotation.FromEulerAngles(cameraCenter.rotation.yaw, cameraCenter.rotation.pitch, 0.0);
     //Print("update! " + Clamp(cameraCenter.rotation.pitch + arrowKeys.y * delta * 90, -100, 100));
     //prevMouseRay
@@ -318,7 +319,7 @@ void construct_update(StringHash eventType, VariantMap& eventData)
 void test_update(StringHash eventType, VariantMap& eventData)
 {
     cameraCenter.position = subject.position;
-    cast<PhysicsWorld>(g_scene.GetComponent("PhysicsWorld")).DrawDebugGeometry(true);   
+    //cast<PhysicsWorld>(g_scene.GetComponent("PhysicsWorld")).DrawDebugGeometry(true);   
 }
 
 void grid_arrange(UIElement@ p)

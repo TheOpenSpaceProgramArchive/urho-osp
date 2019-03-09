@@ -379,7 +379,7 @@ public:
             //}
             Resource* res = reinterpret_cast<Resource*>(eventData[ResourceBackgroundLoaded::P_RESOURCE].GetVoidPtr());
 
-            URHO3D_LOGINFO(res->GetTypeName());
+            //URHO3D_LOGINFO(res->GetTypeName());
             if (res->IsInstanceOf("ScriptFile"))
             {
                 ScriptFile* script = reinterpret_cast<ScriptFile*>(res);
