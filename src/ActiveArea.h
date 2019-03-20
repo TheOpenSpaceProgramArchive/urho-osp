@@ -1,6 +1,6 @@
 #pragma once
 
-#include "OSP.h"
+#include "OspUniverse.h"
 
 using namespace Urho3D;
 

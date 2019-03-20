@@ -13,7 +13,7 @@
 
 #include "PerformanceCurves.h"
 
-#include "OSP.h"
+#include "OspUniverse.h"
 #include "Machine.h"
 
 

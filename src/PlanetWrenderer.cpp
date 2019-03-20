@@ -1,5 +1,5 @@
 // "PlanetRenderer is a little too boring" -- Capital Asterisk, 2018
-#include "OSP.h"
+#include "OspUniverse.h"
 
 
 inline void PlanetWrenderer::set_neighbours(SubTriangle& tri, trindex bot, trindex rte, trindex lft)

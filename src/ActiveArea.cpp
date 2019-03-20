@@ -1,8 +1,8 @@
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/CollisionShape.h>
 
-
 #include "ActiveArea.h"
+#include "PlanetTerrain.h"
 
 using namespace osp;
 using namespace Urho3D;

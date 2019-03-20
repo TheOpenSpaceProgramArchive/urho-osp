@@ -11,99 +11,14 @@
 #include <Urho3D/Resource/ResourceCache.h>
 
 #include "ActiveArea.h"
-#include "OSP.h"
+#include "Entity.h"
 #include "MachineRocket.h"
+#include "PlanetTerrain.h"
+#include "OspUniverse.h"
 
 using namespace osp;
 
-AstronomicalBody::AstronomicalBody(Context* context) : Satellite(context)
-{
-    SetUpdateEventMask(USE_FIXEDUPDATE);
-    m_radius = 4000.0f;
-}
-
-void AstronomicalBody::RegisterObject(Context* context)
-{
-
-    context->RegisterFactory<AstronomicalBody>("AstronomicalBody");
-
-}
-
-void AstronomicalBody::FixedUpdate(float timeStep)
-{
-    //if (planet_.is_ready()) {
-    //    Vector3 dir(GetScene()->GetChild("Camera")->GetPosition() - GetScene()->GetChild("planet")->GetPosition());
-    //    float dist = dir.Length();
-    //    dir /= dist;
-        //planet_.Update(dist, dir);
-    //}
-}
-
-Entity::Entity(Context* context) : Satellite(context) {
-    SetUpdateEventMask(USE_FIXEDUPDATE);
-}
-
-void Entity::RegisterObject(Context* context) {
-
-    context->RegisterFactory<Entity>();
-
-}
-
-void Entity::FixedUpdate(float timeStep) {
-    //RigidBody* a = static_cast<RigidBody*>(node_->GetComponent("RigidBody"));
-    //Vector3 planetPos = node_->GetScene()->GetChild("Planet")->GetPosition();
-    // Gravity equation, probably not very precise and efficient here
-
-    //float moon = 88200000;
-    //Vector3 gravity = (planetPos - node_->GetPosition());
-    //float r = gravity.Length();
-    //gravity = gravity / r;
-    //gravity *= moon / (r * r);
-    //printf("gravity: (%f, %f, %f)\n", gravity.x_, gravity.y_, gravity.z_);
-    //a->SetGravityOverride(gravity);
-    //printf("AAAA\n");
-}
-
-PlanetTerrain::PlanetTerrain(Context* context) : StaticModel(context), m_first(false)
-{
-    //SetUpdateEventMask(USE_UPDATE);
-    //SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(PlanetTerrain, UpdatePlanet));
-}
-
-void PlanetTerrain::initialize(AstronomicalBody* body)
-{
-    m_planet.initialize(context_, GetSubsystem<ResourceCache>()->GetResource<Image>("Textures/EquirectangularHeight.png"), body->get_radius());
-    Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Planet.xml");
-    SetModel(m_planet.get_model());
-    //m->SetCullMode(CULL_NONE);
-    //m->SetFillMode(FILL_WIREFRAME);
-    SetMaterial(m);
-    SetCastShadows(false);
-}
-
-void PlanetTerrain::RegisterObject(Context* context)
-{
-    context->RegisterFactory<PlanetTerrain>("PlanetTerrain");
-}
-
-/**
- * @brief PlanetTerrain::UpdatePosition
- * @param activePosition [in] Center of the ActiveArea relative to this planet
- */
-void PlanetTerrain::UpdatePosition(const LongVector3& activePosition)
-{
-    // negative activePosition is where the planet should be relative to the urho origin
-
-    Vector3 newPos(activePosition.x_, activePosition.y_, activePosition.z_);
-
-    // negate and divide by 1000, since localBodyPos is in millimeters
-    node_->SetPosition(newPos * -0.001f);
-
-    //URHO3D_LOGINFOF("Updated position %s", node_->GetPosition().ToString().CString());
-
-}
-
-SystemOsp::SystemOsp(Context* context) : Object(context)
+OspUniverse::OspUniverse(Context* context) : Object(context)
 {
     // Create the hidden scene, accesible through angelscript with osp.hiddenScene
     m_hiddenScene = new Scene(context);
@@ -173,7 +88,7 @@ SystemOsp::SystemOsp(Context* context) : Object(context)
  * @brief Performs many other functions
  * @param which [in] Hash for which function to call
  */
-void SystemOsp::debug_function(const StringHash which)
+void OspUniverse::debug_function(const StringHash which)
 {
     // Get scene
     Scene* scene = GetSubsystem<Renderer>()->GetViewport(0)->GetScene();
@@ -228,7 +143,7 @@ void SystemOsp::debug_function(const StringHash which)
  * Contents of a subdirectory named "Parts" will be scanned recursively for .gltf.sturdy files
  *
  */
-void SystemOsp::process_directory(const String& path)
+void OspUniverse::process_directory(const String& path)
 {
     ResourceCache* cache = GetSubsystem<ResourceCache>();
     FileSystem* fileSystem = GetSubsystem<FileSystem>();
@@ -269,7 +184,7 @@ void SystemOsp::process_directory(const String& path)
  * @brief Include a .gltf.sturdy's contents into the categories of parts
  * @param gltf [in] GLTF file to process
  */
-void SystemOsp::register_parts(const GLTFFile* gltf)
+void OspUniverse::register_parts(const GLTFFile* gltf)
 {
     // Doesn't need to be an actual scene, just make it a node
     Node* gltfScene = m_hiddenScene->CreateChild("gltf_" + gltf->GetNameHash().ToString());
@@ -358,7 +273,7 @@ void SystemOsp::register_parts(const GLTFFile* gltf)
     }
 }
 
-void SystemOsp::part_node_recurse(Node* partRoot, Node* node)
+void OspUniverse::part_node_recurse(Node* partRoot, Node* node)
 {
     const VariantMap& vars = node->GetVars();
 
@@ -403,10 +318,10 @@ void SystemOsp::part_node_recurse(Node* partRoot, Node* node)
 }
 
 /**
- * @brief SystemOsp::make_craft A function that adds Entity and some functionality to a node made of disabled parts. currently just adds Entity
+ * @brief OspUniverse::make_craft A function that adds Entity and some functionality to a node made of disabled parts. currently just adds Entity
  * @param node [in, out] Node to turn into a craft
  */
-void SystemOsp::make_craft(Node* node)
+void OspUniverse::make_craft(Node* node)
 {
     node->CreateComponent<Entity>();
     PODVector<Node*> printthese = node->GetChildrenWithComponent("StaticModel", true);

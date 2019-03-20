@@ -49,11 +49,13 @@
 #include <Urho3D/ThirdParty/AngelScript/angelscript.h>
 
 #include "ActiveArea.h"
+#include "Entity.h"
 #include "config.h"
 #include "GLTFFile.h"
 #include "Machine.h"
 #include "MachineRocket.h"
-#include "OSP.h"
+#include "OspUniverse.h"
+#include "PlanetTerrain.h"
 
 using namespace Urho3D;
 using namespace osp;
@@ -64,7 +66,7 @@ public:
     float m_time;
 
     SharedPtr<Scene> m_scene;
-    SharedPtr<SystemOsp> m_osp;
+    SharedPtr<OspUniverse> m_osp;
     //SharedPtr<Node> m_cameraNode;
     //Vector<ScriptFile*> m_runImmediately;
     Vector<String> m_runImmediately;
@@ -90,7 +92,7 @@ public:
     /**
      * A function called only by AngelScript
      */
-    SystemOsp* GetOsp()
+    OspUniverse* GetOsp()
     {
         return m_osp.Get();
     }
@@ -129,7 +131,7 @@ public:
         root->AddChild(loading);
 
         // Initialize OSP system
-        m_osp = new SystemOsp(context_);
+        m_osp = new OspUniverse(context_);
 
         // Create empty scene
         m_scene = new Scene(context_);
@@ -149,13 +151,13 @@ public:
 
         // Register "osp" as a global in AngelScript
         asIScriptEngine* scriptEngine = GetSubsystem<Script>()->GetScriptEngine();
-        RegisterObject<SystemOsp>(scriptEngine, "SystemOsp");
-        scriptEngine->RegisterObjectMethod("SystemOsp", "Scene@+ get_hiddenScene() const", asMETHOD(SystemOsp, get_hidden_scene), asCALL_THISCALL);
-        scriptEngine->RegisterObjectMethod("SystemOsp", "void make_craft(Node@+) const", asMETHOD(SystemOsp, make_craft), asCALL_THISCALL);
-        scriptEngine->RegisterObjectMethod("SystemOsp", "void debug_function(StringHash) const", asMETHOD(SystemOsp, debug_function), asCALL_THISCALL);
+        RegisterObject<OspUniverse>(scriptEngine, "OspUniverse");
+        scriptEngine->RegisterObjectMethod("OspUniverse", "Scene@+ get_hiddenScene() const", asMETHOD(OspUniverse, get_hidden_scene), asCALL_THISCALL);
+        scriptEngine->RegisterObjectMethod("OspUniverse", "void make_craft(Node@+) const", asMETHOD(OspUniverse, make_craft), asCALL_THISCALL);
+        scriptEngine->RegisterObjectMethod("OspUniverse", "void debug_function(StringHash) const", asMETHOD(OspUniverse, debug_function), asCALL_THISCALL);
 
         // call GetOsp when osp is accessed from angelscript, see thing about singleton https://www.angelcode.com/angelscript/sdk/docs/manual/doc_register_func.html
-        scriptEngine->RegisterGlobalFunction("SystemOsp@+ get_osp()", asMETHOD(OSPApplication, GetOsp), asCALL_THISCALL_ASGLOBAL, this);
+        scriptEngine->RegisterGlobalFunction("OspUniverse@+ get_osp()", asMETHOD(OSPApplication, GetOsp), asCALL_THISCALL_ASGLOBAL, this);
 
         // Run main menu script once it's loaded
         //m_runImmediately.Push("Scripts/MainMenu.as");
