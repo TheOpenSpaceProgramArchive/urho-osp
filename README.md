@@ -1,52 +1,51 @@
 # Urho3D Open Space Program
-An experiment by Capital-Asterisk, to see if (another) Open Space Program can be made with Urho3D. This repository is at the point where 10N thrust rockets can be built out of different sized cubes, and brought to life with the physics engine. The code has some hidden things on the insides, such as a way of organizing usable parts and performance curves.
+Another Open Space Program project, but made with Urho3D.
 
-[Watch this](http://www.youtube.com/watch?v=hFYCftKDFMg)
+![screenshot](https://cdn.discordapp.com/attachments/421375838953537546/553854430005690368/Screenshot_2019-03-09_00-16-52.png "This is what it looks like at the time this README is being written")
 
-## Building from source:
+Build instructions can be found in the [wiki](https://github.com/TheOpenSpaceProgram/urho-osp/wiki/Building-from-Source).
 
-### Linux:
-**Requires packages used by Urho3D:** https://github.com/urho3d/Urho3D/wiki/Getting-started-in-Linux
+### Working Features
+ * Loading resources from files
+   * Parts use glTF format (.sturdy.gltf)
+   * Functionality can be added to parts (Rocket that apply thrust)
+   * Can be created directly in Blender
+ * Assembling spacecraft from these parts
+   * Parts are dragged together into a single rigid body that has physics
+ * Piloting spacecraft
+   * Rockets with throttle and instantaneous torque control
+   * Spacecraft can reach orbit (uses physics engine)
+ * Large universe
+   * Coordinate system can reach 400× the distance to Alpha Centauri
+   * Multiple areas can have active physics (capable, but not used yet)
+   * Floating Origin
+ * Planet Level of Detail
+   * Subdivides an Icosahedron
+   * Generating chunks for a solid surface
+   * Logarithmic Depth Buffer (disabled)
+   * Doesn't kill the computer and runs smoothly on a chromebook
 
-**1.** Let's create and enter a new directory for OSP:
-```bash
-mkdir ~/OSP && cd ~/OSP
-```
-**2.** Clone `urho-osp` and the Urho3D game engine
-```bash
-git clone https://github.com/TheOpenSpaceProgram/urho-osp
-git clone https://github.com/urho3d/Urho3D
-```
-**3.** Build and install Urho3D
-```bash
-cd Urho3D
-cmake .
-sudo make install
-```
-**4.** Copy `CMake` folder to the `urho-osp` cloned repository:
-```bash
-cp -r CMake ../urho-osp/CMake
-```
-**5.** Set the `URHO3D_HOME` environment variable in `.bashrc`:
-```bash
-echo 'export URHO3D_HOME="~/OSP/Urho3D"' >> ~/.bashrc && source ~/.bashrc
-```
-**6.** Build `urho-osp`:
-```bash
-cd ../urho-osp
-cmake .
-make
-```
+Features listed are not 100% complete, but work.
 
-## Screenshots of things that previously happened on this repository:
+### Currently in Progress
+
+ * A real way to build spacecraft (known as entities in the codebase)
+   * Better Interface for the construction scene
+   * Different kinds of structural attachments for parts
+   * Proper data structure for entities
+
+## Old Media:
+
+[Cube rockets](http://www.youtube.com/watch?v=hFYCftKDFMg)
 
 Tests on subdividing spheres
-![alt text](https://cdn.discordapp.com/attachments/325425261069860875/415682532626137089/Screenshot_2018-02-20_17-32-48.png "It looks pretty but it's completely wrong.")
+![screenshot](https://cdn.discordapp.com/attachments/325425261069860875/415682532626137089/Screenshot_2018-02-20_17-32-48.png "It looks pretty but it's completely wrong.")
 
-![alt text](https://cdn.discordapp.com/attachments/425003724633669633/428391873720090639/Screenshot_2018-03-27_20-14-23.png "This too is completely wrong.")
+![screenshot](https://cdn.discordapp.com/attachments/425003724633669633/428391873720090639/Screenshot_2018-03-27_20-14-23.png "This too is completely wrong.")
 
 Cube in orbit
-![alt text](https://cdn.discordapp.com/attachments/425003724633669633/451141764582080533/Screenshot_2018-05-29_14-29-53.png "An inverse square force towards the center.")
+![screenshot](https://cdn.discordapp.com/attachments/425003724633669633/451141764582080533/Screenshot_2018-05-29_14-29-53.png "An inverse square force towards the center.")
 
 More accurate model of our planet
-![alt text](https://cdn.discordapp.com/attachments/425003724633669633/448727538706153472/Screenshot_2018-05-22_23-02-33.png "This the truth, don't let the goverment fool you.")
+![screenshot](https://cdn.discordapp.com/attachments/425003724633669633/448727538706153472/Screenshot_2018-05-22_23-02-33.png "This the truth, don't let the government fool you.")
+
