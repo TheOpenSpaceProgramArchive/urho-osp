@@ -3,7 +3,7 @@ Another Open Space Program project, but made with Urho3D.
 
 ![screenshot](https://cdn.discordapp.com/attachments/421375838953537546/553854430005690368/Screenshot_2019-03-09_00-16-52.png "This is what it looks like at the time this README is being written")
 
-Build instructions can be found in the [wiki](https://github.com/TheOpenSpaceProgram/urho-osp/wiki/Building-from-Source).
+Build instructions can be found in the [wiki](https://github.com/TheOpenSpaceProgram/urho-osp/wiki/Building-from-Source-on-Linux).
 
 ### Working Features
  * Loading resources from files
