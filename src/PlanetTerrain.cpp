@@ -1,5 +1,7 @@
 #include "PlanetTerrain.h"
 
+#include <Urho3D/Core/Context.h>
+
 using namespace osp;
 
 PlanetTerrain::PlanetTerrain(Context* context) : StaticModel(context), m_first(false)
