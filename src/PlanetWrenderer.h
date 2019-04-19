@@ -7,7 +7,6 @@
 #include <string>
 
 #include <Urho3D/Core/CoreEvents.h>
-#include <Urho3D/Engine/Application.h>
 #include <Urho3D/Engine/Engine.h>
 #include <Urho3D/Graphics/Camera.h>
 #include <Urho3D/Graphics/DebugRenderer.h>
@@ -98,8 +97,7 @@ struct UpdateRange
     buindex m_start, m_end;
     // initialize with maximum buindex value for start (2^32), and minimum buindex for end (0)
     // the first min and max operations will replace them
-    UpdateRange(): m_start(Pow(2ul, sizeof(buindex) * 8) - 1u), m_end(0)
-    {
+	UpdateRange() : m_start(Pow((int)2ul, (int)sizeof(buindex) * 8) - 1u), m_end(0) {
     }
 };
 
