@@ -15,7 +15,17 @@ endif ()
 # Set project name
 project (OpenSpaceProgram)
 # Set CMake modules search path
-set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake/Modules")
+
+set(URHO3D_SRC $ENV{URHO3D_HOME} CACHE STRING "The location of the Urho3d source directory")
+set(URHO3D_HOME $ENV{URHO3D_HOME} CACHE STRING "The location of the Urho3d build directory. May be the same as the source directory.")
+
+message("Setting URHO3D_SRC to ${URHO3D_SRC}")
+message("Setting URHO3D_HOME to ${URHO3D_HOME}")
+
+list(APPEND CMAKE_MODULE_PATH "${URHO3D_SRC}/CMake/Modules")
+message("Setting CMAKE_MODULE_PATH to ${CMAKE_MODULE_PATH}")
+
 #http://xit0.org/2013/04/cmake-use-git-branch-and-commit-details-in-project/
 # Get the current working branch
 #execute_process(
