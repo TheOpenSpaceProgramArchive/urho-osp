@@ -30,8 +30,6 @@
 #include <Urho3D/Math/Vector2.h>
 #include <Urho3D/Math/MathDefs.h>
 
-#include "LongVector3.h"
-
 namespace Urho3D
 {
 
