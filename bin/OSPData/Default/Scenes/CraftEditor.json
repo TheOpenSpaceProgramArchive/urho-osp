@@ -1,0 +1,321 @@
+{
+	"id": 1,
+	"attributes": {
+		"Name": "",
+		"Time Scale": 1.0,
+		"Smoothing Constant": 50.0,
+		"Snap Threshold": 5.0,
+		"Elapsed Time": 3.175529956817627,
+		"Next Replicated Node ID": 20,
+		"Next Replicated Component ID": 43,
+		"Next Local Node ID": 16777262,
+		"Next Local Component ID": 16777768,
+		"Variables": {},
+		"Variable Names": "RemoveDistance"
+	},
+	"components": [
+		{
+			"type": "Octree",
+			"id": 1,
+			"attributes": {
+				"Bounding Box Min": "-10 -10 -10",
+				"Bounding Box Max": "10 10 10"
+			}
+		},
+		{
+			"type": "DebugRenderer",
+			"id": 2,
+			"attributes": null
+		},
+		{
+			"type": "Zone",
+			"id": 13,
+			"attributes": {
+				"Bounding Box Min": "-900000 -900000 -900000",
+				"Bounding Box Max": "900000 900000 900000",
+				"Ambient Color": "0 0 0 1",
+				"Fog Color": "0 0 0 0",
+				"Fog Start": 100000000.0,
+				"Fog End": 1000000000.0,
+				"Zone Texture": "TextureCube;Textures/Skybox2.xml"
+			}
+		},
+		{
+			"type": "SoundSource",
+			"id": 17,
+			"attributes": {
+				"Type": "Music",
+				"Frequency": 44100.0
+			}
+		},
+		{
+			"type": "PhysicsWorld",
+			"id": 35,
+			"attributes": null
+		},
+		{
+			"type": "ScriptInstance",
+			"id": 42,
+			"attributes": {
+				"Delayed Method Calls": "0",
+				"Script File": "ScriptFile;Default/Scripts/CraftEditor/CraftEditor.as",
+				"Class Name": "CraftEditor"
+			}
+		}
+	],
+	"children": [
+		{
+			"id": 2,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Platform",
+				"Tags": [],
+				"Position": "0 -16 0",
+				"Rotation": "1 0 0 0",
+				"Scale": "20 28 20",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 3,
+					"attributes": {
+						"Model": "Model;Models/Box.mdl",
+						"Material": "Material;"
+					}
+				},
+				{
+					"type": "RigidBody",
+					"id": 19,
+					"attributes": {
+						"Physics Position": "0 -16 0",
+						"Friction": 50.0,
+						"Linear Factor": "0 0 0",
+						"Angular Factor": "0 0 0",
+						"Linear Rest Threshold": 0.0,
+						"Angular Rest Threshold": 0.0,
+						"Contact Threshold": 0.0
+					}
+				},
+				{
+					"type": "CollisionShape",
+					"id": 21,
+					"attributes": {
+						"Model": "Model;Models/Box.mdl"
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 3,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Sun",
+				"Tags": [],
+				"Position": "0 1.74172 0",
+				"Rotation": "0.819152 0.573576 0 0",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "Light",
+					"id": 4,
+					"attributes": {
+						"Light Type": "Directional",
+						"Brightness Multiplier": 700.0,
+						"Temperature": 5000.0,
+						"Use Physical Values": true,
+						"Radius": 10.0,
+						"Range": 20.0,
+						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 8,
+			"attributes": {
+				"Is Enabled": false,
+				"Name": "SpotLight",
+				"Tags": [],
+				"Position": "6.24304 6.87098 0",
+				"Rotation": "0.691724 0.691725 -0.146686 -0.146689",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "Light",
+					"id": 10,
+					"attributes": {
+						"Light Type": "Spot",
+						"Color": "1 0.9 0.5 1",
+						"Range": 30.0,
+						"Spot FOV": 90.0,
+						"Cast Shadows": true
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 14,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Ball",
+				"Tags": [],
+				"Position": "3.94254 1 -4.35253",
+				"Rotation": "-0.902254 0 0.431205 0",
+				"Scale": "-1 -1 -1",
+				"Variables": {
+					"33DF7139": {
+						"type": "Float",
+						"value": 300.0
+					}
+				}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 18,
+					"attributes": {
+						"Cast Shadows": true
+					}
+				},
+				{
+					"type": "RigidBody",
+					"id": 36,
+					"attributes": {
+						"Physics Rotation": "0.902254 0 -0.431205 0",
+						"Physics Position": "3.94254 1 -4.35253",
+						"Mass": 1.0
+					}
+				},
+				{
+					"type": "CollisionShape",
+					"id": 37,
+					"attributes": {
+						"Shape Type": "Sphere",
+						"Size": "2 2 2"
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 17,
+			"attributes": {
+				"Is Enabled": false,
+				"Name": "Plane",
+				"Tags": [],
+				"Position": "0 -2.60532 0",
+				"Rotation": "1 0 0 0",
+				"Scale": "400 1 400",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 28,
+					"attributes": {
+						"Model": "Model;Models/Box.mdl",
+						"Material": "Material;"
+					}
+				},
+				{
+					"type": "RigidBody",
+					"id": 29,
+					"attributes": {
+						"Physics Position": "0 -2.60532 0",
+						"Friction": 0.0,
+						"Anisotropic Friction": "0 0 0",
+						"Linear Factor": "0 0 0",
+						"Angular Factor": "0 0 0",
+						"Linear Rest Threshold": 0.0,
+						"Angular Rest Threshold": 0.0,
+						"Contact Threshold": 0.0
+					}
+				},
+				{
+					"type": "CollisionShape",
+					"id": 30,
+					"attributes": {
+						"Shape Type": "StaticPlane",
+						"Offset Position": "0 0.5 0",
+						"Model": "Model;Models/Box.mdl"
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 15,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Cursor",
+				"Tags": [],
+				"Position": "0 -3.94427 7.88854",
+				"Rotation": "1 0 0 0",
+				"Scale": "1 1 1",
+				"Variables": {}
+			},
+			"components": [
+				{
+					"type": "SoundSource",
+					"id": 24,
+					"attributes": {
+						"Frequency": 44100.0,
+						"Gain": 0.699999988079071
+					}
+				}
+			],
+			"children": []
+		},
+		{
+			"id": 18,
+			"attributes": {
+				"Is Enabled": true,
+				"Name": "Ball",
+				"Tags": [],
+				"Position": "3.94254 -1.04452 -4.35253",
+				"Rotation": "1 0 0 0",
+				"Scale": "1 1 1",
+				"Variables": {
+					"33DF7139": {
+						"type": "Float",
+						"value": 300.0
+					}
+				}
+			},
+			"components": [
+				{
+					"type": "StaticModel",
+					"id": 38,
+					"attributes": {
+						"Cast Shadows": true
+					}
+				},
+				{
+					"type": "RigidBody",
+					"id": 39,
+					"attributes": {
+						"Physics Position": "3.94254 -1.04452 -4.35253",
+						"Mass": 1.0
+					}
+				},
+				{
+					"type": "CollisionShape",
+					"id": 40,
+					"attributes": {
+						"Shape Type": "Sphere",
+						"Size": "2 2 2"
+					}
+				}
+			],
+			"children": []
+		}
+	]
+}

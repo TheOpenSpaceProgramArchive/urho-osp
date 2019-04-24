@@ -171,7 +171,7 @@ void OspUniverse::process_directory(const String& path)
         // Start loading scripts
         URHO3D_LOGINFOF("Scripts Directory Found: %s", pathScripts.CString());
         Vector<String> scripts;
-        fileSystem->ScanDir(scripts, pathScripts, "*.as", SCAN_FILES, true);
+        fileSystem->ScanDir(scripts, pathScripts, "*.as", SCAN_FILES, false);
         for (String s : scripts)
         {
             URHO3D_LOGINFOF("Script %s", (dirName + "/Scripts/" + s).CString());

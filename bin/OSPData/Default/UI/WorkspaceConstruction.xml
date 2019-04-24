@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+<element>
+	<attribute name="Name" value="Construction" />
+	<attribute name="Size" value="1332 740" />
+	<attribute name="Max Anchor" value="1 1" />
+	<attribute name="Pivot" value="0 0" />
+	<attribute name="Enable Anchor" value="true" />
+	<element type="Window">
+		<attribute name="Name" value="ToolbarLeft" />
+		<attribute name="Size" value="340 740" />
+		<attribute name="Max Anchor" value="0 1" />
+		<attribute name="Max Offset" value="340 0" />
+		<attribute name="Pivot" value="0 0" />
+		<attribute name="Enable Anchor" value="true" />
+		<attribute name="Is Selected" value="true" />
+		<attribute name="Layout Mode" value="Vertical" />
+		<attribute name="Layout Spacing" value="2" />
+		<attribute name="Layout Border" value="4 4 4 4" />
+		<attribute name="Indent Spacing" value="0" />
+		<attribute name="Variables">
+			<variant hash="676640347" type="Bool" value="true" name="Toolbar" />
+		</attribute>
+		<attribute name="Image Rect" value="48 0 64 16" />
+		<attribute name="Border" value="4 4 4 4" />
+		<attribute name="Resize Border" value="8 8 8 8" />
+		<attribute name="Is Movable" value="true" />
+		<attribute name="Is Resizable" value="true" />
+		<attribute name="Fixed Width Resizing" value="true" />
+		<element type="Window">
+			<attribute name="Name" value="Panel0" />
+			<attribute name="Pivot" value="0 0" />
+			<attribute name="Image Rect" value="48 0 64 16" />
+			<attribute name="Border" value="4 4 4 4" />
+			<attribute name="Resize Border" value="8 8 8 8" />
+		</element>
+		<element type="Window">
+			<attribute name="Name" value="Panel1" />
+			<attribute name="Pivot" value="0 0" />
+			<attribute name="Image Rect" value="48 0 64 16" />
+			<attribute name="Border" value="4 4 4 4" />
+			<attribute name="Resize Border" value="8 8 8 8" />
+		</element>
+	</element>
+	<element type="Window">
+		<attribute name="Size" value="399 740" />
+		<attribute name="Pivot" value="0 0" />
+		<attribute name="Is Visible" value="false" />
+		<attribute name="Image Rect" value="48 0 64 16" />
+		<attribute name="Border" value="4 4 4 4" />
+		<attribute name="Resize Border" value="8 8 8 8" />
+		<attribute name="Is Resizable" value="true" />
+		<element type="Window">
+			<attribute name="Position" value="4 4" />
+			<attribute name="Size" value="300 428" />
+			<attribute name="Min Size" value="300 300" />
+			<attribute name="Max Size" value="300 700" />
+			<attribute name="Pivot" value="0 0" />
+			<attribute name="Is Visible" value="false" />
+			<attribute name="Image Rect" value="48 0 64 16" />
+			<attribute name="Border" value="4 4 4 4" />
+			<attribute name="Resize Border" value="8 8 8 8" />
+		</element>
+		<element type="Window">
+			<attribute name="Position" value="4 4" />
+			<attribute name="Size" value="300 300" />
+			<attribute name="Min Size" value="300 300" />
+			<attribute name="Max Size" value="300 300" />
+			<attribute name="Pivot" value="0 0" />
+			<attribute name="Is Visible" value="false" />
+			<attribute name="Image Rect" value="48 0 64 16" />
+			<attribute name="Border" value="4 4 4 4" />
+			<attribute name="Resize Border" value="8 8 8 8" />
+		</element>
+		<element type="Window">
+			<attribute name="Name" value="Panel2" />
+			<attribute name="Position" value="4 495" />
+			<attribute name="Size" value="325 241" />
+			<attribute name="Pivot" value="0 0" />
+			<attribute name="Image Rect" value="48 0 64 16" />
+			<attribute name="Border" value="4 4 4 4" />
+			<attribute name="Resize Border" value="8 8 8 8" />
+		</element>
+	</element>
+	<element type="Window">
+		<attribute name="Name" value="ToolbarTop" />
+		<attribute name="Position" value="340 0" />
+		<attribute name="Size" value="992 54" />
+		<attribute name="Min Size" value="0 54" />
+		<attribute name="Max Size" value="2147483647 54" />
+		<attribute name="Max Anchor" value="1 1" />
+		<attribute name="Min Offset" value="340 0" />
+		<attribute name="Pivot" value="0 0" />
+		<attribute name="Enable Anchor" value="true" />
+		<attribute name="Image Rect" value="48 0 64 16" />
+		<attribute name="Border" value="4 4 4 4" />
+		<attribute name="Resize Border" value="8 8 8 8" />
+		<element type="Button">
+			<attribute name="Position" value="-4 0" />
+			<attribute name="Size" value="96 48" />
+			<attribute name="Min Size" value="96 48" />
+			<attribute name="Max Size" value="96 48" />
+			<attribute name="Min Anchor" value="1 0.5" />
+			<attribute name="Max Anchor" value="0.1 0.5" />
+			<attribute name="Min Offset" value="-4 0" />
+			<attribute name="Pivot" value="1 0.5" />
+			<attribute name="Enable Anchor" value="true" />
+			<attribute name="Image Rect" value="16 0 32 16" />
+			<attribute name="Border" value="4 4 4 4" />
+			<attribute name="Hover Image Offset" value="0 16" />
+			<attribute name="Pressed Image Offset" value="16 0" />
+			<attribute name="Pressed Child Offset" value="-1 1" />
+			<element type="Text">
+				<attribute name="Name" value="Exit" />
+				<attribute name="Position" value="0 3" />
+				<attribute name="Min Anchor" value="0.5 0.5" />
+				<attribute name="Max Anchor" value="0.5 0.5" />
+				<attribute name="Pivot" value="0.5 0.5" />
+				<attribute name="Top Left Color" value="0.85 0.85 0.85 1" />
+				<attribute name="Top Right Color" value="0.85 0.85 0.85 1" />
+				<attribute name="Bottom Left Color" value="0.85 0.85 0.85 1" />
+				<attribute name="Bottom Right Color" value="0.85 0.85 0.85 1" />
+				<attribute name="Use Derived Opacity" value="true" />
+				<attribute name="Font" value="Font;Fonts/leaguespartan-bold.ttf" />
+				<attribute name="Font Size" value="14" />
+				<attribute name="Text" value="EXIT" />
+			</element>
+		</element>
+	</element>
+</element>
