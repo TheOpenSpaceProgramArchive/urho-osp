@@ -7,9 +7,9 @@
 		"Snap Threshold": 5.0,
 		"Elapsed Time": 3.175529956817627,
 		"Next Replicated Node ID": 20,
-		"Next Replicated Component ID": 43,
-		"Next Local Node ID": 16777262,
-		"Next Local Component ID": 16777768,
+		"Next Replicated Component ID": 44,
+		"Next Local Node ID": 16777265,
+		"Next Local Component ID": 16777804,
 		"Variables": {},
 		"Variable Names": "RemoveDistance"
 	},
@@ -44,23 +44,17 @@
 			"type": "SoundSource",
 			"id": 17,
 			"attributes": {
+				"Sound": "Sound;Music/somefthing.ogg",
 				"Type": "Music",
-				"Frequency": 44100.0
+				"Frequency": 44100.0,
+				"Is Playing": true,
+				"Play Position": -423088
 			}
 		},
 		{
 			"type": "PhysicsWorld",
 			"id": 35,
 			"attributes": null
-		},
-		{
-			"type": "ScriptInstance",
-			"id": 42,
-			"attributes": {
-				"Delayed Method Calls": "0",
-				"Script File": "ScriptFile;Default/Scripts/CraftEditor/CraftEditor.as",
-				"Class Name": "CraftEditor"
-			}
 		}
 	],
 	"children": [
@@ -81,7 +75,7 @@
 					"id": 3,
 					"attributes": {
 						"Model": "Model;Models/Box.mdl",
-						"Material": "Material;"
+						"Material": "Material;Materials/Floor0.json"
 					}
 				},
 				{

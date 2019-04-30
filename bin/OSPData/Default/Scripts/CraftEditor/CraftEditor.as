@@ -5,7 +5,7 @@
 // @ = handle
 // & = reference (functions only)
 
-funcdef int EditorFunction_t(CraftEditor@, EditorFeature@);
+funcdef int EditorFunction_t(CraftEditor@, EditorFeature@, VariantMap&);
 
 const int INPUT_LOW = 0;
 const int INPUT_HIGH = 1;
@@ -22,37 +22,40 @@ int bint(bool b)
     return b ? 1 : 0;
 }
 
-// Activation condition
-// if that is changing and this is changing then that
-
-// Keep 2 boolean arrays of only all the buttons that are bound
-// K
-
 class EditorFeature
 {
     String m_name;
     String m_desc;
-    
-    bool m_active;
-    
+ 
     // [Index, [0/1/rising/falling], next operation [and/or], repeat...]
     VariantMap m_data;
-    Array<int> m_conditions;
     EditorFunction_t@ Activate;
 }
 
+// This includes mouse and other inputs too
+class Hotkey
+{
+    bool m_active;
+    VariantMap m_arguments;
+    EditorFeature@ m_feature;
+    Array<int> m_conditions;
+}
 
 // Should be added to the editor scene
 class CraftEditor : ScriptObject
 {
     
     Array<EditorFeature@> m_features;
+    Array<Hotkey@> m_hotkeys;
     
     Array<int> m_inputs;
     Array<int> m_inputsPrevious;
     // Accessed by event handlers to set values in m_inputs
     // will only hold int indices
     VariantMap m_binds;
+
+    Vector2 m_cursor;
+    Array<Vector2> m_joysticks;
 
     Array<Node@> m_selection;
 
@@ -70,6 +73,14 @@ class CraftEditor : ScriptObject
         feature.Activate = func;
         m_features.Push(feature);
         return feature;
+    }
+
+    Hotkey@ AddHotkey(EditorFeature@ feature)
+    {
+        Hotkey@ hotkey = Hotkey();
+        @(hotkey.m_feature) = feature;
+        m_hotkeys.Push(hotkey);
+        return hotkey;
     }
 
     int ControlIndex(StringHash control)
@@ -98,42 +109,42 @@ class CraftEditor : ScriptObject
         return inputIndex;
     }
     
-    void BindToMouseButton(EditorFeature@ feature, int button, int press)
+    void BindToMouseButton(Hotkey@ hotkey, int button, int press)
     {
         StringHash hash = StringHash("MB" + button);
         
         int inputIndex = ControlIndex(hash);
-        
-        feature.m_conditions.Push(inputIndex);
-        feature.m_conditions.Push(press);
-        feature.m_conditions.Push(INPUTOP_AND);
+
+        hotkey.m_conditions.Push(inputIndex);
+        hotkey.m_conditions.Push(press);
+        hotkey.m_conditions.Push(INPUTOP_AND);
     }
 
-    void BindToKey(EditorFeature@ feature, int key, int press)
+    void BindToKey(Hotkey@ hotkey, int key, int press)
     {
         StringHash hash = StringHash("KB" + key);
         
         int inputIndex = ControlIndex(hash);
         
-        feature.m_conditions.Push(inputIndex);
-        feature.m_conditions.Push(press);
-        feature.m_conditions.Push(INPUTOP_AND);
+        hotkey.m_conditions.Push(inputIndex);
+        hotkey.m_conditions.Push(press);
+        hotkey.m_conditions.Push(INPUTOP_AND);
     }
 
-    void BindToKeyScancode(EditorFeature@ feature, int key, int press)
+    void BindToKeyScancode(Hotkey@ hotkey, int key, int press)
     {
         StringHash hash = StringHash("KS" + key);
         
         int inputIndex = ControlIndex(hash);
         
-        feature.m_conditions.Push(inputIndex);
-        feature.m_conditions.Push(press);
-        feature.m_conditions.Push(INPUTOP_AND);
+        hotkey.m_conditions.Push(inputIndex);
+        hotkey.m_conditions.Push(press);
+        hotkey.m_conditions.Push(INPUTOP_AND);
     }
 
-    void BindAddOr(EditorFeature@ feature)
+    void BindAddOr(Hotkey@ hotkey)
     {
-        feature.m_conditions[feature.m_conditions.length - 1] = INPUTOP_OR;
+        hotkey.m_conditions[hotkey.m_conditions.length - 1] = INPUTOP_OR;
     }
 
     void Start()
@@ -167,6 +178,9 @@ class CraftEditor : ScriptObject
         // Make the parts list stretch to the size of its parent
         SetUIAnchors(panelPartsList);
         
+        // Setup stuff in PartsList.as
+        PartsList::SetupPartsList(panelPartsList);
+        
         // Add the parts 
         wkConstruction.GetChild("ToolbarLeft").GetChild("Panel0").AddChild(panelPartsList);
 
@@ -185,42 +199,59 @@ class CraftEditor : ScriptObject
         SubscribeToEvent("KeyDown", "HandleKeyDown");
         SubscribeToEvent("KeyUp", "HandleKeyUp");
 
+        SubscribeToEvent("MouseMove", "HandleMouseMove");
+
+        // m_joysticks[0] will be used for mouse movement
+        m_joysticks.Resize(1);  
+
         // Add Mouse and keyboard binds
         // + some simple boolean algebra
 
-        // Add Orbit View feature
+        // Add Orbit View and Undo features
         EditorFeature@ viewOrbit = AddFeature("vorbit", "Orbit View", @Navigation::ViewOrbit);
-
-        // Activate is HIGH when (RightMouse is HIGH) OR (KeyQ is HIGH)
-        BindToMouseButton(viewOrbit, MOUSEB_RIGHT, INPUT_HIGH);
-        BindAddOr(viewOrbit);
-        BindToKey(viewOrbit, KEY_Q, INPUT_HIGH);
-
-
-        // Add Undo feature
         EditorFeature@ undo = AddFeature("vorbit", "Orbit View", @Utility::Undo);
 
+        // Create blank hotkeys for them all
+        Hotkey@ viewOrbitHotkey = AddHotkey(viewOrbit);
+        Hotkey@ undoHotkey = AddHotkey(undo);
+
+        // For Orbit...
+        // Activate is HIGH when (RightMouse is HIGH) OR (KeyQ is HIGH)
+        BindToMouseButton(viewOrbitHotkey, MOUSEB_RIGHT, INPUT_HIGH);
+        BindAddOr(viewOrbitHotkey);
+        BindToKey(viewOrbitHotkey, KEY_Q, INPUT_HIGH);
+
+        // For Undo...
         // Activate is HIGH when (Ctrl is HIGH) AND (Shift is LOW) AND (Alt is LOW) AND (KeyZ is RISING)
-        BindToKeyScancode(undo, SCANCODE_CTRL, INPUT_HIGH);
-        BindToKeyScancode(undo, SCANCODE_SHIFT, INPUT_LOW);
-        BindToKeyScancode(undo, SCANCODE_ALT, INPUT_LOW);
-        BindToKey(undo, KEY_Z, INPUT_RISING);
+        BindToKeyScancode(undoHotkey, SCANCODE_CTRL, INPUT_HIGH);
+        BindToKeyScancode(undoHotkey, SCANCODE_SHIFT, INPUT_LOW);
+        BindToKeyScancode(undoHotkey, SCANCODE_ALT, INPUT_LOW);
+        BindToKey(undoHotkey, KEY_Z, INPUT_RISING);
     }
     
     void FixedUpdate(float timeStep)
     {
         //Print(m_inputs[0] - m_inputsPrevious[0]);
         
-        // Loop through all the features
-        EditorFeature@ feature;
-        for (uint i = 0; i < m_features.length; i ++)
+        //UIElement@ f = ui.GetElementAt(input.mousePosition, false);
+        //if (f !is null)
+        //{
+        //    Print("Under mouse: " + f.name);
+        //}
+        
+        // considering supporting devices that don't use a mouse later on
+        m_cursor = Vector2(input.mousePosition);
+        
+        // Loop through all the hotkeys
+        Hotkey@ hotkey;
+        for (uint i = 0; i < m_hotkeys.length; i ++)
         {
-            @feature = m_features[i];
+            @hotkey = m_hotkeys[i];
 
             // Read through the conditions array from left to right
             // It's a boolean sum of products with user inputs as inputs
 
-            Array<int>@ conditions = feature.m_conditions;
+            Array<int>@ conditions = hotkey.m_conditions;
 
             int lastOperator = INPUTOP_OR; // Set to OR because the first condition is going to be compared by total, which is false
             bool total = false;
@@ -266,9 +297,22 @@ class CraftEditor : ScriptObject
             // Now activate the feature
             if (total)
             {
-                feature.Activate(this, feature);
+                if (!hotkey.m_active)
+                {
+                    // Set First to true on first activation
+                    hotkey.m_arguments["First"] = true;
+                }
+                hotkey.m_active = true;
+                hotkey.m_feature.Activate(this, hotkey.m_feature, hotkey.m_arguments);
+                
+                hotkey.m_arguments["First"] = false;
+            } else {
+                hotkey.m_active = false;
             }
         }
+        
+        // Set mouse displacement back to zero
+        m_joysticks[0] *= 0;
         
         m_inputsPrevious = m_inputs;
     }
@@ -356,7 +400,9 @@ class CraftEditor : ScriptObject
     
     void HandleMouseMove(StringHash eventType, VariantMap& eventData)
     {
-        
+        // in the future, make m_joysticks respond to actual controllers
+        // for now, this is hard-coded
+        m_joysticks[0] = m_joysticks[0] + Vector2(eventData["DX"].GetInt(), eventData["DY"].GetInt());
     }
 }
 

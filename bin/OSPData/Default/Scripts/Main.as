@@ -28,4 +28,7 @@ void play_pressed()
     g_scene.RemoveAllChildren();
 
     g_scene.LoadJSON(cache.GetFile("Default/Scenes/CraftEditor.json"));
+    ScriptInstance@ editorScript = cast<ScriptInstance>(g_scene.CreateComponent("ScriptInstance"));
+    editorScript.className = "CraftEditor";
+    editorScript.scriptFile = cache.GetResource("ScriptFile", "Default/Scripts/CraftEditor/CraftEditor.as");
 }

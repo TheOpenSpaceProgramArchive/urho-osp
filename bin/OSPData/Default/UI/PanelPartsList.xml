@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <element>
 	<attribute name="Name" value="PartsList" />
-	<attribute name="Position" value="200 200" />
 	<attribute name="Size" value="296 360" />
 	<attribute name="Min Size" value="296 128" />
 	<attribute name="Pivot" value="0 0" />
@@ -126,7 +125,6 @@
 					<attribute name="Pivot" value="0 0" />
 					<attribute name="Layout Spacing" value="4" />
 					<attribute name="Layout Border" value="4 4 4 4" />
-					<attribute name="Indent" value="6" />
 				</element>
 			</element>
 		</element>
