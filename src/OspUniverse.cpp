@@ -124,6 +124,7 @@ void OspUniverse::debug_function(const StringHash which)
         RigidBody* rb = planet->CreateComponent<RigidBody>();
         CollisionShape* shape = planet->CreateComponent<CollisionShape>();
         shape->SetSphere(4000.0f * 2.0f);
+        rb->SetEnabled(false);
         //terrain->GetPlanet()->update(Vector3(0, 4002, 0));
         //shape->SetTriangleMesh(terrain->GetPlanet()->get_model(), 0, Vector3::ONE);
 

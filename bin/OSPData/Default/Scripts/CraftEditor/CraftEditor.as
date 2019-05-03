@@ -24,7 +24,7 @@ int bint(bool b)
 
 class EditorFeature
 {
-    String m_name;
+    //String m_name;
     String m_desc;
  
     // [Index, [0/1/rising/falling], next operation [and/or], repeat...]
@@ -44,23 +44,25 @@ class Hotkey
 // Should be added to the editor scene
 class CraftEditor : ScriptObject
 {
-    
     Array<EditorFeature@> m_features;
-    Array<Hotkey@> m_hotkeys;
+    // Maps feature names to indices to features
+    Dictionary m_featureMap;
     
     Array<int> m_inputs;
     Array<int> m_inputsPrevious;
+    Array<Hotkey@> m_hotkeys; 
+    Vector2 m_cursor;
+    Array<Vector2> m_joysticks;
     // Accessed by event handlers to set values in m_inputs
     // will only hold int indices
     VariantMap m_binds;
-
-    Vector2 m_cursor;
-    Array<Vector2> m_joysticks;
-
+    
     Array<Node@> m_selection;
 
     Node@ m_camera;
     Node@ m_cameraCenter;
+
+    Node@ m_subject;
 
     Array<UIElement@> m_workspaces;
     int m_currentWorkspace;
@@ -68,9 +70,11 @@ class CraftEditor : ScriptObject
     EditorFeature@ AddFeature(const String& name, const String& desc, EditorFunction_t@ func)
     {
         EditorFeature@ feature = EditorFeature();
-        feature.m_name = name;
+        //feature.m_name = name;
         feature.m_desc = desc;
         feature.Activate = func;
+        
+        m_featureMap[name] = m_features.length;
         m_features.Push(feature);
         return feature;
     }
@@ -81,6 +85,12 @@ class CraftEditor : ScriptObject
         @(hotkey.m_feature) = feature;
         m_hotkeys.Push(hotkey);
         return hotkey;
+    }
+
+    int ActivateFeature(const String& name, VariantMap& args)
+    {
+        EditorFeature@ feature = m_features[int(m_featureMap[name])];
+        return feature.Activate(this, feature, args);
     }
 
     int ControlIndex(StringHash control)
@@ -151,7 +161,7 @@ class CraftEditor : ScriptObject
     {
         Print("Hey there");
         
-        //@g_editor = this;
+        @g_editor = this;
         
         // Create two nodes for the camera
         
@@ -169,6 +179,23 @@ class CraftEditor : ScriptObject
         cam.farClip = 65536;
         renderer.viewports[0].camera = cam;
 
+        m_subject = node.CreateChild("Subject");
+
+        // Input
+
+        // Subscribe to user input events
+        SubscribeToEvent("MouseButtonDown", "HandleMouseDown");
+        SubscribeToEvent("MouseButtonUp", "HandleMouseUp");
+        SubscribeToEvent("KeyDown", "HandleKeyDown");
+        SubscribeToEvent("KeyUp", "HandleKeyUp");
+
+        SubscribeToEvent("MouseMove", "HandleMouseMove");
+
+        // m_joysticks[0] will be used for mouse movement
+        m_joysticks.Resize(1);  
+
+        // UI
+
         // Load the construction workspace. (Toolbars and blank panels)
         UIElement@ wkConstruction = ui.LoadLayout(cache.GetResource("XMLFile", "Default/UI/WorkspaceConstruction.xml"));
         
@@ -179,7 +206,7 @@ class CraftEditor : ScriptObject
         SetUIAnchors(panelPartsList);
         
         // Setup stuff in PartsList.as
-        PartsList::SetupPartsList(panelPartsList);
+        PartsList::SetupPartsList(this, panelPartsList);
         
         // Add the parts 
         wkConstruction.GetChild("ToolbarLeft").GetChild("Panel0").AddChild(panelPartsList);
@@ -193,37 +220,34 @@ class CraftEditor : ScriptObject
         // Make it show on the screen
         ui.root.AddChild(m_workspaces[0]);
 
-        // Subscribe to user input events
-        SubscribeToEvent("MouseButtonDown", "HandleMouseDown");
-        SubscribeToEvent("MouseButtonUp", "HandleMouseUp");
-        SubscribeToEvent("KeyDown", "HandleKeyDown");
-        SubscribeToEvent("KeyUp", "HandleKeyUp");
-
-        SubscribeToEvent("MouseMove", "HandleMouseMove");
-
-        // m_joysticks[0] will be used for mouse movement
-        m_joysticks.Resize(1);  
-
         // Add Mouse and keyboard binds
         // + some simple boolean algebra
+
+        // Add Launch feature
+        EditorFeature@ launch = AddFeature("lunch", "Start eating the meal", @LunchTime);
 
         // Add Orbit View and Undo features
         EditorFeature@ viewOrbit = AddFeature("vorbit", "Orbit View", @Navigation::ViewOrbit);
         EditorFeature@ undo = AddFeature("vorbit", "Orbit View", @Utility::Undo);
 
         // Create blank hotkeys for them all
+        Hotkey@ launchHotkey = AddHotkey(launch);
         Hotkey@ viewOrbitHotkey = AddHotkey(viewOrbit);
         Hotkey@ undoHotkey = AddHotkey(undo);
+
+        // For Lunch...
+        // Activate is HIGH when (SPACE is RISING)
+        BindToKey(launchHotkey, KEY_SPACE, INPUT_RISING);
 
         // For Orbit...
         // Activate is HIGH when (RightMouse is HIGH) OR (KeyQ is HIGH)
         BindToMouseButton(viewOrbitHotkey, MOUSEB_RIGHT, INPUT_HIGH);
         BindAddOr(viewOrbitHotkey);
-        BindToKey(viewOrbitHotkey, KEY_Q, INPUT_HIGH);
+        BindToKey(viewOrbitHotkey, KEY_E, INPUT_HIGH);
 
         // For Undo...
         // Activate is HIGH when (Ctrl is HIGH) AND (Shift is LOW) AND (Alt is LOW) AND (KeyZ is RISING)
-        BindToKeyScancode(undoHotkey, SCANCODE_CTRL, INPUT_HIGH);
+        BindToKeyScancode(undoHotkey, SCANCODE_CTRL, INPUT_HIGH); 
         BindToKeyScancode(undoHotkey, SCANCODE_SHIFT, INPUT_LOW);
         BindToKeyScancode(undoHotkey, SCANCODE_ALT, INPUT_LOW);
         BindToKey(undoHotkey, KEY_Z, INPUT_RISING);
@@ -241,7 +265,9 @@ class CraftEditor : ScriptObject
         
         // considering supporting devices that don't use a mouse later on
         m_cursor = Vector2(input.mousePosition);
-        
+
+        m_cameraCenter.position = m_subject.position;
+
         // Loop through all the hotkeys
         Hotkey@ hotkey;
         for (uint i = 0; i < m_hotkeys.length; i ++)
@@ -406,11 +432,73 @@ class CraftEditor : ScriptObject
     }
 }
 
+void SolidifyPrototype(Node@ prototype)
+{
+    // Calculate center of mass
+    Array<Node@> parts = prototype.GetChildren();
+    prototype.position = Vector3::ZERO;
 
+    Vector3 centerOfMass(0, 0, 0);
+    float totalMass = 0;
+
+    for (uint i = 0; i < parts.length; i ++) 
+    {
+        //RigidBody@ shape = cast<RigidBody>(childrenColliders[i].GetComponent("RigidBody"));
+        float mass = parts[i].vars["massdry"].GetFloat();
+        centerOfMass += (parts[i].worldPosition) * mass;
+        totalMass += mass;
+    }
+
+    centerOfMass /= totalMass;
+    Print("total mass: " + totalMass);
+  
+    // Create a single rigid body with all the colliders
+    Array<Node@> childrenColliders = prototype.GetChildrenWithComponent("CollisionShape", true);
+
+    //subject.position += centerOfMass;
+    for (uint i = 0; i < childrenColliders.length; i ++) 
+    {
+        childrenColliders[i].worldPosition -= centerOfMass;
+        Array<Variant> colliders;
+        Array<Component@> shapes = childrenColliders[i].GetComponents("CollisionShape");
+        for (uint j = 0; j < shapes.length; j ++) 
+        {
+            CollisionShape@ shapeA = cast<CollisionShape>(prototype.CreateComponent("CollisionShape"));
+            CollisionShape@ shapeB = cast<CollisionShape>(shapes[j]);
+            colliders.Push(Variant(shapeA));
+            shapeA.SetBox(Vector3(1, 1, 1)); // this is too avoid a weird glitch
+            shapeA.position = childrenColliders[i].worldPosition + childrenColliders[i].rotation * shapeB.position * childrenColliders[i].scale;
+            shapeA.rotation = shapeB.rotation * childrenColliders[i].worldRotation;
+            shapeA.size = childrenColliders[i].scale * shapeB.size * 1.01f;
+            shapeA.shapeType = shapeB.shapeType;
+            Print("shape added " + shapeA.position.x);
+        }
+        childrenColliders[i].vars["colliders"] = colliders;
+    }
+
+    osp.make_craft(prototype);
+    RigidBody@ body = prototype.CreateComponent("RigidBody");
+    body.mass = totalMass;
+    body.friction = 3;
+    
+
+}
 
 void SetUIAnchors(UIElement@ panel)
 {
     panel.enableAnchor = true;
     panel.SetMinAnchor(0.0f, 0.0f);
     panel.SetMaxAnchor(1.0f, 1.0f);
+}
+
+// Important features
+
+int LunchTime(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
+{
+    ui.root.RemoveAllChildren();
+    SolidifyPrototype(editor.m_subject);
+    //cast<SoundSource>(scene.GetComponent("SoundSource")).Stop();
+        
+    osp.debug_function(StringHash("create_universe"));
+    return 0;
 }

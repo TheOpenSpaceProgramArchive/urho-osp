@@ -8,8 +8,8 @@
 		"Elapsed Time": 3.175529956817627,
 		"Next Replicated Node ID": 20,
 		"Next Replicated Component ID": 44,
-		"Next Local Node ID": 16777265,
-		"Next Local Component ID": 16777804,
+		"Next Local Node ID": 16777269,
+		"Next Local Component ID": 16777852,
 		"Variables": {},
 		"Variable Names": "RemoveDistance"
 	},
@@ -48,7 +48,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -423088
+				"Play Position": -530896
 			}
 		},
 		{
@@ -83,7 +83,6 @@
 					"id": 19,
 					"attributes": {
 						"Physics Position": "0 -16 0",
-						"Friction": 50.0,
 						"Linear Factor": "0 0 0",
 						"Angular Factor": "0 0 0",
 						"Linear Rest Threshold": 0.0,
@@ -176,6 +175,8 @@
 					"type": "StaticModel",
 					"id": 18,
 					"attributes": {
+						"Model": "Model;Models/Icosphere.mdl",
+						"Material": "Material;",
 						"Cast Shadows": true
 					}
 				},
@@ -274,7 +275,7 @@
 				"Is Enabled": true,
 				"Name": "Ball",
 				"Tags": [],
-				"Position": "3.94254 -1.04452 -4.35253",
+				"Position": "3.24415 -1.04452 -4.35253",
 				"Rotation": "1 0 0 0",
 				"Scale": "1 1 1",
 				"Variables": {
@@ -289,6 +290,8 @@
 					"type": "StaticModel",
 					"id": 38,
 					"attributes": {
+						"Model": "Model;Models/Icosphere.mdl",
+						"Material": "Material;",
 						"Cast Shadows": true
 					}
 				},
@@ -296,7 +299,7 @@
 					"type": "RigidBody",
 					"id": 39,
 					"attributes": {
-						"Physics Position": "3.94254 -1.04452 -4.35253",
+						"Physics Position": "3.24415 -1.04452 -4.35253",
 						"Mass": 1.0
 					}
 				},

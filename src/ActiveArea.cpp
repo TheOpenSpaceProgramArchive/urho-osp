@@ -69,6 +69,10 @@ void ActiveArea::FixedUpdate(float timeStep)
         m_terrain->GetPlanet()->update(cameraPos - planetPos);
         m_terrain->UpdatePosition(m_localBodyPos);
 
+        RigidBody* terrainBody = m_terrain->GetComponent<RigidBody>();
+
+        // Disable terrain collider when far away
+        terrainBody->SetEnabled(true);
 
         //pw->SetGravity(Vector3::ZERO);
 

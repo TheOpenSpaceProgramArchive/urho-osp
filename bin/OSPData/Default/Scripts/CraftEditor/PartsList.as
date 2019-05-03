@@ -2,14 +2,39 @@ namespace PartsList
 {
 
 
-int AddPart(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
+
+int PartInsert(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 {
-    Print("Add part?");
+    Print("Part clicked");
+    
+    Node@ prototype = args["Prototype"].GetPtr();
+    
+    if (prototype is null)
+    {
+        return 1;
+    }
+    
+    Print("Display Name : " + prototype.vars["name"].GetString());
+    Print("Description  : " + prototype.vars["description"].GetString());
+    Print("Manufacturer : " + prototype.vars["manufacturer"].GetString());
+    Print("Country      : " + prototype.vars["country"].GetString());
+    
+    Node@ clone = prototype.Clone();
+    clone.enabled = true;
+   
+    Array<Node@> models = prototype.GetChildrenWithComponent("StaticModel", true);
+    
+    editor.m_subject.AddChild(clone);
+    
     return 0;
 }
 
-void SetupPartsList(UIElement@ panelPartsList)
+void SetupPartsList(CraftEditor@ editor, UIElement@ panelPartsList)
 {
+    
+    // Add features
+    
+    EditorFeature@ partInsert = editor.AddFeature("partInsert", "Insert a part", @PartInsert);
     
     ListView@ partList = panelPartsList.GetChild("Content").GetChild("ListView");
     UIElement@ itemContainer = partList.GetChild("SV_ScrollPanel").GetChild("LV_ItemContainer");
@@ -28,7 +53,7 @@ void SetupPartsList(UIElement@ panelPartsList)
             butt.SetStyleAuto();
             butt.SetMinSize(64, 48);
             butt.SetMaxSize(64, 48);
-            butt.vars["N"] = parts[j];
+            butt.vars["Prototype"] = parts[j];
             
             BorderImage@ rocketPicture = BorderImage("Thumbnail");
             rocketPicture.SetSize(40, 40);
@@ -44,32 +69,23 @@ void SetupPartsList(UIElement@ panelPartsList)
             
             itemContainer.SetSize(itemContainer.size.x, itemContainer.size.y + 70);
             itemContainer.AddChild(butt);
+            
             SubscribeToEvent(butt, "Pressed", "PartsList::HandlePartButtonPressed");
         }
     }
-    
 }
 
 void HandlePartButtonPressed(StringHash eventType, VariantMap& eventData)
 {
-    Node@ prototype = cast<Node@>(cast<UIElement@>(eventData["Element"].GetPtr()).vars["N"].GetPtr());
-    Print("Part clicked");
+    VariantMap args;// = {{"s", asd}};
+    args["Prototype"] = cast<UIElement@>(eventData["Element"].GetPtr()).vars["Prototype"];
+    g_editor.ActivateFeature("partInsert", args);
+    //for (uint i = 0; i < models.length; i ++) 
+    //{
+        //cast<StaticModel>(models[i].GetComponent("StaticModel")).material.scene = scene;
+    //}
     
-    Print("Display Name : " + prototype.vars["name"].GetString());
-    Print("Description  : " + prototype.vars["description"].GetString());
-    Print("Manufacturer : " + prototype.vars["manufacturer"].GetString());
-    Print("Country      : " + prototype.vars["country"].GetString());
-    
-    Node@ clone = prototype.Clone();
-    clone.enabled = true;
-   
-    Array<Node@> models = prototype.GetChildrenWithComponent("StaticModel", true);
-    
-    for (uint i = 0; i < models.length; i ++) 
-    {
-        cast<StaticModel>(models[i].GetComponent("StaticModel")).material.scene = scene;
-    }
-    
+    //Print(g_editor.m_features[int(g_editor.m_featureMap["partInsert"])].m_desc); 
     //grabbed = clone;
     //subject.AddChild(clone);
 }
