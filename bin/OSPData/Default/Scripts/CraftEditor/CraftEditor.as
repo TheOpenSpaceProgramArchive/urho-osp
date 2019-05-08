@@ -24,21 +24,27 @@ int bint(bool b)
 
 class EditorFeature
 {
+    // Some identifiers
     //String m_name;
     String m_desc;
- 
-    // [Index, [0/1/rising/falling], next operation [and/or], repeat...]
+    // Data stored that can be accessed by the ActivateFunction
     VariantMap m_data;
+    // Function pointer
     EditorFunction_t@ Activate;
 }
 
-// This includes mouse and other inputs too
+// Calls an EditorFeature
 class Hotkey
 {
+    // If the right inputs triggered an activation
     bool m_active;
+    // Arguments that will be passed on to m_feature's Activate function
     VariantMap m_arguments;
+    // Feature that will be called
     EditorFeature@ m_feature;
-    Array<int> m_conditions;
+    // A boolean expression describing the input conditions needed to activate
+    // [Index to m_inputs, [0/1/rising/falling], next operation [and/or], repeat...]
+    Array<int> m_expression;
 }
 
 // Should be added to the editor scene
@@ -66,7 +72,16 @@ class CraftEditor : ScriptObject
 
     Array<UIElement@> m_workspaces;
     int m_currentWorkspace;
+    
+    bool m_isClosed;
 
+    /**
+     * Add a new feature to the editor
+     * @param name [in] The technical name this feature will be indexed as
+     * @param desc [in] Nice text for a human to read
+     * @param func [in] Function pointer to the function
+     * @return A handle to the EditorFeature just added
+     */
     EditorFeature@ AddFeature(const String& name, const String& desc, EditorFunction_t@ func)
     {
         EditorFeature@ feature = EditorFeature();
@@ -79,6 +94,11 @@ class CraftEditor : ScriptObject
         return feature;
     }
 
+    /**
+     * Add a new hotkey to the editor
+     * @param feature [in] Feature the hotkey activates
+     * @return A handle to the new hotkey. Bind inputs to this.
+     */
     Hotkey@ AddHotkey(EditorFeature@ feature)
     {
         Hotkey@ hotkey = Hotkey();
@@ -87,12 +107,26 @@ class CraftEditor : ScriptObject
         return hotkey;
     }
 
+    /**
+     * Activate a feature right away
+     * @param name [in] Technical name used to address the feature
+     * @param args [in] Arguments to pass to the Activate function
+     * @return whatever is returned by the EditorFunction
+     */
     int ActivateFeature(const String& name, VariantMap& args)
     {
         EditorFeature@ feature = m_features[int(m_featureMap[name])];
         return feature.Activate(this, feature, args);
     }
 
+    /**
+     * Get an m_inputs index from a hashed string to a physical input device button
+     * eg. m_inputs[ControlIndex(StringHash("MB" + MOUSEB_RIGHT))] is the input
+     *     that responds to the right mouse button
+     * A new entry in m_index will be created, if one is not found
+     * @param control [in] StringHash to input device
+     * @return An index to m_inputs
+     */
     int ControlIndex(StringHash control)
     {
         // index to m_inputs for new control to listen ot/
@@ -119,49 +153,78 @@ class CraftEditor : ScriptObject
         return inputIndex;
     }
     
+    /**
+     * Bind a mouse button to a Hotkey
+     * @param hotkey [ref] Hotkey to write binds to
+     * @param button [in] Mouse button
+     * @param press [in] INPUT_HIGH/LOW/RISING/FALLING
+     */
     void BindToMouseButton(Hotkey@ hotkey, int button, int press)
     {
         StringHash hash = StringHash("MB" + button);
         
         int inputIndex = ControlIndex(hash);
 
-        hotkey.m_conditions.Push(inputIndex);
-        hotkey.m_conditions.Push(press);
-        hotkey.m_conditions.Push(INPUTOP_AND);
+        hotkey.m_expression.Push(inputIndex);
+        hotkey.m_expression.Push(press);
+        hotkey.m_expression.Push(INPUTOP_AND);
     }
 
+    /**
+     * Bind a keyboard key to a Hotkey
+     * @param hotkey [ref] Hotkey to write binds to
+     * @param key [in] Keyboard key
+     * @param press [in] INPUT_HIGH/LOW/RISING/FALLING
+     */
     void BindToKey(Hotkey@ hotkey, int key, int press)
     {
         StringHash hash = StringHash("KB" + key);
         
         int inputIndex = ControlIndex(hash);
         
-        hotkey.m_conditions.Push(inputIndex);
-        hotkey.m_conditions.Push(press);
-        hotkey.m_conditions.Push(INPUTOP_AND);
+        hotkey.m_expression.Push(inputIndex);
+        hotkey.m_expression.Push(press);
+        hotkey.m_expression.Push(INPUTOP_AND);
     }
 
+    /**
+     * Bind a keyboard scancode to a Hotkey
+     * @param hotkey [ref] Hotkey to write binds to
+     * @param key [in] Keyboard scancode
+     * @param press [in] INPUT_HIGH/LOW/RISING/FALLING
+     */
     void BindToKeyScancode(Hotkey@ hotkey, int key, int press)
     {
         StringHash hash = StringHash("KS" + key);
         
         int inputIndex = ControlIndex(hash);
         
-        hotkey.m_conditions.Push(inputIndex);
-        hotkey.m_conditions.Push(press);
-        hotkey.m_conditions.Push(INPUTOP_AND);
+        hotkey.m_expression.Push(inputIndex);
+        hotkey.m_expression.Push(press);
+        hotkey.m_expression.Push(INPUTOP_AND);
     }
 
+    /**
+     * Set the last expression in m_expression to an OR instead of an AND
+     * @param hotkey [ref] Hotkey to write binds to
+     */
     void BindAddOr(Hotkey@ hotkey)
     {
-        hotkey.m_conditions[hotkey.m_conditions.length - 1] = INPUTOP_OR;
+        hotkey.m_expression[hotkey.m_expression.length - 1] = INPUTOP_OR;
     }
 
+    void Close()
+    {
+        m_isClosed = true;
+    }
+
+    // Part of ScriptObject
     void Start()
     {
         Print("Hey there");
         
         @g_editor = this;
+        m_isClosed = false;
         
         // Create two nodes for the camera
         
@@ -252,7 +315,8 @@ class CraftEditor : ScriptObject
         BindToKeyScancode(undoHotkey, SCANCODE_ALT, INPUT_LOW);
         BindToKey(undoHotkey, KEY_Z, INPUT_RISING);
     }
-    
+
+    // Part of ScriptObject
     void FixedUpdate(float timeStep)
     {
         //Print(m_inputs[0] - m_inputsPrevious[0]);
@@ -274,22 +338,22 @@ class CraftEditor : ScriptObject
         {
             @hotkey = m_hotkeys[i];
 
-            // Read through the conditions array from left to right
+            // Read through the expression array from left to right
             // It's a boolean sum of products with user inputs as inputs
 
-            Array<int>@ conditions = hotkey.m_conditions;
+            Array<int>@ expression = hotkey.m_expression;
 
             int lastOperator = INPUTOP_OR; // Set to OR because the first condition is going to be compared by total, which is false
             bool total = false;
             bool currentValue;
             
-            for (uint j = 0; j < conditions.length; j += 3)
+            for (uint j = 0; j < expression.length; j += 3)
             {
                 // Index to mouse button or key in m_inputs
-                int index = conditions[j];
+                int index = expression[j];
                 
                 // Set currentValue to true if input matches the condition
-                switch (conditions[j + 1])
+                switch (expression[j + 1])
                 {
                 case INPUT_LOW:
                     currentValue = (m_inputs[index] <= 0);
@@ -317,7 +381,7 @@ class CraftEditor : ScriptObject
                 }
                 
                 // Savew the operator for the next condition
-                lastOperator = conditions[j + 2];
+                lastOperator = expression[j + 2];
             }
             
             // Now activate the feature
@@ -341,8 +405,16 @@ class CraftEditor : ScriptObject
         m_joysticks[0] *= 0;
         
         m_inputsPrevious = m_inputs;
+        
+        if (m_isClosed)
+        {
+            // self is the ScriptInstance
+            self.Remove();
+            m_workspaces[0].Remove();
+        }
     }
 
+    // Handle KeyDown events, see the SubscribeToEvent functions above
     void HandleKeyDown(StringHash eventType, VariantMap& eventData)
     {
         int key = eventData["Key"].GetInt();
@@ -369,6 +441,7 @@ class CraftEditor : ScriptObject
         // else no binds use this key
     }
 
+    // Handle KeyUp events, see the SubscribeToEvent functions above
     void HandleKeyUp(StringHash eventType, VariantMap& eventData)
     {
         int key = eventData["Key"].GetInt();
@@ -394,6 +467,7 @@ class CraftEditor : ScriptObject
         // else no binds use this key
     }
 
+    // Handle MouseButtonDown events, see the SubscribeToEvent functions above
     void HandleMouseDown(StringHash eventType, VariantMap& eventData)
     {
         // Mouse button is pressed
@@ -409,6 +483,7 @@ class CraftEditor : ScriptObject
         // else no binds use this mouse button
     }
 
+    // Handle MouseButtonUp events, see the SubscribeToEvent functions above
     void HandleMouseUp(StringHash eventType, VariantMap& eventData)
     {
         // Mouse button is released, same as above but sets to 0 instead
@@ -424,6 +499,7 @@ class CraftEditor : ScriptObject
         // else no binds use this mouse button
     }
     
+    // Handle MouseMove events, see the SubscribeToEvent functions above
     void HandleMouseMove(StringHash eventType, VariantMap& eventData)
     {
         // in the future, make m_joysticks respond to actual controllers
@@ -432,11 +508,16 @@ class CraftEditor : ScriptObject
     }
 }
 
-void SolidifyPrototype(Node@ prototype)
+
+/**
+ * Convert a physicsless blueprint into a working craft with physics
+ * @param blueprint [in] The mess of parts just built by the user.
+ */
+void SolidifyBlueprint(Node@ blueprint)
 {
     // Calculate center of mass
-    Array<Node@> parts = prototype.GetChildren();
-    prototype.position = Vector3::ZERO;
+    Array<Node@> parts = blueprint.GetChildren();
+    blueprint.position = Vector3::ZERO;
 
     Vector3 centerOfMass(0, 0, 0);
     float totalMass = 0;
@@ -453,7 +534,7 @@ void SolidifyPrototype(Node@ prototype)
     Print("total mass: " + totalMass);
   
     // Create a single rigid body with all the colliders
-    Array<Node@> childrenColliders = prototype.GetChildrenWithComponent("CollisionShape", true);
+    Array<Node@> childrenColliders = blueprint.GetChildrenWithComponent("CollisionShape", true);
 
     //subject.position += centerOfMass;
     for (uint i = 0; i < childrenColliders.length; i ++) 
@@ -463,7 +544,7 @@ void SolidifyPrototype(Node@ prototype)
         Array<Component@> shapes = childrenColliders[i].GetComponents("CollisionShape");
         for (uint j = 0; j < shapes.length; j ++) 
         {
-            CollisionShape@ shapeA = cast<CollisionShape>(prototype.CreateComponent("CollisionShape"));
+            CollisionShape@ shapeA = cast<CollisionShape>(blueprint.CreateComponent("CollisionShape"));
             CollisionShape@ shapeB = cast<CollisionShape>(shapes[j]);
             colliders.Push(Variant(shapeA));
             shapeA.SetBox(Vector3(1, 1, 1)); // this is too avoid a weird glitch
@@ -476,13 +557,14 @@ void SolidifyPrototype(Node@ prototype)
         childrenColliders[i].vars["colliders"] = colliders;
     }
 
-    osp.make_craft(prototype);
-    RigidBody@ body = prototype.CreateComponent("RigidBody");
+    osp.make_craft(blueprint);
+    RigidBody@ body = blueprint.CreateComponent("RigidBody");
     body.mass = totalMass;
     body.friction = 3;
     
 
 }
+
 
 void SetUIAnchors(UIElement@ panel)
 {
@@ -495,10 +577,12 @@ void SetUIAnchors(UIElement@ panel)
 
 int LunchTime(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 {
-    ui.root.RemoveAllChildren();
-    SolidifyPrototype(editor.m_subject);
+    //ui.root.RemoveAllChildren();
+    SolidifyBlueprint(editor.m_subject);
     //cast<SoundSource>(scene.GetComponent("SoundSource")).Stop();
-        
+    
     osp.debug_function(StringHash("create_universe"));
+    
+    editor.Close();
     return 0;
 }
