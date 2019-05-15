@@ -5,8 +5,9 @@ namespace PartsList
 
 int PartInsert(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 {
-    Print("Part clicked");
-    
+    // This is an EditorFunction that inserts parts, known as "partInsert"
+
+    // Get prototype part from argument
     Node@ prototype = args["Prototype"].GetPtr();
     
     if (prototype is null)
@@ -19,10 +20,12 @@ int PartInsert(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
     Print("Manufacturer : " + prototype.vars["manufacturer"].GetString());
     Print("Country      : " + prototype.vars["country"].GetString());
     
+    // Clone the prototype into the editor's subject node
+
     Node@ clone = prototype.Clone();
     clone.enabled = true;
    
-    Array<Node@> models = prototype.GetChildrenWithComponent("StaticModel", true);
+    //Array<Node@> models = prototype.GetChildrenWithComponent("StaticModel", true);
     
     editor.m_subject.AddChild(clone);
     
@@ -54,13 +57,14 @@ void SetupPartsList(CraftEditor@ editor, UIElement@ panelPartsList)
             butt.SetMinSize(64, 48);
             butt.SetMaxSize(64, 48);
             butt.vars["Prototype"] = parts[j];
+            butt.vars["Scene"] = editor.GetNode();
             
             BorderImage@ rocketPicture = BorderImage("Thumbnail");
             rocketPicture.SetSize(40, 40);
             rocketPicture.SetPosition(4, 4);
             rocketPicture.texture = cache.GetResource("Texture2D", "Textures/NoThumbnail.png");
             butt.AddChild(rocketPicture);
-            
+                
             Text@ someIndicator = Text("TypeIndicator");
             someIndicator.text = "42";
             someIndicator.SetFont(cache.GetResource("Font", "Fonts/BlueHighway.ttf"), 8);
@@ -77,9 +81,14 @@ void SetupPartsList(CraftEditor@ editor, UIElement@ panelPartsList)
 
 void HandlePartButtonPressed(StringHash eventType, VariantMap& eventData)
 {
+    UIElement@ butt = cast<UIElement@>(eventData["Element"].GetPtr());
+    CraftEditor@ editor = cast<CraftEditor@>(cast<Scene@>(butt.vars["Scene"].GetPtr()).GetScriptObject("CraftEditor"));
     VariantMap args;// = {{"s", asd}};
-    args["Prototype"] = cast<UIElement@>(eventData["Element"].GetPtr()).vars["Prototype"];
-    g_editor.ActivateFeature("partInsert", args);
+    args["Prototype"] = butt.vars["Prototype"];
+    editor.ActivateFeature("partInsert", args);
+    
+    
+    
     //for (uint i = 0; i < models.length; i ++) 
     //{
         //cast<StaticModel>(models[i].GetComponent("StaticModel")).material.scene = scene;

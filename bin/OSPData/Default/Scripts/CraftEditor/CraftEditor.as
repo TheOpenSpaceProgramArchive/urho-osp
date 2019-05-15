@@ -9,8 +9,6 @@
 
 funcdef int EditorFunction_t(CraftEditor@, EditorFeature@, VariantMap&);
 
-CraftEditor@ g_editor;
-
 int bint(bool b)
 {
     return b ? 1 : 0;
@@ -78,6 +76,11 @@ class CraftEditor : UIController
         return feature.Activate(this, feature, args);
     }
 
+    Node@ GetNode()
+    {
+        return node;
+    }
+
     void Close()
     {
         m_isClosed = true;
@@ -88,7 +91,6 @@ class CraftEditor : UIController
     {
         Print("Hey there");
         
-        @g_editor = this;
         m_isClosed = false;
         
         // Create two nodes for the camera
@@ -102,17 +104,20 @@ class CraftEditor : UIController
         // is visible at the center of the viewport
         m_camera.position = Vector3(0, 0, -8);
         
-        // Create a camera node and put it into Camera
+        // Create a camera component and put it into Camera
         Camera@ cam = m_camera.CreateComponent("Camera");
         cam.farClip = 65536;
         renderer.viewports[0].camera = cam;
 
+        // Create the node the user will be adding stuff to
         m_subject = node.CreateChild("Subject");
 
         // UI
 
         // Load the construction workspace. (Toolbars and blank panels)
+        // Note: workspaces are an arrangement of empty panels
         UIElement@ wkConstruction = ui.LoadLayout(cache.GetResource("XMLFile", "Default/UI/WorkspaceConstruction.xml"));
+        wkConstruction.vars["Scene"] = node;
         
         // Load the parts list panel (Just the parts list)
         UIElement@ panelPartsList = ui.LoadLayout(cache.GetResource("XMLFile", "Default/UI/PanelPartsList.xml")); 
@@ -123,7 +128,7 @@ class CraftEditor : UIController
         // Setup stuff in PartsList.as
         PartsList::SetupPartsList(this, panelPartsList);
         
-        // Add the parts 
+        // Add the parts list
         wkConstruction.GetChild("ToolbarLeft").GetChild("Panel0").AddChild(panelPartsList);
 
         // Add the construction UI to the list of workspaces.
@@ -136,6 +141,8 @@ class CraftEditor : UIController
         ui.root.AddChild(m_workspaces[0]);
 
         // Add the HotkeyHandler
+        // Note: this is a constructor, maybe snake_case functions might have
+        //       been a good idea.
         @m_hotkeys = HotkeyHandler(this);
 
         // Add Mouse and keyboard binds
@@ -181,18 +188,17 @@ class CraftEditor : UIController
         //{
         //    Print("Under mouse: " + f.name);
         //}
-        
-        // considering supporting devices that don't use a mouse later on
-
-
-        m_cameraCenter.position = m_subject.position;
 
         m_hotkeys.Update();
         
         if (m_isClosed)
         {
-            // self is the ScriptInstance
+            // Kill everything related to the editor
+            
+            // self is the ScriptInstance component
             self.Remove();
+            
+            // Remove all UI, Change this when more workspaces are added
             m_workspaces[0].Remove();
         }
     }
@@ -205,16 +211,24 @@ class CraftEditor : UIController
  */
 void SolidifyBlueprint(Node@ blueprint)
 {
-    // Calculate center of mass
-    Array<Node@> parts = blueprint.GetChildren();
-    blueprint.position = Vector3::ZERO;
-
+    // Step 1: Calculate the center of mass.
+    // Add up all the vectors and divide by total mass
+    
     Vector3 centerOfMass(0, 0, 0);
     float totalMass = 0;
+    
+    // Get the list of all the parts
+    const Array<Node@> parts = blueprint.GetChildren();
+    
+    // Move the blueprint to (0,0,0) for convinience
+    blueprint.position = Vector3::ZERO;
 
+    // Loop through all the parts and add up their masses
     for (uint i = 0; i < parts.length; i ++) 
     {
         //RigidBody@ shape = cast<RigidBody>(childrenColliders[i].GetComponent("RigidBody"));
+        // TODO: account for mass-changing Machine classes when fuel tanks are
+        //       added; perhaps a CalculateMass function?
         float mass = parts[i].vars["massdry"].GetFloat();
         centerOfMass += (parts[i].worldPosition) * mass;
         totalMass += mass;
@@ -223,36 +237,55 @@ void SolidifyBlueprint(Node@ blueprint)
     centerOfMass /= totalMass;
     Print("total mass: " + totalMass);
   
-    // Create a single rigid body with all the colliders
-    Array<Node@> childrenColliders = blueprint.GetChildrenWithComponent("CollisionShape", true);
-
-    //subject.position += centerOfMass;
+    // Step 2: Combine the CollisionShapes into a single node
+  
+    // TODO: support crafts with moving parts
+  
+    // Get a list of every node with a collider
+    const Array<Node@> childrenColliders = blueprint.GetChildrenWithComponent("CollisionShape", true);
+    Array<Variant> colliders;
+    Array<Component@> shapes;
+    
+    // Loop through every node that has a collider
     for (uint i = 0; i < childrenColliders.length; i ++) 
     {
+        // Move the node since the center of mass is now the origin
         childrenColliders[i].worldPosition -= centerOfMass;
-        Array<Variant> colliders;
-        Array<Component@> shapes = childrenColliders[i].GetComponents("CollisionShape");
+        
+        // Get a list of all the CollisionShapes in the current node
+        shapes = childrenColliders[i].GetComponents("CollisionShape");
+        colliders.Clear();
+
         for (uint j = 0; j < shapes.length; j ++) 
         {
+            // shapeA is new collision shape, shapeB is existing
+            // shapeB's information will be copied into shapeA
             CollisionShape@ shapeA = cast<CollisionShape>(blueprint.CreateComponent("CollisionShape"));
             CollisionShape@ shapeB = cast<CollisionShape>(shapes[j]);
+            // Keep track of which CollisionShapes are associated with this node
             colliders.Push(Variant(shapeA));
-            shapeA.SetBox(Vector3(1, 1, 1)); // this is too avoid a weird glitch
+            shapeA.SetBox(Vector3(1, 1, 1)); // this avoids a weird glitch
+
+            // Correctly position the collision shape, as it's position property
+            // is affected by the node's position, scale, and rotation
             shapeA.position = childrenColliders[i].worldPosition + childrenColliders[i].rotation * shapeB.position * childrenColliders[i].scale;
             shapeA.rotation = shapeB.rotation * childrenColliders[i].worldRotation;
             shapeA.size = childrenColliders[i].scale * shapeB.size * 1.01f;
             shapeA.shapeType = shapeB.shapeType;
-            Print("shape added " + shapeA.position.x);
+            //Print("shape added " + shapeA.position.x);
         }
+        // Make sure the old node knows which CollisionShapes it's associated with
         childrenColliders[i].vars["colliders"] = colliders;
     }
 
+    // Call the OspUniverse make_craft function
     osp.make_craft(blueprint);
     RigidBody@ body = blueprint.CreateComponent("RigidBody");
+    // Set the mass
     body.mass = totalMass;
-    body.friction = 3;
-    
 
+    // Make sure the craft doesn't slip off the platform so easily
+    body.friction = 3;
 }
 
 void SetUIAnchors(UIElement@ panel)
@@ -273,5 +306,10 @@ int LunchTime(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
     osp.debug_function(StringHash("create_universe"));
     
     editor.Close();
+    
+    // Add the FlightUI
+    Node@ sceneA = editor.GetNode();
+    sceneA.CreateScriptObject("Default/Scripts/CraftEditor/FlightUI.as", "FlightUI");
+    
     return 0;
 }

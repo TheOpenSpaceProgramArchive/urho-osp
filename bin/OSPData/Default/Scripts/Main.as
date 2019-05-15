@@ -27,8 +27,12 @@ void play_pressed()
     ui.root.RemoveAllChildren();
     g_scene.RemoveAllChildren();
 
+    // Load the editor scene, which has the platform and the 2 balls
     g_scene.LoadJSON(cache.GetFile("Default/Scenes/CraftEditor.json"));
-    ScriptInstance@ editorScript = cast<ScriptInstance>(g_scene.CreateComponent("ScriptInstance"));
-    editorScript.className = "CraftEditor";
-    editorScript.scriptFile = cache.GetResource("ScriptFile", "Default/Scripts/CraftEditor/CraftEditor.as");
+    
+    // Create a script instance that has the CraftEditor class
+    g_scene.CreateScriptObject("Default/Scripts/CraftEditor/CraftEditor.as", "CraftEditor");
+    //ScriptInstance@ editorScript = cast<ScriptInstance>(g_scene.CreateComponent("ScriptInstance"));
+    //editorScript.className = "CraftEditor";
+    //editorScript.scriptFile = cache.GetResource("ScriptFile", "Default/Scripts/CraftEditor/CraftEditor.as");
 }
