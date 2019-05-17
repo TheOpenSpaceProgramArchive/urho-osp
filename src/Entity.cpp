@@ -28,3 +28,8 @@ void Entity::FixedUpdate(float timeStep) {
     //a->SetGravityOverride(gravity);
     //printf("AAAA\n");
 }
+
+LongVector3 Entity::get_long_position()
+{
+    return LongVector3::ZERO;
+}

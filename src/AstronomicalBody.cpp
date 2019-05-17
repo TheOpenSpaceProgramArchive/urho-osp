@@ -10,6 +10,11 @@ AstronomicalBody::AstronomicalBody(Context* context) : Satellite(context)
     m_radius = 4000.0f;
 }
 
+LongVector3 AstronomicalBody::get_long_position()
+{
+    return LongVector3::ZERO; // TODO
+}
+
 void AstronomicalBody::RegisterObject(Context* context)
 {
 

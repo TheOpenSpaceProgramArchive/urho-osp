@@ -15,7 +15,9 @@ public:
     AstronomicalBody(Context* context);
 
     static void RegisterObject(Context* context);
-    virtual void FixedUpdate(float timeStep) override;
+    void FixedUpdate(float timeStep) override;
+
+    LongVector3 get_long_position() override;
 
     float get_radius() { return m_radius; }
 

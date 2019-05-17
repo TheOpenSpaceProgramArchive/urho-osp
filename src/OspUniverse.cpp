@@ -130,6 +130,7 @@ void OspUniverse::debug_function(const StringHash which)
 
         ActiveArea* area = scene->CreateComponent<ActiveArea>();
         area->relocate(ab, LongVector3(0, 4150 * 1000, 0));
+        area->set_focus(scene->GetChild("Subject")->GetComponent<Entity>());
         area->set_terrain(terrain);
 
     }

@@ -23,17 +23,30 @@ void ActiveArea::FixedUpdate(float timeStep)
     {
         PhysicsWorld* pw = node_->GetScene()->GetComponent<PhysicsWorld>();//scene->CreateComponent<PhysicsWorld>();
 
-        Vector3 cameraPos = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetWorldPosition();
+        LongVector3 focusPosLong;
+        Vector3 focusPos;
         Vector3 planetPos = m_terrain->GetNode()->GetPosition();
 
-         //CollisionShape* cs = m_terrain->GetNode()->GetComponent<CollisionShape>();
+        if (m_focus.NotNull())
+        {
+            focusPosLong = m_focus->get_long_position();
+            focusPos = m_focus->GetNode()->GetPosition();
+        }
+        else
+        {
+            focusPos = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetWorldPosition();
+        }
+
+
+
+        //CollisionShape* cs = m_terrain->GetNode()->GetComponent<CollisionShape>();
         //cs->SetTriangleMesh(m_terrain->GetPlanet()->get_model(), 0, Vector3::ONE);
 
-        const float originDistance = cameraPos.Length();
+        const float originDistance = focusPos.Length();
         const float threshold = 30.0f;
 
         if (originDistance > threshold) {
-            Vector3 offsetDist = cameraPos * -1000.0f;
+            Vector3 offsetDist = focusPos * -1000.0f;
             offsetDist.x_ = Floor(offsetDist.x_);
             offsetDist.y_ = Floor(offsetDist.y_);
             offsetDist.z_ = Floor(offsetDist.z_);
@@ -66,7 +79,7 @@ void ActiveArea::FixedUpdate(float timeStep)
             //GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetParent()->Translate(offsetDist, TS_WORLD);
         }
 
-        m_terrain->GetPlanet()->update(cameraPos - planetPos);
+        m_terrain->GetPlanet()->update(focusPos - planetPos);
         m_terrain->UpdatePosition(m_localBodyPos);
 
         RigidBody* terrainBody = m_terrain->GetComponent<RigidBody>();

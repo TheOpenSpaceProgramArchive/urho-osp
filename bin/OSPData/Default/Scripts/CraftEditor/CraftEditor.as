@@ -9,11 +9,6 @@
 
 funcdef int EditorFunction_t(CraftEditor@, EditorFeature@, VariantMap&);
 
-int bint(bool b)
-{
-    return b ? 1 : 0;
-}
-
 class EditorFeature
 {
     // Some identifiers
@@ -301,7 +296,7 @@ int LunchTime(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 {
     //ui.root.RemoveAllChildren();
     SolidifyBlueprint(editor.m_subject);
-    //cast<SoundSource>(scene.GetComponent("SoundSource")).Stop();
+    cast<SoundSource>(editor.GetNode().GetComponent("SoundSource")).Stop();
     
     osp.debug_function(StringHash("create_universe"));
     
@@ -309,7 +304,7 @@ int LunchTime(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
     
     // Add the FlightUI
     Node@ sceneA = editor.GetNode();
-    sceneA.CreateScriptObject("Default/Scripts/CraftEditor/FlightUI.as", "FlightUI");
+    sceneA.CreateScriptObject("Default/Scripts/FlightUI/FlightUI.as", "FlightUI");
     
     return 0;
 }

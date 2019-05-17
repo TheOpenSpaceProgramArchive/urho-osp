@@ -53,6 +53,7 @@ void MachineRocket::DelayedStart()
     Sound* sound = GetSubsystem<ResourceCache>()->GetResource<Sound>("Sfx/Rocket2.ogg");
     sound->SetLooped(true);
     m_rocketSound->SetFrequency(44100.0f);
+    m_rocketSound->SetGain(0);
     m_rocketSound->Play(sound);
 
     Node* plume = GetScene()->InstantiateJSON(GetSubsystem<ResourceCache>()->GetResource<JSONFile>("Data/Objects/Plume1.json")->GetRoot(), Vector3(0.0f, 0.0f, 0.0f), Quaternion(0, 0, 0));

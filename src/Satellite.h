@@ -12,8 +12,7 @@ class AstronomicalBody;
 class PlanetTerrain;
 
 /**
- * @brief Base class for anything orbiting or landed on an AstronomicalBody.
- * This should contain orbital data.
+ * Base class for any physical object in the universe
  */
 class Satellite : public LogicComponent
 {
@@ -21,8 +20,10 @@ class Satellite : public LogicComponent
 
 public:
     Satellite(Context* context) : LogicComponent(context) {}
+    virtual LongVector3 get_long_position() = 0;
 
-    LongVector3 m_position;
+protected:
+    //LongVector3 m_position;
     WeakPtr<AstronomicalBody> orbiting;
 
 };

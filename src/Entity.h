@@ -24,6 +24,8 @@ public:
 
     virtual void FixedUpdate(float timeStep) override;
 
+    LongVector3 get_long_position() override;
+
     Vector3 m_staticCoM;
     float m_staticMass;
 
