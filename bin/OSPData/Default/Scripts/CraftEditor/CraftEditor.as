@@ -9,6 +9,7 @@
 
 funcdef int EditorFunction_t(CraftEditor@, EditorFeature@, VariantMap&);
 
+
 class EditorFeature
 {
     // Some identifiers
@@ -147,13 +148,15 @@ class CraftEditor : UIController
         EditorFeature@ launch = AddFeature("lunch", "Start eating the meal", @LunchTime);
 
         // Add Orbit View and Undo features
-        EditorFeature@ viewOrbit = AddFeature("vorbit", "Orbit View", @Navigation::ViewOrbit);
-        EditorFeature@ undo = AddFeature("uundo", "Orbit View", @Utility::Undo);
+        AddFeature("vorbit", "Orbit View", @Navigation::ViewOrbit);
+        AddFeature("uundo", "Orbit View", @Utility::Undo);
+        AddFeature("uclear", "Clear All", @Utility::ClearAll);
 
         // Create blank hotkeys for them all
         Hotkey@ launchHotkey = m_hotkeys.AddHotkey("lunch");
         Hotkey@ viewOrbitHotkey = m_hotkeys.AddHotkey("vorbit");
         Hotkey@ undoHotkey = m_hotkeys.AddHotkey("uundo");
+        Hotkey@ clearHotkey = m_hotkeys.AddHotkey("uclear");
 
         // For Lunch...
         // Activate is HIGH when (SPACE is RISING)
@@ -171,6 +174,10 @@ class CraftEditor : UIController
         m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_SHIFT, INPUT_LOW);
         m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_ALT, INPUT_LOW);
         m_hotkeys.BindToKey(undoHotkey, KEY_Z, INPUT_RISING);
+        
+        // For Clear
+        // Activate is HIGH when (R is rising)
+        m_hotkeys.BindToKey(clearHotkey, KEY_R, INPUT_RISING);
     }
 
     // Part of ScriptObject
@@ -186,7 +193,7 @@ class CraftEditor : UIController
 
         m_hotkeys.Update();
         
-        if (m_isClosed)
+        if (m_isClosed && self !is null)
         {
             // Kill everything related to the editor
             
