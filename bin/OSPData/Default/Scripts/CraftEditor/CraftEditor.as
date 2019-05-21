@@ -152,11 +152,30 @@ class CraftEditor : UIController
         AddFeature("uundo", "Orbit View", @Utility::Undo);
         AddFeature("uclear", "Clear All", @Utility::ClearAll);
 
+        AddFeature("rotateUp", "Rotate part Up", @Utility::RotateUp);
+        AddFeature("rotateDown", "Rotate part Down", @Utility::RotateDown);
+        AddFeature("rotateLeft", "Rotate part Left", @Utility::RotateLeft);
+        AddFeature("rotateRight", "Rotate part Right", @Utility::RotateRight);
+
+
         // Create blank hotkeys for them all
         Hotkey@ launchHotkey = m_hotkeys.AddHotkey("lunch");
         Hotkey@ viewOrbitHotkey = m_hotkeys.AddHotkey("vorbit");
         Hotkey@ undoHotkey = m_hotkeys.AddHotkey("uundo");
         Hotkey@ clearHotkey = m_hotkeys.AddHotkey("uclear");
+    
+
+        //these keys will allow orientation of spacecraft parts
+        Hotkey@ rotateUp = m_hotkeys.AddHotkey("rotateUp");
+        Hotkey@ rotateDown = m_hotkeys.AddHotkey("rotateDown");
+        Hotkey@ rotateLeft = m_hotkeys.AddHotkey("rotateLeft");
+        Hotkey@ rotateRight = m_hotkeys.AddHotkey("rotateRight");
+
+        m_hotkeys.BindToKey(rotateUp, KEY_W, INPUT_RISING);
+        m_hotkeys.BindToKey(rotateDown, KEY_S, INPUT_RISING);
+        m_hotkeys.BindToKey(rotateLeft, KEY_A, INPUT_RISING);
+        m_hotkeys.BindToKey(rotateRight, KEY_D, INPUT_RISING);
+
 
         // For Lunch...
         // Activate is HIGH when (SPACE is RISING)
@@ -174,6 +193,8 @@ class CraftEditor : UIController
         m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_SHIFT, INPUT_LOW);
         m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_ALT, INPUT_LOW);
         m_hotkeys.BindToKey(undoHotkey, KEY_Z, INPUT_RISING);
+
+        
         
         // For Clear
         // Activate is HIGH when (R is rising)
