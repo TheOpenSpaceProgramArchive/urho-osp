@@ -118,10 +118,10 @@ void MachineRocket::FixedUpdate(float timeStep)
     rb->SetAngularDamping(0.6f);
     Vector3 torque = Vector3((int(i->GetKeyDown(KEY_W)) - i->GetKeyDown(KEY_S)), 0, (int(i->GetKeyDown(KEY_A)) - i->GetKeyDown(KEY_D)));
     Quaternion cameraRot = scene->GetChild("CameraCenter")->GetChild("Camera")->GetWorldRotation();
-    torque = cameraRot * torque;
-    torque *= rb->GetMass();
-
-    rb->ApplyTorque(torque);
+    torque = cameraRot * torque * 0.14f;
+    //torque *= rb->GetMass();
+    rb->SetAngularVelocity(rb->GetAngularVelocity() + torque);
+    //rb->ApplyTorque(torque);
 }
 
 void MachineRocket::load_json(const JSONObject& machine)

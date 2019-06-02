@@ -25,11 +25,13 @@ int PartInsert(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
     Node@ clone = prototype.Clone();
     clone.enabled = true;
    
+    clone.position = args["Position"].GetVector3();
+   
     //Array<Node@> models = prototype.GetChildrenWithComponent("StaticModel", true);
     
     editor.m_subject.AddChild(clone);
     
-    return 0;
+    return clone.id;
 }
 
 void SetupPartsList(CraftEditor@ editor, UIElement@ panelPartsList)
@@ -82,11 +84,35 @@ void SetupPartsList(CraftEditor@ editor, UIElement@ panelPartsList)
 void HandlePartButtonPressed(StringHash eventType, VariantMap& eventData)
 {
     UIElement@ butt = cast<UIElement@>(eventData["Element"].GetPtr());
-    CraftEditor@ editor = cast<CraftEditor@>(cast<Scene@>(butt.vars["Scene"].GetPtr()).GetScriptObject("CraftEditor"));
+    Scene@ scn = cast<Scene@>(butt.vars["Scene"].GetPtr());
+    CraftEditor@ editor = cast<CraftEditor@>(scn.GetScriptObject("CraftEditor"));
+
     VariantMap args;// = {{"s", asd}};
-    args["Prototype"] = butt.vars["Prototype"];
-    editor.ActivateFeature("partInsert", args);
     
+    // Insert, Select, then Drag the part
+    
+    // Activate PartInsert Feature
+    // Position the new part under the cursor, 6 meters into the screen
+    args["Position"] = editor.m_camera.worldPosition + editor.ScreenPosToRay(editor.m_cursor) * 6;
+    args["Prototype"] = butt.vars["Prototype"];
+    
+    // Actually insert the part, returns the ID
+    int newPartId = editor.ActivateFeature("partInsert", args);
+    Node@ part = scn.GetNode(newPartId);
+
+    if (part is null)
+    {
+        return;
+    }
+
+    Print("New part ID: " + newPartId + " Name: " + part.name);
+
+    // Activate Select Feature
+    args.Clear();
+    Array<Variant> selection = {part};
+    
+    args["Parts"] = selection;
+    editor.ActivateFeature("select", args);
     
     
     //for (uint i = 0; i < models.length; i ++) 

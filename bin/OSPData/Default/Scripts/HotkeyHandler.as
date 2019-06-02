@@ -29,7 +29,6 @@ class HotkeyHandler
     Array<int> m_inputsPrevious;
     Array<Hotkey@> m_hotkeys;
     Array<Vector2> m_joysticks;
-    Vector2 m_cursor;
     
     bool m_enabled;
 
@@ -257,7 +256,6 @@ class HotkeyHandler
 
     void Update()
     {
-        m_cursor = Vector2(input.mousePosition);
         
         // Loop through all the hotkeys
         Hotkey@ hotkey;

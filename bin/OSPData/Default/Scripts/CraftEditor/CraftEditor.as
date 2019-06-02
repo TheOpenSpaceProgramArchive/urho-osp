@@ -15,8 +15,17 @@ class EditorFeature
     // Some identifiers
     //String m_name;
     String m_desc;
+
+    // Completely ignore when false
+    bool m_enabled;
+    // Ignore ActivateFeature if true
+    bool m_blockActivate;
+    // Call every FixedUpdate
+    bool m_stayOn;
+
     // Data stored that can be accessed by the ActivateFunction
     VariantMap m_data;
+
     // Function pointer
     EditorFunction_t@ Activate;
 }
@@ -29,10 +38,13 @@ class CraftEditor : UIController
     Dictionary m_featureMap;
     
     HotkeyHandler@ m_hotkeys;
+    Vector2 m_cursor;
+    Vector3 m_cursorRay;
     
     Array<Node@> m_selection;
 
     Node@ m_camera;
+    Camera@ m_cameraComponent;
     Node@ m_cameraCenter;
     Node@ m_subject;
 
@@ -40,6 +52,8 @@ class CraftEditor : UIController
     int m_currentWorkspace;
     
     bool m_isClosed;
+
+    VariantMap m_vars;
 
     /**
      * Add a new feature to the editor
@@ -54,6 +68,9 @@ class CraftEditor : UIController
         //feature.m_name = name;
         feature.m_desc = desc;
         feature.Activate = func;
+        feature.m_enabled = true;
+        feature.m_blockActivate = false;
+        feature.m_stayOn = false;
         
         m_featureMap[name] = m_features.length;
         m_features.Push(feature);
@@ -68,7 +85,21 @@ class CraftEditor : UIController
      */
     int ActivateFeature(const String& name, VariantMap& args)
     {
+        if (!m_featureMap.Exists(name))
+        {
+            return -1;
+        }
+        
         EditorFeature@ feature = m_features[int(m_featureMap[name])];
+
+        // feature should never be null. m_featureMap should keep track
+
+        // Don't call disabled or activate-blocking features
+        if (!feature.m_enabled || feature.m_blockActivate)
+        {
+            return -2;
+        }
+
         return feature.Activate(this, feature, args);
     }
 
@@ -80,6 +111,15 @@ class CraftEditor : UIController
     void Close()
     {
         m_isClosed = true;
+    }
+
+    Vector3 ScreenPosToRay(const Vector2& input)
+    {
+        Vector2 mouseCenter(input.x - (graphics.width - graphics.width / 2),
+                          -input.y + (graphics.height - graphics.height / 2));
+        float scaleFactor = (graphics.height - graphics.height / 2) / Tan(float(m_cameraComponent.fov) / 2.0f);
+        mouseCenter /= scaleFactor;
+        return m_camera.worldRotation * (Vector3(mouseCenter.x, mouseCenter.y, 1));
     }
 
     // Part of ScriptObject
@@ -101,9 +141,9 @@ class CraftEditor : UIController
         m_camera.position = Vector3(0, 0, -8);
         
         // Create a camera component and put it into Camera
-        Camera@ cam = m_camera.CreateComponent("Camera");
-        cam.farClip = 65536;
-        renderer.viewports[0].camera = cam;
+        m_cameraComponent = m_camera.CreateComponent("Camera");
+        m_cameraComponent.farClip = 65536;
+        renderer.viewports[0].camera = m_cameraComponent;
 
         // Create the node the user will be adding stuff to
         m_subject = node.CreateChild("Subject");
@@ -144,8 +184,11 @@ class CraftEditor : UIController
         // Add Mouse and keyboard binds
         // + some simple boolean algebra
 
-        // Add Launch feature
-        EditorFeature@ launch = AddFeature("lunch", "Start eating the meal", @LunchTime);
+        // Add basic features
+        AddFeature("select", "Select Parts", @Select);
+        AddFeature("moveFree", "Select Parts", @MoveFree);
+        AddFeature("lunch", "Start eating the meal", @LunchTime);
+
 
         // Add Orbit View and Undo features
         AddFeature("vorbit", "Orbit View", @Navigation::ViewOrbit);
@@ -212,12 +255,27 @@ class CraftEditor : UIController
         //    Print("Under mouse: " + f.name);
         //}
 
+        // the cursor may not just be the mouse in the future considering controller support;
+        m_cursor = Vector2(input.mousePosition);
+
+        // Call any stayOn features
+        VariantMap stayOnArgs;
+        stayOnArgs["StayOn"] = true;
+        
+        for (uint i = 0; i < m_features.length; i ++)
+        {
+            if (m_features[i].m_stayOn)
+            {
+                m_features[i].Activate(this, m_features[i], stayOnArgs);
+            }
+        }
+
+        // Update HotKeys, this calls features
         m_hotkeys.Update();
         
+        // Kill self once close is requested
         if (m_isClosed && self !is null)
         {
-            // Kill everything related to the editor
-            
             // self is the ScriptInstance component
             self.Remove();
             
@@ -292,7 +350,7 @@ void SolidifyBlueprint(Node@ blueprint)
             // Correctly position the collision shape, as it's position property
             // is affected by the node's position, scale, and rotation
             shapeA.position = childrenColliders[i].worldPosition + childrenColliders[i].rotation * shapeB.position * childrenColliders[i].scale;
-            shapeA.rotation = shapeB.rotation * childrenColliders[i].worldRotation;
+            shapeA.rotation = shapeB.rotation * childrenColliders[i].rotation;
             shapeA.size = childrenColliders[i].scale * shapeB.size * 1.01f;
             shapeA.shapeType = shapeB.shapeType;
             //Print("shape added " + shapeA.position.x);
@@ -319,6 +377,33 @@ void SetUIAnchors(UIElement@ panel)
 }
 
 // Important features
+
+int Select(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
+{
+    // TODO: different select types: add to selection, invert selecition, etc..
+    Array<Variant> parts = args["Parts"].GetVariantVector();
+    for (uint i = 0; i < parts.length; i ++)
+    {
+        Node@ part = cast<Node@>(parts[i].GetPtr());
+        Print("Selecting: " + part.name);
+        editor.m_selection.Push(part);
+    }
+    
+    
+    return 0;
+}
+
+int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
+{
+    if (args.Contains("StartDragging"))
+    {
+        feature.m_stayOn = true;
+        return 0;
+    }
+    
+    
+    return 0;
+}
 
 int LunchTime(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 {
