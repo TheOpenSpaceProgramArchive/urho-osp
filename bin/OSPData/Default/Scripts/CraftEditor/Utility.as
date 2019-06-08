@@ -5,6 +5,7 @@ int ClearAll(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 {
 
     editor.m_subject.RemoveAllChildren();
+    editor.m_selection.Clear();
     
     return 0;
 }

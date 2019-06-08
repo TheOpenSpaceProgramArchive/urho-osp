@@ -7,8 +7,13 @@
 // @ = handle
 // & = reference (functions only)
 
-funcdef int EditorFunction_t(CraftEditor@, EditorFeature@, VariantMap&);
+const int FEATUREOP_NONE = 0;
+const int FEATUREOP_START = 1;
+const int FEATUREOP_STAYON = 2;
+const int FEATUREOP_CONFIRM = 3;
+const int FEATUREOP_CANCEL = 4;
 
+funcdef int EditorFunction_t(CraftEditor@, EditorFeature@, VariantMap&);
 
 class EditorFeature
 {
@@ -38,6 +43,7 @@ class CraftEditor : UIController
     Dictionary m_featureMap;
     
     HotkeyHandler@ m_hotkeys;
+    EditorFeature@ m_cursorLock;
     Vector2 m_cursor;
     Vector3 m_cursorRay;
     
@@ -185,6 +191,8 @@ class CraftEditor : UIController
         // + some simple boolean algebra
 
         // Add basic features
+        AddFeature("confirm", "Confirm", @CursorLockConfirm);
+        AddFeature("cancel", "Cancel", @CursorLockCancel);
         AddFeature("select", "Select Parts", @Select);
         AddFeature("moveFree", "Select Parts", @MoveFree);
         AddFeature("lunch", "Start eating the meal", @LunchTime);
@@ -202,6 +210,8 @@ class CraftEditor : UIController
 
 
         // Create blank hotkeys for them all
+        Hotkey@ confirmHotkey = m_hotkeys.AddHotkey("confirm");
+        Hotkey@ cancelHotkey = m_hotkeys.AddHotkey("cancel");
         Hotkey@ launchHotkey = m_hotkeys.AddHotkey("lunch");
         Hotkey@ viewOrbitHotkey = m_hotkeys.AddHotkey("vorbit");
         Hotkey@ undoHotkey = m_hotkeys.AddHotkey("uundo");
@@ -219,6 +229,10 @@ class CraftEditor : UIController
         m_hotkeys.BindToKey(rotateLeft, KEY_A, INPUT_RISING);
         m_hotkeys.BindToKey(rotateRight, KEY_D, INPUT_RISING);
 
+
+        // Confirm and cancel
+        m_hotkeys.BindToMouseButton(confirmHotkey, MOUSEB_LEFT, INPUT_RISING);
+        m_hotkeys.BindToKey(cancelHotkey, KEY_BACKSPACE, INPUT_RISING);
 
         // For Lunch...
         // Activate is HIGH when (SPACE is RISING)
@@ -249,18 +263,21 @@ class CraftEditor : UIController
     {
         //Print(m_inputs[0] - m_inputsPrevious[0]);
         
-        //UIElement@ f = ui.GetElementAt(input.mousePosition, false);
+        //UIElement@ f = ui.GetElementAt(input.mousePosition, true);
         //if (f !is null)
         //{
-        //    Print("Under mouse: " + f.name);
+        //    //Print("Under mouse: " + f.name);
         //}
 
         // the cursor may not just be the mouse in the future considering controller support;
         m_cursor = Vector2(input.mousePosition);
 
+        // Enable mouse features only if there is no buttons under the mouse
+        m_hotkeys.m_enableMouseDown = (ui.GetElementAt(input.mousePosition, true) is null);
+
         // Call any stayOn features
         VariantMap stayOnArgs;
-        stayOnArgs["StayOn"] = true;
+        stayOnArgs["FeatureOp"] = FEATUREOP_STAYON;
         
         for (uint i = 0; i < m_features.length; i ++)
         {
@@ -349,7 +366,7 @@ void SolidifyBlueprint(Node@ blueprint)
 
             // Correctly position the collision shape, as it's position property
             // is affected by the node's position, scale, and rotation
-            shapeA.position = childrenColliders[i].worldPosition + childrenColliders[i].rotation * shapeB.position * childrenColliders[i].scale;
+            shapeA.position = childrenColliders[i].position + childrenColliders[i].rotation * shapeB.position * childrenColliders[i].scale;
             shapeA.rotation = shapeB.rotation * childrenColliders[i].rotation;
             shapeA.size = childrenColliders[i].scale * shapeB.size * 1.01f;
             shapeA.shapeType = shapeB.shapeType;
@@ -381,6 +398,10 @@ void SetUIAnchors(UIElement@ panel)
 int Select(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 {
     // TODO: different select types: add to selection, invert selecition, etc..
+    
+    // if (arg to replace) then
+    editor.m_selection.Clear();
+    
     Array<Variant> parts = args["Parts"].GetVariantVector();
     for (uint i = 0; i < parts.length; i ++)
     {
@@ -393,14 +414,140 @@ int Select(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
     return 0;
 }
 
+/**
+ * Call Cancel on the feature that is locking the cursor (m_cursorLock)
+ * eg. Cancel Move, selected part goes back to its previous position
+ * @return Whatever m_cursorLock returns, -1 if cursor not locked.
+ */
+int CursorLockCancel(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
+{
+    Print("Cancel!");
+    if (editor.m_cursorLock is null)
+    {
+        return -1;
+    }
+    else
+    {
+        VariantMap lockArgs;
+        lockArgs["FeatureOp"] = FEATUREOP_CANCEL;
+        return editor.m_cursorLock.Activate(editor, editor.m_cursorLock, lockArgs);
+    }
+}
+
+/**
+ * Call Confirm on the feature that is locking the cursor (m_cursorLock)
+ * eg. Confirm Move, selected part's position is modified
+ * @return Whatever m_cursorLock returns. -1 if cursor not locked.
+ */
+int CursorLockConfirm(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
+{
+    Print("Confirm!");
+    if (editor.m_cursorLock is null)
+    {
+        return -1;
+    }
+    else
+    {
+        VariantMap lockArgs;
+        lockArgs["FeatureOp"] = FEATUREOP_CONFIRM;
+        return editor.m_cursorLock.Activate(editor, editor.m_cursorLock, lockArgs);
+    }
+}
+
 int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 {
-    if (args.Contains("StartDragging"))
+
+    // TODO: support symmetries, support attachments
+
+    switch (args["FeatureOp"].GetInt())
     {
-        feature.m_stayOn = true;
+    case FEATUREOP_START:
+        // Start Moving
+        
+        if (editor.m_selection.length == 0)
+        {
+            Print("No objects selected!");
+            return -2;
+        }
+        else
+        {
+            
+            feature.m_stayOn = true;
+            @(editor.m_cursorLock) = feature;
+            
+            // TODO: Save original position of all selected parts
+
+            // First selected part will be used as a reference point for "Offset"
+            // which is how far away the selected part is from the cursor
+            //Vector3 firstPos(editor.m_selection[0].worldPosition);
+
+            // Get average position of all selected parts
+            Vector3 averagePos();
+            for (int i = 0; i < editor.m_selection.length; i ++)
+            {
+                averagePos += editor.m_selection[i].worldPosition;
+            }
+            averagePos /= editor.m_selection.length;
+            
+            // Calculate current distance from camera plane
+            // This mostly affects how much of the selection moves for each 
+            // pixel of the cursor moved.
+            float cameraDepth = editor.m_camera.WorldToLocal(averagePos).z;
+            
+            // Get cursor position
+            Vector3 cursorPos = editor.ScreenPosToRay(editor.m_cursor) * cameraDepth + editor.m_camera.worldPosition;
+
+            // Get the offset
+            //Vector3 offset = firstPos - cursorPos;
+            
+            // Store required data for next use
+            //feature.m_data["Offset"] = offset;
+            feature.m_data["CameraDepth"] = cameraDepth;
+            feature.m_data["CursorPrevious"] = cursorPos;
+        }
+
         return 0;
+
+    case FEATUREOP_STAYON:
+        // Currently Moving
+        // Block is here because variables cannot be declared here
+        {
+            // Move all selected parts by adding cursor movement to all parts
+            // For preview purposes only, due to loss of precision
+            // On confirm,
+
+            // Get stuff from above
+            float cameraDepth = feature.m_data["CameraDepth"].GetFloat();
+            Vector3 cursorPrevious = feature.m_data["CursorPrevious"].GetVector3();
+
+            // Calculate new cursor position and delta
+            Vector3 cursorPosition = editor.ScreenPosToRay(editor.m_cursor) * cameraDepth + editor.m_camera.worldPosition;
+            Vector3 cursorDelta = cursorPosition - cursorPrevious;
+
+            // Add to all positions
+            for (int i = 0; i < editor.m_selection.length; i ++)
+            {
+                editor.m_selection[i].worldPosition += cursorDelta;
+            }
+
+            feature.m_data["CursorPrevious"] = cursorPosition;
+            
+            return 0;
+        }
+    
+    case FEATUREOP_CONFIRM:
+        // Confirm and apply changes.
+        
+        // TODO: Move all selected parts back to their original positions, then
+        //       calculate new positions using the position of the first part
+        
+        feature.m_stayOn = false;
+        @(editor.m_cursorLock) = null;
+        return 0;
+        
     }
     
+   
     
     return 0;
 }

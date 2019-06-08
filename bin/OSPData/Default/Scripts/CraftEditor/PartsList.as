@@ -25,11 +25,11 @@ int PartInsert(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
     Node@ clone = prototype.Clone();
     clone.enabled = true;
    
-    clone.position = args["Position"].GetVector3();
-   
     //Array<Node@> models = prototype.GetChildrenWithComponent("StaticModel", true);
     
     editor.m_subject.AddChild(clone);
+    
+    clone.worldPosition = args["Position"].GetVector3();
     
     return clone.id;
 }
@@ -110,10 +110,13 @@ void HandlePartButtonPressed(StringHash eventType, VariantMap& eventData)
     // Activate Select Feature
     args.Clear();
     Array<Variant> selection = {part};
-    
     args["Parts"] = selection;
     editor.ActivateFeature("select", args);
     
+    // Activate the drag feature
+    args.Clear();
+    args["FeatureOp"] = FEATUREOP_START;
+    editor.ActivateFeature("moveFree", args);
     
     //for (uint i = 0; i < models.length; i ++) 
     //{

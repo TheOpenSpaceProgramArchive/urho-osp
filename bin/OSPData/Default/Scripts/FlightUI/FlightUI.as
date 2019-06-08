@@ -72,6 +72,9 @@ class FlightUI : UIController
     {
         m_hotkeys.Update();
  
+
+        
+ 
         //if (m_isClosed && self !is null)
         //{
         //    self.Remove();
@@ -99,6 +102,8 @@ class FlightUI : UIController
     {
         // Called each frame
         float delta = eventData["TimeStep"].GetFloat();
+
+        cast<PhysicsWorld>(m_node.GetComponent("PhysicsWorld")).DrawDebugGeometry(true);   
 
         m_cameraCenter.position = m_subject.position;
 

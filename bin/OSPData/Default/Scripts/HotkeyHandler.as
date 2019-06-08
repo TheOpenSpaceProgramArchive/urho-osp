@@ -31,6 +31,7 @@ class HotkeyHandler
     Array<Vector2> m_joysticks;
     
     bool m_enabled;
+    bool m_enableMouseDown;
 
     UIController@ m_controller;
     
@@ -41,6 +42,8 @@ class HotkeyHandler
     HotkeyHandler(UIController@ controller)
     {
         m_controller = controller;
+  
+        m_enableMouseDown = true;
  
         // m_joysticks[0] will be used for mouse movement
         m_joysticks.Resize(1);
@@ -217,6 +220,11 @@ class HotkeyHandler
     // Handle MouseButtonDown events, see the SubscribeToEvent functions above
     void HandleMouseDown(StringHash eventType, VariantMap& eventData)
     {
+        if (!m_enableMouseDown)
+        {
+            return;
+        }
+    
         // Mouse button is pressed
         int button = eventData["Button"].GetInt();
         StringHash hash = StringHash("MB" + button);
