@@ -38,8 +38,8 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
     //GLTFFile* f = GetSubsystem<ResourceCache>()->GetResource<GLTFFile>("Gotzietek/TestFan/testfan.sturdy.gltf");
     //f->GetScene(0, category);
 
-    // Make 8 rocket cubes
-    for (int i = 12; i < 20; i ++)
+    // Make 4 different sized cubes
+    for (int i = 2; i < 6; i ++)
     {
         // Make a new child in the dbg category
         Node* aPart = category->CreateChild("dbg_" + String(i));
@@ -49,11 +49,11 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
         aPart->SetVar("description", "A simple oddly shaped cube");
         aPart->SetVar("manufacturer", "Gotzietec Industries");
         aPart->SetVar("name", "Cube "  + String(i));
-        aPart->SetVar("massdry", Pow(0.05f * (i + 1), 10.0f));
+        aPart->SetVar("massdry", Pow(0.25f * i, 3.0f));
         aPart->SetVar("prototype", aPart); // stored as WeakPtr
 
         // Tweakscale it based on i
-        aPart->SetScale(0.05f * (i + 1));
+        aPart->SetScale(0.25f * i);
 
         // Make sure it doesn't move when placed
         aPart->SetEnabled(false);
@@ -81,6 +81,33 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
 
         // Make the part into a functioning rocket
         //MachineRocket* rocket = aPart->CreateComponent<MachineRocket>();
+
+        // Create attachment nodes for the 6 faces of the cube
+        VariantVector attachments;
+        attachments.Reserve(6);
+
+        Vector3 dir(0.0f, 0.0f, 0.5f);
+
+        for (int i = 0; i < 6; i ++)
+        {
+            // make the node
+            Node* attachment = aPart->CreateChild("attach_" + String(i));
+            attachment->LookAt(dir, Vector3::UP);
+            attachment->SetPosition(dir);
+            attachment->SetScale(Vector3(0.1, 0.1, 1));
+            attachments.Push(attachment);
+
+            // Use shifting and negating to get normals for all 6 faces
+
+            dir *= -1; // Negate direction
+            // Shift components if positive
+            if (dir.x_ + dir.y_ + dir.z_ > 0)
+            {
+                dir = Vector3(dir.z_, dir.x_, dir.y_);
+            }
+        }
+
+        aPart->SetVar("Attachments", attachments);
     }
 }
 

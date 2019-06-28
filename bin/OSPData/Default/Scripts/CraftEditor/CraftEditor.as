@@ -109,9 +109,62 @@ class CraftEditor : UIController
         return feature.Activate(this, feature, args);
     }
 
-    Node@ GetNode()
+    /**
+     * Calculate a list of possible snaps between the selected parts and other placed parts
+     * Two thresholds are used to consider if two parts are close enough for a possible snap
+     * @param pairs [out] Array for pairs of possible attachments, even indices = attachments from selected parts, odd = attachments from other parts
+     * @param screenDistance [in] threshold in screen pixels for how far apart attachments can be on-screen, before counting as a snap 
+     * @param distance [in] threshold in physical meters for how far apart attachments can be, before counting as a snap
+     */
+    void CalculatePossibleSnaps(Array<Node@>& pairs, float screenDistance, float distance)
     {
-        return node;
+        // TODO: add any sort of filtering for different kinds of attachments
+        // TODO: optimize all of this
+        
+        // Get a list of non-selected parts
+        Array<Node@> nonSelected;
+        const Array<Node@> parts = m_subject.GetChildren();
+        for (int i = 0; i < parts.length; i ++)
+        {
+            if (!parts[i].vars["Selected"].GetBool())
+            {
+                nonSelected.Push(parts[i]);
+            }
+        }
+        
+        Print("not selected " + nonSelected.length);
+        
+        // Loop through all selected parts
+ 
+        
+        Variant[]@ attachmentsA;
+        Variant[]@ attachmentsB;
+        
+        for (int i = 0; i < m_selection.length; i ++)
+        {
+            @attachmentsA = m_selection[i].vars["Attachments"].GetVariantVector();
+            
+            for (int j = 0; j < attachmentsA.length; j ++)
+            {
+                
+                Node@ attachA = cast<Node@>(attachmentsA[j].GetPtr());
+                
+                for (int k = 0; k < nonSelected.length; k ++)
+                {
+                    @attachmentsB = m_selection[i].vars["Attachments"].GetVariantVector();
+                    for (int l = 0; l < attachmentsB.length; l ++)
+                    {
+                    
+                        Node@ attachB = cast<Node@>(attachmentsB[l].GetPtr());
+                    
+                        float distance = (attachA.worldPosition - attachB.worldPosition).length;
+                        Print(distance);
+                    }
+                }
+            }
+            
+        }
+        
     }
 
     void Close()
@@ -119,6 +172,18 @@ class CraftEditor : UIController
         m_isClosed = true;
     }
 
+    Node@ GetNode()
+    {
+        return node;
+    }
+
+    /**
+     * Unproject a point on the screen into a ray going out of the camera
+     * Returned vector will not be normalized, instead is a point on a plane 1m from the camera
+     * Camera rotation is dealt with, translation ignored
+     * @param input [in] Position on screen in pixels
+     * @return Vector3 camera ray
+     */
     Vector3 ScreenPosToRay(const Vector2& input)
     {
         Vector2 mouseCenter(input.x - (graphics.width - graphics.width / 2),
@@ -128,7 +193,8 @@ class CraftEditor : UIController
         return m_camera.worldRotation * (Vector3(mouseCenter.x, mouseCenter.y, 1));
     }
 
-    // Part of ScriptObject
+    // Functions below are used by ScriptObject
+
     void Start()
     {
         Print("Hey there");
@@ -258,7 +324,6 @@ class CraftEditor : UIController
         m_hotkeys.BindToKey(clearHotkey, KEY_R, INPUT_RISING);
     }
 
-    // Part of ScriptObject
     void FixedUpdate(float timeStep)
     {
         //Print(m_inputs[0] - m_inputsPrevious[0]);
@@ -400,6 +465,12 @@ int Select(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
     // TODO: different select types: add to selection, invert selecition, etc..
     
     // if (arg to replace) then
+    
+    // Make it easier to know if a part is selected
+    for (int i = 0; i < editor.m_selection.length; i ++)
+    {
+        editor.m_selection[i].vars["Selected"] = false;
+    }
     editor.m_selection.Clear();
     
     Array<Variant> parts = args["Parts"].GetVariantVector();
@@ -407,6 +478,7 @@ int Select(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
     {
         Node@ part = cast<Node@>(parts[i].GetPtr());
         Print("Selecting: " + part.name);
+        part.vars["Selected"] = true;
         editor.m_selection.Push(part);
     }
     
@@ -501,9 +573,21 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
             //Vector3 offset = firstPos - cursorPos;
             
             // Store required data for next use
+            
             //feature.m_data["Offset"] = offset;
             feature.m_data["CameraDepth"] = cameraDepth;
             feature.m_data["CursorPrevious"] = cursorPos;
+
+            // Store some specific options
+            
+            // Self explanatory
+            feature.m_data["DeleteOnCancel"] = args["EnableDeleteOnCancel"].GetBool();
+            // Record attachments on confirm
+            feature.m_data["EditStructure"] = args["EnableEditStructure"].GetBool();
+            // Snap to attachment nodes
+            feature.m_data["AttachmentSnap"] = args["EnableAttachmentSnap"].GetBool();
+            // Snap to collision boxes
+            feature.m_data["ColliderSnap"] = args["EnableColliderSnap"].GetBool();
         }
 
         return 0;
@@ -529,6 +613,9 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
             {
                 editor.m_selection[i].worldPosition += cursorDelta;
             }
+            
+            Array<Node@> test;
+            editor.CalculatePossibleSnaps(test, 10, 0.5f);
 
             feature.m_data["CursorPrevious"] = cursorPosition;
             
