@@ -29,10 +29,18 @@ class EditorFeature
     bool m_stayOn;
 
     // Data stored that can be accessed by the ActivateFunction
-    VariantMap m_data;
+    Dictionary m_data;
 
     // Function pointer
     EditorFunction_t@ Activate;
+}
+
+class AttachmentPair
+{
+    Node@ m_selected;
+    Node@ m_target;
+    float distance;
+    float distanceScreen;
 }
 
 // Should be added to the editor scene
@@ -50,11 +58,14 @@ class CraftEditor : UIController
     Array<Node@> m_selection;
 
     Node@ m_camera;
-    Camera@ m_cameraComponent;
     Node@ m_cameraCenter;
     Node@ m_subject;
+    
+    Camera@ m_cameraComponent;
+    SoundSource@ m_sfx;
 
     Array<UIElement@> m_workspaces;
+    UIElement@ m_uiCursor;
     int m_currentWorkspace;
     
     bool m_isClosed;
@@ -112,11 +123,11 @@ class CraftEditor : UIController
     /**
      * Calculate a list of possible snaps between the selected parts and other placed parts
      * Two thresholds are used to consider if two parts are close enough for a possible snap
-     * @param pairs [out] Array for pairs of possible attachments, even indices = attachments from selected parts, odd = attachments from other parts
+     * @param pairs [out] Array for pairs of possible attachments
      * @param screenDistance [in] threshold in screen pixels for how far apart attachments can be on-screen, before counting as a snap 
-     * @param distance [in] threshold in physical meters for how far apart attachments can be, before counting as a snap
+     * @param distance [in] threshold in physical meters for how far apart attachments can physically be, before counting as a snap
      */
-    void CalculatePossibleSnaps(Array<Node@>& pairs, float screenDistance, float distance)
+    void CalculatePossibleSnaps(Array<AttachmentPair>& pairs, float screenDistance, float distance)
     {
         // TODO: add any sort of filtering for different kinds of attachments
         // TODO: optimize all of this
@@ -132,7 +143,7 @@ class CraftEditor : UIController
             }
         }
         
-        Print("not selected " + nonSelected.length);
+        //Print("not selected " + nonSelected.length);
         
         // Loop through all selected parts
  
@@ -151,14 +162,31 @@ class CraftEditor : UIController
                 
                 for (int k = 0; k < nonSelected.length; k ++)
                 {
-                    @attachmentsB = m_selection[i].vars["Attachments"].GetVariantVector();
+                    @attachmentsB = nonSelected[k].vars["Attachments"].GetVariantVector();
                     for (int l = 0; l < attachmentsB.length; l ++)
                     {
                     
                         Node@ attachB = cast<Node@>(attachmentsB[l].GetPtr());
+                        
+                        bool snapped = false;
                     
-                        float distance = (attachA.worldPosition - attachB.worldPosition).length;
-                        Print(distance);
+                        float testDistance = (attachA.worldPosition - attachB.worldPosition).length;
+                        
+                        if (testDistance < distance)
+                        {
+                            snapped = true;
+                            // do more stuff here later
+                        }
+                        
+                        if (snapped)
+                        {
+                            pairs.Resize(pairs.length + 1);
+                            AttachmentPair@ pair = pairs[pairs.length - 1];
+                            pair.m_selected = attachA;
+                            pair.m_target = attachB;
+                            
+                        }
+                        //Print(distance);
                     }
                 }
             }
@@ -204,21 +232,24 @@ class CraftEditor : UIController
         // Create two nodes for the camera
         
         // CameraCenter is the point being looked at and orbited around
-        m_cameraCenter = node.CreateChild("CameraCenter");
+        @m_cameraCenter = node.CreateChild("CameraCenter");
         
         // Camera contains the camera node
-        m_camera = m_cameraCenter.CreateChild("Camera");
+        @m_camera = m_cameraCenter.CreateChild("Camera");
         // Move the camera 8m backwards from the center, so that CameraCenter
         // is visible at the center of the viewport
         m_camera.position = Vector3(0, 0, -8);
         
         // Create a camera component and put it into Camera
-        m_cameraComponent = m_camera.CreateComponent("Camera");
+        @m_cameraComponent = m_camera.CreateComponent("Camera");
         m_cameraComponent.farClip = 65536;
         renderer.viewports[0].camera = m_cameraComponent;
 
         // Create the node the user will be adding stuff to
-        m_subject = node.CreateChild("Subject");
+        @m_subject = node.CreateChild("Subject");
+
+        // Create sound making thing
+        @m_sfx = node.CreateComponent("SoundSource");
 
         // UI
 
@@ -247,6 +278,10 @@ class CraftEditor : UIController
                
         // Make it show on the screen
         ui.root.AddChild(m_workspaces[0]);
+        
+        // Add the UIElement that is suppose to follow the mouse cursor
+        m_uiCursor = ui.root.CreateChild("Cursor");
+        
 
         // Add the HotkeyHandler
         // Note: this is a constructor, maybe snake_case functions might have
@@ -336,6 +371,7 @@ class CraftEditor : UIController
 
         // the cursor may not just be the mouse in the future considering controller support;
         m_cursor = Vector2(input.mousePosition);
+        m_uiCursor.position = input.mousePosition;
 
         // Enable mouse features only if there is no buttons under the mouse
         m_hotkeys.m_enableMouseDown = (ui.GetElementAt(input.mousePosition, true) is null);
@@ -547,16 +583,19 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
             feature.m_stayOn = true;
             @(editor.m_cursorLock) = feature;
             
-            // TODO: Save original position of all selected parts
+            // Used to save original transformations of all selected parts
+            Matrix3x4[] originalTransforms;
+            originalTransforms.Resize(editor.m_selection.length);
 
             // First selected part will be used as a reference point for "Offset"
             // which is how far away the selected part is from the cursor
             //Vector3 firstPos(editor.m_selection[0].worldPosition);
 
-            // Get average position of all selected parts
+            // Get average position of all selected parts, and record their original transformations
             Vector3 averagePos();
             for (int i = 0; i < editor.m_selection.length; i ++)
             {
+                originalTransforms[i] = editor.m_selection[i].transform;
                 averagePos += editor.m_selection[i].worldPosition;
             }
             averagePos /= editor.m_selection.length;
@@ -577,6 +616,8 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
             //feature.m_data["Offset"] = offset;
             feature.m_data["CameraDepth"] = cameraDepth;
             feature.m_data["CursorPrevious"] = cursorPos;
+            feature.m_data["OriginalTransforms"] = @originalTransforms;
+            feature.m_data["AttachmentPairs"] = @(Array<AttachmentPair>());
 
             // Store some specific options
             
@@ -601,8 +642,8 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
             // On confirm,
 
             // Get stuff from above
-            float cameraDepth = feature.m_data["CameraDepth"].GetFloat();
-            Vector3 cursorPrevious = feature.m_data["CursorPrevious"].GetVector3();
+            float cameraDepth = float(feature.m_data["CameraDepth"]);
+            Vector3 cursorPrevious = Vector3(feature.m_data["CursorPrevious"]);
 
             // Calculate new cursor position and delta
             Vector3 cursorPosition = editor.ScreenPosToRay(editor.m_cursor) * cameraDepth + editor.m_camera.worldPosition;
@@ -614,8 +655,16 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
                 editor.m_selection[i].worldPosition += cursorDelta;
             }
             
-            Array<Node@> test;
-            editor.CalculatePossibleSnaps(test, 10, 0.5f);
+            // Calculate possible snapping points
+            // TODO: somehow let the player decide which attachment to connect to
+            AttachmentPair[]@ pairs = cast<AttachmentPair[]@>(feature.m_data["AttachmentPairs"]);
+            pairs.Clear();
+            editor.CalculatePossibleSnaps(pairs, 10, 0.1f);
+
+            for (int i = 0; i < pairs.length; i ++)
+            {
+                Print("Possible attachment for: " + pairs[i].m_selected.name);
+            }
 
             feature.m_data["CursorPrevious"] = cursorPosition;
             
@@ -627,11 +676,45 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
         
         // TODO: Move all selected parts back to their original positions, then
         //       calculate new positions using the position of the first part
-        
-        feature.m_stayOn = false;
-        @(editor.m_cursorLock) = null;
-        return 0;
-        
+        {
+            
+            
+            AttachmentPair[]@ pairs = cast<AttachmentPair[]@>(feature.m_data["AttachmentPairs"]);
+            if (pairs.length != 0) 
+            {
+                // there is a snap!
+                
+                // TODO: actually record what is connected to what and do some topology stuff
+                
+                // assume the player chooses the first possible snap
+                AttachmentPair@ pair = pairs[0];
+                
+                // Used to revert all parts to their original positions
+                //Matrix3x4[]@ originalTransforms = cast<Matrix3x4[]@>(feature.m_data["OriginalTransforms"]);
+                
+                // Don't do any complicated vector math just yet
+                // just add the difference between the two attachments to all tha parts
+                Vector3 displacement = pair.m_target.worldPosition - pair.m_selected.worldPosition;
+                
+                for (int i = 0; i < editor.m_selection.length; i ++)
+                {
+                    editor.m_selection[i].worldPosition += displacement;
+                }
+                
+                //Node@ partToAttach = m_selected.parent;
+                //Node@ partToAttachTo = m_selected
+                
+                
+                // Play annoying metal hit sound
+                Sound@ hit = cache.GetResource("Sound", "Default/Sfx/MetalHit.ogg");
+                editor.m_sfx.Play(hit);
+                editor.m_sfx.frequency = hit.frequency * Random(0.9f, 1.1f);
+            }
+            
+            feature.m_stayOn = false;
+            @(editor.m_cursorLock) = null;
+            return 0;
+        }
     }
     
    

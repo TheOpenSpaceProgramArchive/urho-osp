@@ -82,10 +82,6 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
         // Make the part into a functioning rocket
         //MachineRocket* rocket = aPart->CreateComponent<MachineRocket>();
 
-        // Create attachment nodes for the 6 faces of the cube
-        VariantVector attachments;
-        attachments.Reserve(6);
-
         Vector3 dir(0.0f, 0.0f, 0.5f);
 
         for (int i = 0; i < 6; i ++)
@@ -95,7 +91,7 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
             attachment->LookAt(dir, Vector3::UP);
             attachment->SetPosition(dir);
             attachment->SetScale(Vector3(0.1, 0.1, 1));
-            attachments.Push(attachment);
+            attachment->AddTag("Attachment");
 
             // Use shifting and negating to get normals for all 6 faces
 
@@ -106,8 +102,6 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
                 dir = Vector3(dir.z_, dir.x_, dir.y_);
             }
         }
-
-        aPart->SetVar("Attachments", attachments);
     }
 }
 

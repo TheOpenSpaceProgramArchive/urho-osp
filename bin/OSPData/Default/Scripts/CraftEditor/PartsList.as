@@ -107,6 +107,20 @@ void HandlePartButtonPressed(StringHash eventType, VariantMap& eventData)
 
     Print("New part ID: " + newPartId + " Name: " + part.name);
 
+    // Make a list of attachments
+    //Node@[]@ attachments = part.GetChildrenWithTag("Attachment");
+    //Print("Attachment count: " + attachments.length);
+    Variant[] attachments;
+    Node@[]@ partChildren = part.GetChildren();
+    for (int i = 0; i < partChildren.length; i ++)
+    {
+        if (partChildren[i].HasTag("Attachment"))
+        {
+            attachments.Push(Variant(partChildren[i]));
+        }
+    }
+    part.vars["Attachments"] = attachments;
+
     // Activate Select Feature
     args.Clear();
     Array<Variant> selection = {part};
