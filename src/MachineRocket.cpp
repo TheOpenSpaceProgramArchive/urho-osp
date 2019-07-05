@@ -38,6 +38,8 @@ void MachineRocket::DelayedStart()
 
                 m_thrust = protoRocket->get_curve_thrust();
                 m_efficiency = protoRocket->get_curve_efficiency();
+                
+                m_baseThrust = protoRocket->get_base_thrust();
             }
 
         }
@@ -105,10 +107,10 @@ void MachineRocket::FixedUpdate(float timeStep)
     m_plume->GetComponents<ParticleEmitter>(plumes);
     plumes[0]->SetEmitting(m_curveInputs["throttle"] > 2);
     plumes[1]->SetEmitting(m_curveInputs["throttle"] > 2);
-
+    
     // Thrust related things
     // Calculate thrust from curves
-    float thrustCalculated = m_thrust->calculate_float(m_curveInputs, 100.0f);
+    float thrustCalculated = m_thrust->calculate_float(m_curveInputs, m_baseThrust);
     Vector3 what(collider->GetPosition());
     rb->ApplyForce(rb->GetRotation() * Vector3(0, 0, thrustCalculated*50.0f), rb->GetRotation() * collider->GetPosition() + rb->GetCenterOfMass());
     //rb->GetBody()->applyForce(ToBtVector3(rb->GetRotation() * Vector3(0, m_thrust.get_float(10.0f), 0)), rb->GetRotation() * collider->GetPosition());
@@ -132,6 +134,16 @@ void MachineRocket::load_json(const JSONObject& machine)
     m_thrust = new PerformanceCurves(context_);
     m_efficiency = new PerformanceCurves(context_);
 
+    m_baseThrust = 100;
+    
+    if (JSONValue* baseThrust = machine["baseThrust"])
+    {
+        if (baseThrust->IsNumber())
+        {
+            m_baseThrust = baseThrust->GetFloat();
+        }
+    }
+    
     if (JSONValue* thrustFactorsValue = machine["thrust"])
     {
         if (thrustFactorsValue->IsObject())

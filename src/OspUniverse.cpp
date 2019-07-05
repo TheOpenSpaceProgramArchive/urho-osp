@@ -282,6 +282,7 @@ void OspUniverse::register_parts(const GLTFFile* gltf)
 
             part->SetName(partName.Substring(5));
             part->SetPosition(Vector3::ZERO);
+            part->SetRotation(Quaternion::IDENTITY);
 
             const Vector<SharedPtr<Node>>& partChildren = part->GetChildren();
 

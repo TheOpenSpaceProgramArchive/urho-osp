@@ -60,6 +60,9 @@ public:
 
     PerformanceCurves* get_curve_efficiency() const { return m_efficiency; }
     void set_curve_efficiency(PerformanceCurves* curves) { m_efficiency = curves; }
+    
+    float get_base_thrust() const { return m_baseThrust; }
+    void set_base_thrust(float baseThrust) { m_baseThrust = baseThrust; }
 
     void DelayedStart() override;
     void FixedUpdate(float timeStep) override;
@@ -75,6 +78,8 @@ private:
 
     bool m_curveThrustEnabled;
     bool m_curveEfficiencyEnabled;
+
+    float m_baseThrust;
 
 
     // efficiency
