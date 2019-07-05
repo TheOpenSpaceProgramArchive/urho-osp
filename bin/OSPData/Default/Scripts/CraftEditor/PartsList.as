@@ -87,6 +87,13 @@ void HandlePartButtonPressed(StringHash eventType, VariantMap& eventData)
     Scene@ scn = cast<Scene@>(butt.vars["Scene"].GetPtr());
     CraftEditor@ editor = cast<CraftEditor@>(scn.GetScriptObject("CraftEditor"));
 
+    // currently dragging another part
+    if (editor.m_cursorLock != null)
+    {
+        // maybe call cancel?
+        return;
+    }
+    
     VariantMap args;// = {{"s", asd}};
     
     // Insert, Select, then Drag the part
@@ -130,6 +137,7 @@ void HandlePartButtonPressed(StringHash eventType, VariantMap& eventData)
     // Activate the drag feature
     args.Clear();
     args["FeatureOp"] = FEATUREOP_START;
+    args["EnableDeleteOnCancel"] = true;
     editor.ActivateFeature("moveFree", args);
     
     //for (uint i = 0; i < models.length; i ++) 

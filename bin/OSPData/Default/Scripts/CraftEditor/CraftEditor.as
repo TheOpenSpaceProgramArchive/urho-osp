@@ -282,6 +282,13 @@ class CraftEditor : UIController
         // Add the UIElement that is suppose to follow the mouse cursor
         m_uiCursor = ui.root.CreateChild("Cursor");
         
+        Text@ t = Text("CursorText");
+        t.SetFont(cache.GetResource("Font", "Fonts/BlueHighway.ttf"), 12);
+        t.text = "";
+        t.SetPosition(15, 0);
+        
+        m_uiCursor.AddChild(t);
+        
 
         // Add the HotkeyHandler
         // Note: this is a constructor, maybe snake_case functions might have
@@ -566,7 +573,9 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 {
 
     // TODO: support symmetries, support attachments
-
+    Text@ cursorText = editor.m_uiCursor.GetChild("CursorText");
+    
+    
     switch (args["FeatureOp"].GetInt())
     {
     case FEATUREOP_START:
@@ -579,7 +588,7 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
         }
         else
         {
-            
+
             feature.m_stayOn = true;
             @(editor.m_cursorLock) = feature;
             
@@ -661,9 +670,20 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
             pairs.Clear();
             editor.CalculatePossibleSnaps(pairs, 10, 0.1f);
 
-            for (int i = 0; i < pairs.length; i ++)
+            //for (int i = 0; i < pairs.length; i ++)
+            //{
+            //    Print("Possible attachment for: " + pairs[i].m_selected.name);
+            //}
+
+            
+            
+            if (pairs.length == 0)
             {
-                Print("Possible attachment for: " + pairs[i].m_selected.name);
+                cursorText.text = "";
+            }
+            else
+            {
+                cursorText.text = "Possible Connections: " + pairs.length;
             }
 
             feature.m_data["CursorPrevious"] = cursorPosition;
@@ -711,10 +731,35 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
                 editor.m_sfx.frequency = hit.frequency * Random(0.9f, 1.1f);
             }
             
+            cursorText.text = "";
             feature.m_stayOn = false;
             @(editor.m_cursorLock) = null;
             return 0;
         }
+    case FEATUREOP_CANCEL:
+        // Cancel and move selection back to original positions
+        {
+            if (bool(feature.m_data["DeleteOnCancel"]))
+            {
+                // Delete selection
+                for (int i = 0; i < editor.m_selection.length; i ++)
+                {
+                    //editor.m_subject.RemoveChild(editor.m_selection[i]);
+                    
+                    editor.m_selection[i].Remove();
+                }
+                editor.m_selection.Clear();
+            }
+            else
+            {
+                // TODO: move back to original positions
+            }
+            
+            cursorText.text = "";
+            feature.m_stayOn = false;
+            @(editor.m_cursorLock) = null;
+        }
+    
     }
     
    
