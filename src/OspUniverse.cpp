@@ -332,6 +332,14 @@ void OspUniverse::part_node_recurse(Node* partRoot, Node* node)
         // don't loop through children
         return;
     }
+    else if (node->GetName().StartsWith("attach_"))
+    {
+        // Parse an attachment
+
+        // this is seriously all that's needed
+
+        node->AddTag("Attachment");
+    }
 
     const Vector<SharedPtr<Node>>& children = node->GetChildren();
 
