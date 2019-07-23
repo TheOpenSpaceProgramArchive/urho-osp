@@ -49,7 +49,7 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
         aPart->SetVar("description", "A simple oddly shaped cube");
         aPart->SetVar("manufacturer", "Gotzietec Industries");
         aPart->SetVar("name", "Cube "  + String(i));
-        aPart->SetVar("massdry", Pow(0.25f * i, 3.0f));
+        aPart->SetVar("massdry", Pow(float(i), 3.0f));
         aPart->SetVar("prototype", aPart); // stored as WeakPtr
 
         // Tweakscale it based on i

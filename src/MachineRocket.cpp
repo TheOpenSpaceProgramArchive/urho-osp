@@ -97,10 +97,6 @@ void MachineRocket::FixedUpdate(float timeStep)
     Input* i = GetSubsystem<Input>();
     m_curveInputs["throttle"] = Clamp(m_curveInputs["throttle"] + (int(i->GetKeyDown(KEY_F)) - i->GetKeyDown(KEY_G)) * 1.0f, 0.0f, 100.0f);
 
-    // This is mostly temporary
-    m_rocketSound->SetFrequency(44100.0f * (m_curveInputs["throttle"] / 70.0f + 0.3f));
-    m_rocketSound->SetGain(m_curveInputs["throttle"] / 100.0f);
-
     // Set rocket plume
     //m_plume->SetScale(m_curveInputs["throttle"] > 2 ? 2.6f : 0.0f);
     PODVector<ParticleEmitter*> plumes;
@@ -112,8 +108,13 @@ void MachineRocket::FixedUpdate(float timeStep)
     // Calculate thrust from curves
     float thrustCalculated = m_thrust->calculate_float(m_curveInputs, m_baseThrust);
     Vector3 what(collider->GetPosition());
-    rb->ApplyForce(rb->GetRotation() * Vector3(0, 0, thrustCalculated*50.0f), rb->GetRotation() * collider->GetPosition() + rb->GetCenterOfMass());
+    rb->ApplyForce(rb->GetRotation() * Vector3(0, 0, thrustCalculated), rb->GetRotation() * collider->GetPosition() + rb->GetCenterOfMass());
     //rb->GetBody()->applyForce(ToBtVector3(rb->GetRotation() * Vector3(0, m_thrust.get_float(10.0f), 0)), rb->GetRotation() * collider->GetPosition());
+
+    // This is mostly temporary
+    // Change rocket sound pitch based on thrust
+    m_rocketSound->SetFrequency(44100.0f * (thrustCalculated / m_baseThrust * 2.0 + 0.3f));
+    m_rocketSound->SetGain(m_curveInputs["throttle"] / 100.0f);
 
     // Rotation control (temporary)
     Scene* scene = GetScene();
