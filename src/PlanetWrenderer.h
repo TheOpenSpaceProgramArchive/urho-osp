@@ -59,7 +59,8 @@ static constexpr const uint8_t sc_icoTemplateneighbours[20 * 3] {
 // If this changes, then the universe is broken
 static const int sc_icosahedronFaceCount = 20;
 
-enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010, E_CHUNKED = 0b0100 };
+enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010,
+                               E_CHUNKED = 0b0100 };
 
 // Index to a triangle
 typedef uint32_t trindex;
@@ -82,12 +83,14 @@ struct SubTriangle
     Vector3 m_center;
 
     // Data used when subdivided
-    trindex m_children; // index to first child, always has 4 children if subdivided
+
+    // index to first child, always has 4 children if subdivided
+    trindex m_children;
     buindex m_midVerts[3]; // Bottom, Right, Left vertices in index buffer
     buindex m_index; // to index buffer
 
     // Data used when chunked
-    chindex m_chunk; // Index to chunk. (First triangle ever chunked will be 0, second is 1)
+    chindex m_chunk; // Index to chunk. (First triangle ever chunked will be 0)
     buindex m_chunkIndex; // Index to index data in the index buffer
     buindex m_chunkVerts; // Index to vertex data
 };
@@ -95,9 +98,10 @@ struct SubTriangle
 struct UpdateRange
 {
     buindex m_start, m_end;
-    // initialize with maximum buindex value for start (2^32), and minimum buindex for end (0)
+    // initialize with maximum buindex value for start (2^32),
+    // and minimum buindex for end (0)
     // the first min and max operations will replace them
-	UpdateRange() : m_start(Pow((int)2ul, (int)sizeof(buindex) * 8) - 1u), m_end(0) {
+    UpdateRange() : m_start(UINT32_MAX), m_end(0) {
     }
 };
 
@@ -113,15 +117,17 @@ class PlanetWrenderer
     double m_radius;
 
     unsigned m_maxDepth;
-    unsigned m_previewDepth; // minimum depth. guarentee to never subdivide below this
+    unsigned m_previewDepth; // minimum depth. never subdivide below this
 
     Vector3 m_offset;
     Vector3 m_camera;
     float m_cameraDist;
     float m_threshold;
 
-    float m_subdivAreaThreshold; // How much screen area a triangle can take before it should be subdivided
-    float m_chunkAreaThreshold; // How much screen area a triangle can take before it should be chunked
+    // How much screen area a triangle can take before it should be subdivided
+    float m_subdivAreaThreshold;
+    // How much screen area a triangle can take before it should be chunked
+    float m_chunkAreaThreshold;
 
     Model* m_model;
 
@@ -143,10 +149,10 @@ class PlanetWrenderer
     buindex m_maxVertice;
 
     PODVector<SubTriangle> m_triangles; // List of all triangles
-    PODVector<trindex> m_trianglesFree; // Deleted triangles in the triangle class array
+    PODVector<trindex> m_trianglesFree; // Deleted triangles in the m_triangles
     buindex m_maxTriangles;
 
-    PODVector<buindex> m_vertFree; // Deleted vertices in vertex buffer GPU data
+    PODVector<buindex> m_vertFree; // Deleted vertices in m_vertBuf GPU data
     // use "m_indDomain[buindex]" to get a triangle index
 
     // Geometry for chunks
@@ -162,32 +168,38 @@ class PlanetWrenderer
     chindex m_chunkCount; // How many chunks there are right now
 
     PODVector<trindex> m_chunkIndDomain; // Maps chunks to triangles
-    PODVector<chindex> m_chunkIndDeleteMe; // Spots in the index buffer that want to die
+    // Spots in the index buffer that want to die
+    PODVector<chindex> m_chunkIndDeleteMe;
 
     SharedPtr<VertexBuffer> m_chunkVertBuf;
     buindex m_chunkMaxVert; // How large the chunk vertex buffer is in total
-    buindex m_chunkMaxVertShared; // How much of it is reserved for shared vertices
+    buindex m_chunkMaxVertShared; // How much is reserved for shared vertices
 
-    // This one is commented out because it's equal to the (# of chunks) * (# of middle vertices)
-    //buindex m_vertCountChunkFixed; // Current number of fixed vertices
-    buindex m_chunkVertCountShared; // Current of shared vertices (edges of chunks)
-    PODVector<buindex> m_chunkVertFree; // Deleted chunk vertices that can be overwritten
-    PODVector<buindex> m_chunkVertFreeShared; // Deleted shared chunk vertices that can be overwritten
+    buindex m_chunkVertCountShared; // Current of shared vertices (chunk edges)
+    PODVector<buindex> m_chunkVertFree; // Deleted chunk data to overwrite
+    PODVector<buindex> m_chunkVertFreeShared; // same as above but for shared
 
     // it's impossible for a vertex to have more than 6 users
     // Delete a shared vertex when it's users goes to zero
     // And use user count to calculate normals
-    PODVector<uint8_t> m_chunkVertUsers; // Count how many times each shared chunk vertex is being used
-    PODVector<buindex> m_chunkSharedIndices; // Indicies that point to shared vertices.
+
+    // Count how many times each shared chunk vertex is being used
+    PODVector<uint8_t> m_chunkVertUsers;
+    // Indicies that point to shared vertices.
+    PODVector<buindex> m_chunkSharedIndices;
 
     // Vertex buffer data is divided unevenly for chunks
     // In m_chunkVertBuf:
-    // [shared vertex data] (m_chunkMaxVertShared) [middle vertices] (m_chunkMaxVert)
+    // [shared vertex data, middle vertices]
+    //                     ^               ^
+    //        (m_chunkMaxVertShared)    (m_chunkMaxVert)
 
     // if chunk resolution is 16, then...
     // Chunks are triangles of 136 vertices (m_chunkSize)
-    // There are 45 vertices on the edges, (sides + corners) = (14 + 14 + 14 + 3) = m_chunkSharedCount;
-    // Which means there is 91 vertices left in the middle (m_chunkSize - m_chunkSharedCount)
+    // There are 45 vertices on the edges, (sides + corners)
+    // = (14 + 14 + 14 + 3) = m_chunkSharedCount;
+    // Which means there is 91 vertices left in the middle
+    // (m_chunkSize - m_chunkSharedCount)
 
 public:
 
@@ -196,14 +208,16 @@ public:
     bool is_ready() { return m_ready; }
 
     /**
-     * Calculate initial icosahedron and initialize buffers. Call before drawing
+     * Calculate initial icosahedron and initialize buffers.
+     * Call before drawing
      * @param context [in] Context used to initialize Urho3D objects
      * @param size [in] Minimum height of planet, or radius
      */
     void initialize(Context* context, Image* heightMap, double size);
 
     /**
-     * Recalculates camera positiona and sub_recurses the main 20 triangles. Call this when the camera moves.
+     * Recalculates camera positiona and sub_recurses the main 20 triangles.
+     * Call this when the camera moves.
      * @param camera [in] Position of camera center
      */
     void update(const Vector3& camera);
@@ -220,7 +234,8 @@ protected:
      * @param rte [in] Right
      * @param lft [in] Left
      */
-    static inline void set_neighbours(SubTriangle& tri, trindex bot, trindex rte, trindex lft);
+    static inline void set_neighbours(SubTriangle& tri, trindex bot,
+                                      trindex rte, trindex lft);
 
     /**
      * A quick way to set vertices of a triangle
@@ -229,7 +244,8 @@ protected:
      * @param lft Left
      * @param rte Right
      */
-    static inline void set_verts(SubTriangle& tri, trindex top, trindex lft, trindex rte);
+    static inline void set_verts(SubTriangle& tri, trindex top,
+                                 trindex lft, trindex rte);
 
     /**
      * Find which side a triangle is on another triangle
@@ -237,9 +253,9 @@ protected:
      * @param [in] lookingFor Index of triangle to search for
      * @return Neighbour index (0 - 2), or bottom, left, or right
      */
-    static inline const uint8_t neighboor_index(SubTriangle& tri, trindex lookingFor);
+    static inline int neighboor_index(SubTriangle& tri, trindex lookingFor);
 
-    void set_side_recurse(SubTriangle& tri, uint8_t side, trindex to);
+    void set_side_recurse(SubTriangle& tri, int side, trindex to);
 
     /**
      * Show or hide a triangle.
@@ -249,7 +265,8 @@ protected:
     void set_visible(trindex t, bool visible, UpdateRange* gpuInd = nullptr);
 
     /**
-     * Recursively check every triangle for which ones need (un)subdividing or chunking
+     * Recursively check every triangle for which ones need
+     * (un)subdividing or chunking
      * @param t [in] Triangle to start with
      */
     void sub_recurse(trindex t);
@@ -258,13 +275,16 @@ protected:
      * Subdivide a triangle into 4 more
      * @param [in] Triangle to subdivide
      */
-    void subdivide_add(trindex t, UpdateRange* gpuVert = nullptr, UpdateRange* gpuInd = nullptr);
+    void subdivide_add(trindex t, UpdateRange* gpuVert = nullptr,
+                       UpdateRange* gpuInd = nullptr);
 
     /**
-     * Unsubdivide a triangle. Removes children and sets neighbours of neighbours
+     * Unsubdivide a triangle.
+     * Removes children and sets neighbours of neighbours
      * @param t [in] Index of triangle to unsubdivide
      */
-    void subdivide_remove(trindex t, UpdateRange* gpuVert = nullptr, UpdateRange* gpuInd = nullptr);
+    void subdivide_remove(trindex t, UpdateRange* gpuVert = nullptr,
+                          UpdateRange* gpuInd = nullptr);
 
     /**
      * Calculates and sets m_center
@@ -277,14 +297,16 @@ protected:
      * @param t [in] Index of triangle to add chunk to
      * @param gpuIgnore
      */
-    void chunk_add(trindex t, UpdateRange* gpuVertChunk = nullptr, UpdateRange* gpuVertInd = nullptr);
+    void chunk_add(trindex t, UpdateRange* gpuVertChunk = nullptr,
+                   UpdateRange* gpuVertInd = nullptr);
 
     /**
      * @brief chunk_remove
      * @param t
      * @param gpuIgnore
      */
-    void chunk_remove(trindex t, UpdateRange* gpuVertChunk = nullptr, UpdateRange* gpuVertInd = nullptr);
+    void chunk_remove(trindex t, UpdateRange* gpuVertChunk = nullptr,
+                      UpdateRange* gpuVertInd = nullptr);
 
     /**
      * Get triangle from vector of triangles
@@ -292,7 +314,10 @@ protected:
      * @param t [in] Index to triangle
      * @return Pointer to triangle
      */
-    inline SubTriangle* get_triangle(trindex t) const { return m_triangles.Buffer() + t; }
+    inline SubTriangle* get_triangle(trindex t) const
+    {
+        return m_triangles.Buffer() + t;
+    }
 
     /**
      * Convert XY coordinates to a triangular number index
@@ -307,10 +332,11 @@ protected:
      * @param y [in]
      * @return
      */
-    inline const unsigned get_index(int x, int y) const;
+    inline unsigned get_index(int x, int y) const;
 
     /**
-     * Similar to the normal get_index, but the first possible indices returned makes a border around the triangle
+     * Similar to the normal get_index, but the first possible indices returned
+     * makes a border around the triangle
      *
      * 6
      * 5  7
@@ -324,13 +350,13 @@ protected:
      * @param y [in]
      * @return
      */
-    const unsigned get_index_ringed(int x, int y) const;
+    unsigned get_index_ringed(int x, int y) const;
 
     /**
      * Add up memory usages from most variables associated with this instance.
      * @return Memory usage in bytes
      */
-    const uint64_t get_memory_usage() const;
+    uint64_t get_memory_usage() const;
 
     /**
      * For debugging only: search for triangles that should have been deleted
