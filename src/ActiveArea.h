@@ -1,16 +1,18 @@
 #pragma once
 
+#include "LongVector3.h"
 #include "OspUniverse.h"
+#include "Satellite.h"
 
 using namespace Urho3D;
 
 namespace osp {
 
 /**
- * Makes a scene a part of the OSP universe
- * It handles floating origin
+ * Turns an ordinary Urho3D scene into a window to the larger OSP universe
+ * Loads and unloads Satellites, and handles floating origin
  */
-class ActiveArea : public LogicComponent
+class ActiveArea : public LogicComponent, public Satellite
 {
     URHO3D_OBJECT(ActiveArea, LogicComponent)
 
@@ -20,18 +22,17 @@ public:
 
     static void RegisterObject(Context* context);
 
-    void relocate(AstronomicalBody* body, const LongVector3& localBodyPos);
+    //void relocate(AstronomicalBody* body, const LongVector3& localBodyPos);
 
     Satellite* get_focus() const { return m_focus; };
-
-    void set_terrain(PlanetTerrain* terrain);
     void set_focus(Satellite* sat) { m_focus = sat; };
+
+    void load(ActiveArea *area) const override;
+    void unload() const override;
 
 private:
 
     LongVector3 m_localBodyPos;
-    WeakPtr<AstronomicalBody> m_localBody;
-    WeakPtr<PlanetTerrain> m_terrain;
     WeakPtr<Satellite> m_focus;
 
 };

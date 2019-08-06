@@ -5,26 +5,32 @@
 namespace osp {
 
 /**
- * Class containing data describing an astronomical body (star, planet, asteroid), and their properties (size, water level, mass)
+ * Class containing data describing an astronomical body
+ * [star, planet, moon, asteroid, etc...],
+ * and their properties (size, sea level, mass)
  */
 class AstronomicalBody : public Satellite
 {
-    URHO3D_OBJECT(AstronomicalBody, Satellite)
 
 public:
-    AstronomicalBody(Context* context);
 
-    static void RegisterObject(Context* context);
-    void FixedUpdate(float timeStep) override;
+    AstronomicalBody()
+    {
 
-    LongVector3 get_long_position() override;
+    };
 
-    float get_radius() { return m_radius; }
+    float get_radius()
+    {
+        return m_radius;
+    }
+
+    void load(ActiveArea *area) const override;
+
+    void unload() const override;
 
 private:
 
     float m_radius; // sea level
-    WeakPtr<AstronomicalBody> m_orbiting;
 
 };
 

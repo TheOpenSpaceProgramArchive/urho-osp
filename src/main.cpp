@@ -80,8 +80,8 @@ public:
     OSPApplication(Context * context) : Application(context), m_framecount(0), m_time(0)
     {
         ActiveArea::RegisterObject(context);
-        AstronomicalBody::RegisterObject(context);
-        Entity::RegisterObject(context);
+        //AstronomicalBody::RegisterObject(context);
+        //Entity::RegisterObject(context);
         GLTFFile::RegisterObject(context);
         PlanetTerrain::RegisterObject(context);
 

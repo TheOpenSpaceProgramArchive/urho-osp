@@ -9,26 +9,57 @@
 namespace osp {
 
 /**
- * @brief LOD Planet terrain that could be rendered
+ * A component for drawing planets using PlanetWrenderer.
+ * Usually created when loading an AstronomicalBody
  */
 class PlanetTerrain : public StaticModel
 {
     URHO3D_OBJECT(PlanetTerrain, StaticModel)
 
 public:
-    PlanetTerrain(Context* context);
 
+    // For Urho3D
     static void RegisterObject(Context* context);
 
+    PlanetTerrain(Context* context);
+
+    /**
+     * Subdivide/Unsubdivide, and chunk/unchunk depending on how far the
+     * ActiveArea's m_focus is from the planet
+     * @param eventType
+     * @param eventData
+     */
+    void lod_update(StringHash eventType, VariantMap& eventData);
+
+    /**
+     * When true, lod_update will subscribe to E_UPDATE
+     * @param [in] enable a self explanatory boolean value
+     */
+    void set_lod_update_enabled(bool enable);
+
+    /**
+     * Generate preview model
+     * @param [in] AstronomicalBody to get parameters from
+     */
     void initialize(AstronomicalBody* body);
-    void UpdatePosition(const LongVector3& activePosition);
-    PlanetWrenderer* GetPlanet() { return &m_planet; }
+
+    PlanetWrenderer* get_planet()
+    {
+        return &m_planet;
+    }
 
 private:
-    bool m_first;
+
+    // Used to generate the planet model
     PlanetWrenderer m_planet;
+
+    // Not yet used
     WeakPtr<RigidBody> m_collider;
+
+    // Associated AstronomicalBody
     WeakPtr<AstronomicalBody> m_body;
+
+    bool m_first;
 };
 
 }

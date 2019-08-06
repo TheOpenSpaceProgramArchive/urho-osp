@@ -129,30 +129,17 @@ void OspUniverse::debug_function(const StringHash which)
     }
     else if (which == StringHash("create_universe"))
     {
-        //PhysicsWorld* pw = scene->GetComponent<PhysicsWorld>();//scene->CreateComponent<PhysicsWorld>();
-        //pw->SetGravity(Vector3::ZERO);
+        // Set the root of the universe to a single body
+        m_bigUniverse = new AstronomicalBody();
 
+        // AstronomicalBody is currently hard-coded to default to a very dense
+        // astroid-sized ridiculously spherical bumpy ball
 
-        // Create "solar system" of just 1 planet
-        m_solarSystem = m_hiddenScene->CreateChild("SolarSystem");
-        AstronomicalBody* ab = m_solarSystem->CreateComponent<AstronomicalBody>();
-
-        // Create a planet with terrain
-        Node* planet = scene->CreateChild("PlanetTerrain");
-        PlanetTerrain* terrain = planet->CreateComponent<PlanetTerrain>();
-        terrain->initialize(ab);
-
-        RigidBody* rb = planet->CreateComponent<RigidBody>();
-        CollisionShape* shape = planet->CreateComponent<CollisionShape>();
-        shape->SetSphere(4000.0f * 2.0f);
-        rb->SetEnabled(false);
-        //terrain->GetPlanet()->update(Vector3(0, 4002, 0));
-        //shape->SetTriangleMesh(terrain->GetPlanet()->get_model(), 0, Vector3::ONE);
-
+        // Make the scene a part of the new solar system
         ActiveArea* area = scene->CreateComponent<ActiveArea>();
-        area->relocate(ab, LongVector3(0, 4150 * 1000, 0));
-        area->set_focus(scene->GetChild("Subject")->GetComponent<Entity>());
-        area->set_terrain(terrain);
+        //area->relocate(ab, LongVector3(0, 4150 * 1000, 0));
+        //area->set_focus(scene->GetChild("Subject")->GetComponent<Entity>());
+        //area->set_terrain(terrain);
 
     }
 
@@ -355,7 +342,7 @@ void OspUniverse::part_node_recurse(Node* partRoot, Node* node)
  */
 void OspUniverse::make_craft(Node* node)
 {
-    node->CreateComponent<Entity>();
+    //node->CreateComponent<Entity>();
     PODVector<Node*> printthese = node->GetChildrenWithComponent("StaticModel", true);
 
     //for (Node* n : printthese)

@@ -15,16 +15,21 @@ using namespace Urho3D;
 namespace osp {
 
 
-
-
 /**
  * @brief A (singleton) class that handles many in-game functions
  */
 class OspUniverse : public Object
 {
+    // Scene to store nodes like Part Prototypes
     SharedPtr<Scene> m_hiddenScene;
-    SharedPtr<Node> m_parts;
-    SharedPtr<Node> m_solarSystem;
+
+    // A big list of parts, stored in the hidden scene
+    WeakPtr<Node> m_parts;
+
+    // Root node of the entire solar system
+    SharedPtr<Satellite> m_bigUniverse;
+
+    // List of ActiveAreas
     Vector<SharedPtr<Scene>> m_activeScenes;
 
     //HashMap<StringHash, SharedPtr<ObjectFactory> > m_machines;
