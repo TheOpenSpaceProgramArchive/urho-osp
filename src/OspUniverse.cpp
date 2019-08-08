@@ -11,7 +11,6 @@
 #include <Urho3D/Resource/ResourceCache.h>
 
 #include "ActiveArea.h"
-#include "Entity.h"
 #include "MachineRocket.h"
 #include "PlanetTerrain.h"
 #include "OspUniverse.h"
@@ -105,10 +104,6 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
     }
 }
 
-/**
- * @brief Performs many other functions
- * @param which [in] Hash for which function to call
- */
 void OspUniverse::debug_function(const StringHash which)
 {
     // Get scene
@@ -129,30 +124,61 @@ void OspUniverse::debug_function(const StringHash which)
     }
     else if (which == StringHash("create_universe"))
     {
+        URHO3D_LOGINFOF("Creating universe...");
+
+        // Destroy the universe first
+        m_bigUniverse = nullptr;
+
+        // AstronomicalBody is currently hard-coded to default to a very dense
+        // astroid-sized ridiculously spherical 4km radius bumpy ball
+
         // Set the root of the universe to a single body
         m_bigUniverse = new AstronomicalBody();
 
-        // AstronomicalBody is currently hard-coded to default to a very dense
-        // astroid-sized ridiculously spherical bumpy ball
+        // Add some more AstronomicalBody
 
-        // Make the scene a part of the new solar system
+        AstronomicalBody* moonA = new AstronomicalBody();
+        moonA->set_position(LongVector3(1024 * 16000, 0, 0));
+        m_bigUniverse->add_child(moonA);
+
+        AstronomicalBody* moonB = new AstronomicalBody();
+        moonB->set_position(LongVector3(-1024 * 16000, 0, 0));
+        m_bigUniverse->add_child(moonB);
+        
+        AstronomicalBody* moonBA = new AstronomicalBody();
+        moonBA->set_position(LongVector3(0, 0, 1024 * 16000));
+        moonB->add_child(moonBA);
+
+        AstronomicalBody* moonBAA = new AstronomicalBody();
+        moonBAA->set_position(LongVector3(0, 0, 1024 * 16000));
+        moonBA->add_child(moonBAA);
+
+        // test calculation for relative position
+        LongVector3 d;
+        d = Satellite::calculate_relative_position(moonA, moonB, 1024);
+        URHO3D_LOGINFOF("moonA->moonB: %i %i %i", d.x_, d.y_, d.z_);
+
+        // Link the Urho scene to the universe just created
         ActiveArea* area = scene->CreateComponent<ActiveArea>();
-        //area->relocate(ab, LongVector3(0, 4150 * 1000, 0));
-        //area->set_focus(scene->GetChild("Subject")->GetComponent<Entity>());
-        //area->set_terrain(terrain);
+
+        m_bigUniverse->add_child(area);
+
+        // Position 150m above the surface
+        area->set_position(LongVector3(0, 4150 * 1024, 0));;
+
+        // Load them into the area
+        // Usually these functions should be called by the ActiveArea itself
+        // but any sort of distance checking auto loading isn't implemented yet
+        m_bigUniverse->load(area);
+        moonA->load(area);
+        moonB->load(area);
+        moonBA->load(area);
+        moonBAA->load(area);
 
     }
 
 }
 
-/**
- * @brief Adds an OSP resource directory
- * @param path [in] Absolute File Path to directory
- *
- * The directory contents will be scanned for parts and scripts.
- * Contents of a subdirectory named "Parts" will be scanned recursively for .gltf.sturdy files
- *
- */
 void OspUniverse::process_directory(const String& path)
 {
     ResourceCache* cache = GetSubsystem<ResourceCache>();
@@ -190,10 +216,6 @@ void OspUniverse::process_directory(const String& path)
     }
 }
 
-/**
- * @brief Include a .gltf.sturdy's contents into the categories of parts
- * @param gltf [in] GLTF file to process
- */
 void OspUniverse::register_parts(const GLTFFile* gltf)
 {
     // Doesn't need to be an actual scene, just make it a node
@@ -336,10 +358,6 @@ void OspUniverse::part_node_recurse(Node* partRoot, Node* node)
     }
 }
 
-/**
- * @brief OspUniverse::make_craft A function that adds Entity and some functionality to a node made of disabled parts. currently just adds Entity
- * @param node [in, out] Node to turn into a craft
- */
 void OspUniverse::make_craft(Node* node)
 {
     //node->CreateComponent<Entity>();

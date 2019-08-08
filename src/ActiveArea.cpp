@@ -1,3 +1,4 @@
+#include <Urho3D/Core/Context.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/CollisionShape.h>
 
@@ -9,7 +10,12 @@ using namespace Urho3D;
 
 ActiveArea::ActiveArea(Context* context) : LogicComponent(context)
 {
+    m_name = "Untitled ActiveArea";
+}
 
+ActiveArea::~ActiveArea()
+{
+    //Satellite::~Satellite();
 }
 
 void ActiveArea::RegisterObject(Context* context)
@@ -19,6 +25,8 @@ void ActiveArea::RegisterObject(Context* context)
 
 void ActiveArea::FixedUpdate(float timeStep)
 {
+    m_activeNode = node_;
+    
     PhysicsWorld* pw = node_->GetScene()->GetComponent<PhysicsWorld>();
 
     LongVector3 focusPosLong;
@@ -86,12 +94,12 @@ void ActiveArea::FixedUpdate(float timeStep)
     pw->SetGravity(gravity);
 }
 
-void ActiveArea::load(ActiveArea* area) const
+void ActiveArea::load(ActiveArea* area)
 {
-
+    URHO3D_LOGINFOF("hey");
 }
 
-void ActiveArea::unload() const
+void ActiveArea::unload()
 {
-
+    URHO3D_LOGINFOF("hey");
 }

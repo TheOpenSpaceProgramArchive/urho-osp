@@ -49,7 +49,6 @@
 #include <Urho3D/ThirdParty/AngelScript/angelscript.h>
 
 #include "ActiveArea.h"
-#include "Entity.h"
 #include "config.h"
 #include "GLTFFile.h"
 #include "Machine.h"
@@ -67,17 +66,16 @@ public:
 
     SharedPtr<Scene> m_scene;
     SharedPtr<OspUniverse> m_osp;
-    //SharedPtr<Node> m_cameraNode;
-    //Vector<ScriptFile*> m_runImmediately;
     Vector<String> m_runImmediately;
 
     /**
-    * This happens before the engine has been initialized
-    * so it's usually minimal code setting defaults for
-    * whatever instance variables you have.
-    * You can also do this in the Setup method.
-    */
-    OSPApplication(Context * context) : Application(context), m_framecount(0), m_time(0)
+     * This happens before the engine has been initialized
+     * so it's usually minimal code setting defaults for
+     * whatever instance variables you have.
+     * You can also do this in the Setup method.
+     */
+    OSPApplication(Context * context) : Application(context), m_framecount(0),
+                                        m_time(0)
     {
         ActiveArea::RegisterObject(context);
         //AstronomicalBody::RegisterObject(context);
@@ -90,7 +88,9 @@ public:
     }
 
     /**
-     * A function called only by AngelScript
+     * A function used to get the OspUniverse instance.
+     * Used only by Angelscript so far.
+     * @return The OspUniverse
      */
     OspUniverse* GetOsp()
     {
@@ -98,11 +98,11 @@ public:
     }
 
     /**
-    * This method is called before the engine has been initialized.
-    * Thusly, we can setup the engine parameters before anything else
-    * of engine importance happens (such as windows, search paths,
-    * resolution and other things that might be user configurable).
-    */
+     * This method is called before the engine has been initialized.
+     * Thusly, we can setup the engine parameters before anything else
+     * of engine importance happens (such as windows, search paths,
+     * resolution and other things that might be user configurable).
+     */
     virtual void Setup()
     {
         engineParameters_["FullScreen"] = false;
@@ -122,11 +122,13 @@ public:
 
         // Use Default Urho3D UI style
         UIElement* root = GetSubsystem<UI>()->GetRoot();
-        root->SetDefaultStyle(cache->GetResource<XMLFile>("UI/DefaultStyle.xml"));
+        root->SetDefaultStyle(
+                    cache->GetResource<XMLFile>("UI/DefaultStyle.xml"));
 
         // Create the loading screen image and add it to the UI root
         BorderImage* loading = new BorderImage(context_);
-        loading->SetTexture(cache->GetResource<Texture2D>("Textures/TempLoad.png"));
+        loading->SetTexture(
+                    cache->GetResource<Texture2D>("Textures/TempLoad.png"));
         loading->SetSize(1280, 720);
         root->AddChild(loading);
 
@@ -150,30 +152,39 @@ public:
         context_->RegisterSubsystem(new Script(context_));
 
         // Register "osp" as a global in AngelScript
-        asIScriptEngine* scriptEngine = GetSubsystem<Script>()->GetScriptEngine();
+        asIScriptEngine* scriptEngine =
+                GetSubsystem<Script>()->GetScriptEngine();
+
         RegisterObject<OspUniverse>(scriptEngine, "OspUniverse");
-        scriptEngine->RegisterObjectMethod("OspUniverse", "Scene@+ get_hiddenScene() const", asMETHOD(OspUniverse, get_hidden_scene), asCALL_THISCALL);
-        scriptEngine->RegisterObjectMethod("OspUniverse", "void make_craft(Node@+) const", asMETHOD(OspUniverse, make_craft), asCALL_THISCALL);
-        scriptEngine->RegisterObjectMethod("OspUniverse", "void debug_function(StringHash) const", asMETHOD(OspUniverse, debug_function), asCALL_THISCALL);
 
-        // call GetOsp when osp is accessed from angelscript, see thing about singleton https://www.angelcode.com/angelscript/sdk/docs/manual/doc_register_func.html
-        scriptEngine->RegisterGlobalFunction("OspUniverse@+ get_osp()", asMETHOD(OSPApplication, GetOsp), asCALL_THISCALL_ASGLOBAL, this);
+        scriptEngine->RegisterObjectMethod("OspUniverse",
+                "Scene@+ get_hiddenScene() const",
+                asMETHOD(OspUniverse, get_hidden_scene), asCALL_THISCALL);
 
-        // Run main menu script once it's loaded
-        //m_runImmediately.Push("Scripts/MainMenu.as");
-        //cache->BackgroundLoadResource<ScriptFile>("Scripts/MainMenu.as", true);
+        scriptEngine->RegisterObjectMethod("OspUniverse",
+                "void make_craft(Node@+) const",
+                asMETHOD(OspUniverse, make_craft), asCALL_THISCALL);
 
-        //Vector<String> files;
-        //fileSystem->ScanDir(files, cache->GetResourceDirs()[2], String("*"), SCAN_FILES, false);
+        scriptEngine->RegisterObjectMethod("OspUniverse",
+                "void debug_function(StringHash) const",
+                asMETHOD(OspUniverse, debug_function), asCALL_THISCALL);
 
-        // OSPData directory
+        // call GetOsp when osp is accessed from angelscript
+        // See https://www.angelcode.com/angelscript/sdk/...
+        //     docs/manual/doc_register_func.html
+        scriptEngine->RegisterGlobalFunction("OspUniverse@+ get_osp()",
+                                             asMETHOD(OSPApplication, GetOsp),
+                                             asCALL_THISCALL_ASGLOBAL, this);
+
+
+        // Path to OSPData directory
         String ospDir = cache->GetResourceDirs()[2];
 
-        // List files in it
+        // List directories in OSPData
         Vector<String> subDirs;
         fileSystem->ScanDir(subDirs, ospDir, String("*"), SCAN_DIRS, false);
 
-        // Remove invalid folders
+        // Remove invalid folders (there should be a better way to do this)
         {
             Vector<String>::Iterator pathIterator = subDirs.Begin();
             while (pathIterator != subDirs.End())
@@ -187,13 +198,11 @@ public:
             }
         }
 
+        // Call process_directory on every valid folder
         for(String name : subDirs)
         {
             m_osp->process_directory(ospDir + name);
         }
-
-        // remove this later
-        GetSubsystem<ResourceCache>()->BackgroundLoadResource<Material>("Materials/Planet.xml");
 
         // Don't grab the mouse
         GetSubsystem<Input>()->SetMouseGrabbed(false);
@@ -201,14 +210,12 @@ public:
 
         // We subscribe to the events we'd like to handle.
         // Some of these are unused, and much more fresh from the example
-        SubscribeToEvent(E_BEGINFRAME, URHO3D_HANDLER(OSPApplication, HandleBeginFrame));
-        SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(OSPApplication, HandleKeyDown));
-        SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(OSPApplication, HandleUpdate));
-        SubscribeToEvent(E_POSTUPDATE, URHO3D_HANDLER(OSPApplication, HandlePostUpdate));
-        SubscribeToEvent(E_RENDERUPDATE, URHO3D_HANDLER(OSPApplication, HandleRenderUpdate));
-        SubscribeToEvent(E_POSTRENDERUPDATE, URHO3D_HANDLER(OSPApplication, HandlePostRenderUpdate));
-        SubscribeToEvent(E_ENDFRAME, URHO3D_HANDLER(OSPApplication, HandleEndFrame));
-        SubscribeToEvent(E_RESOURCEBACKGROUNDLOADED, URHO3D_HANDLER(OSPApplication, HandleResourceLoaded));
+        SubscribeToEvent(E_KEYDOWN,
+                         URHO3D_HANDLER(OSPApplication, HandleKeyDown));
+        SubscribeToEvent(E_UPDATE,
+                         URHO3D_HANDLER(OSPApplication, HandleUpdate));
+        SubscribeToEvent(E_RESOURCEBACKGROUNDLOADED,
+                         URHO3D_HANDLER(OSPApplication, HandleResourceLoaded));
     }
 
     /**
@@ -220,172 +227,84 @@ public:
     virtual void Stop() {
     }
 
-    /**
-    * Every frame's life must begin somewhere. Here it is.
-    */
-    void HandleBeginFrame(StringHash eventType,VariantMap& eventData) {
-        // We really don't have anything useful to do here for this example.
-        // Probably shouldn't be subscribing to events we don't care about.
-    }
 
     /**
-    * Input from keyboard is handled here. I'm assuming that Input, if
-    * available, will be handled before E_UPDATE.
-    */
+     * Urho3D Handler called each time a key is pressed
+     * Most of this should be debug code, maybe open a console some day?
+     * @param eventType
+     * @param eventData
+     */
     void HandleKeyDown(StringHash eventType, VariantMap& eventData) {
-        using namespace KeyDown;
-        int key=eventData[P_KEY].GetInt();
-        if(key==KEY_ESCAPE)
-            engine_->Exit();
 
-        if(key==KEY_Q) {
-            Material* m = GetSubsystem<ResourceCache>()->GetResource<Material>("Materials/Planet.xml");
-            m->SetFillMode((m->GetFillMode() == FILL_WIREFRAME) ? FILL_SOLID : FILL_WIREFRAME );
+        using namespace KeyDown;
+
+        int key = eventData[P_KEY].GetInt();
+
+        // Exit with ESC
+        if (key == KEY_ESCAPE)
+        {
+            engine_->Exit();
         }
 
-        if(key==KEY_TAB) {
-            // toggle mouse cursor when pressing tab
-            GetSubsystem<Input>()->SetMouseVisible(!GetSubsystem<Input>()->IsMouseVisible());
-            GetSubsystem<Input>()->SetMouseGrabbed(!GetSubsystem<Input>()->IsMouseGrabbed());
+        // Toggle planet material wireframe
+        if (key == KEY_Q)
+        {
+            Material* m = GetSubsystem<ResourceCache>()
+                            ->GetResource<Material>("Materials/Planet.xml");
+            m->SetFillMode((m->GetFillMode() == FILL_WIREFRAME)
+                                ? FILL_SOLID : FILL_WIREFRAME );
+        }
+
+        // Toggle mouse cursor when pressing tab
+        if (key == KEY_TAB)
+        {
+            GetSubsystem<Input>()->SetMouseVisible(
+                        !GetSubsystem<Input>()->IsMouseVisible());
+            GetSubsystem<Input>()->SetMouseGrabbed(
+                        !GetSubsystem<Input>()->IsMouseGrabbed());
         }
     }
 
     /**
-    * You can get these events from when ever the user interacts with the UI.
-    */
+     * Urho3D Handler called when the close button is pressed
+     * @param eventType
+     * @param eventData
+     */
     void HandleClosePressed(StringHash eventType,VariantMap& eventData) {
         engine_->Exit();
     }
+
     /**
-    * Your non-rendering logic should be handled here.
-    * This could be moving objects, checking collisions and reaction, etc.
-    */
+     * Urho3D Handler called every (physics) update
+     * @param eventType
+     * @param eventData
+     */
     void HandleUpdate(StringHash eventType,VariantMap& eventData) {
         float timeStep = eventData[Update::P_TIMESTEP].GetFloat();
         m_framecount ++;
         m_time += timeStep;
-
-        Scene* scene= m_scene;
-
-        if (GetSubsystem<Renderer>()->GetNumViewports() != 0)
-        {
-            if (GetSubsystem<Renderer>()->GetViewport(0)->GetCamera() != NULL)
-            {
-                        scene = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetScene();
-            }
-        }
-
-        // Quick and easy floating point origin
-        /*Vector3 translateEverything(m_cameraNode->GetPosition());
-        translateEverything.x_ = Floor(translateEverything.x_ / 64) * 64;
-        translateEverything.y_ = Floor(translateEverything.y_ / 64) * 64;
-        translateEverything.z_ = Floor(translateEverything.z_ / 64) * 64;
-        if (translateEverything != Vector3::ZERO) {
-            printf("saaaaa %.2f %.2f %.2f\n", translateEverything.x_, translateEverything.y_, translateEverything.z_);
-            const Vector<SharedPtr<Node>> e = m_scene->GetChildren();
-            for (uint i = 0; i < e.Size(); i ++) {
-                e[i]->Translate(-translateEverything, TS_WORLD);
-            }
-          
-        }*/
-
-        // This part finds and accesses a planet if found,
-        // it then calls update with relative camera position as input
-        //auto planets = scene->GetChildrenWithComponent("PlanetTerrain");
-        //if (!GetSubsystem<Input>()->IsMouseVisible() && planets.Size() != 0)
-        //{
-        //    Vector3 cameraPos = GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetWorldPosition();
-        //    Vector3 planetPos = planets[0]->GetWorldPosition();
-        //    planets[0]->GetComponent<PlanetTerrain>()->GetPlanet()->update(cameraPos - planetPos);
-        //}
-
-        // A part of the code that isn't visible
-        if (m_time >= 0.2) {
-
-            std::string str;
-            str.append("OpenSpaceProgram " GIT_BRANCH "-" GIT_COMMIT_HASH ", too early\n"
-                       "Tab: Toggle mouse, WASD: Move, Shift: Fast mode, Q: Toggle Wireframe\n"
-                       "T: toggle planet update, R/F: LoD up/down, P: Show truth, Esc: quit\n"
-                       "--------------------------------------------------------------------\n");
-            {
-                std::ostringstream ss;
-                ss<<(float)m_framecount/m_time;
-                std::string s(ss.str());
-                str.append("Frame R8    : ");
-                str.append(s.substr(0,6));
-                str.append("\n");
-            }
-            String s(str.c_str(),str.size());
-            //text_->SetText(s);
-            ///URHO3D_LOGINFO(s);     // this show how to put stuff into the log
-            m_framecount = 0;
-            m_time = 0;
-        }
-
-        Input* input = GetSubsystem<Input>();
-
     }
+
     /**
-    * Anything in the non-rendering logic that requires a second pass,
-    * it might be well suited to be handled here.
-    */
-    void HandlePostUpdate(StringHash eventType,VariantMap& eventData) {
-        // We really don't have anything useful to do here for this example.
-        // Probably shouldn't be subscribing to events we don't care about.
-    }
-    /**
-    * If you have any details you want to change before the viewport is
-    * rendered, try putting it here.
-    * See http://urho3d.github.io/documentation/1.32/_rendering.html
-    * for details on how the rendering pipeline is setup.
-    */
-    void HandleRenderUpdate(StringHash eventType, VariantMap & eventData) {
-        // We really don't have anything useful to do here for this example.
-        // Probably shouldn't be subscribing to events we don't care about.
-    }
-    /**
-    * After everything is rendered, there might still be things you wish
-    * to add to the rendering. At this point you cannot modify the scene,
-    * only post rendering is allowed. Good for adding things like debug
-    * artifacts on screen or brush up lighting, etc.
-    */
-    void HandlePostRenderUpdate(StringHash eventType, VariantMap & eventData) {
-        // We could draw some debuggy looking thing for the octree.
-        // m_scene->GetComponent<Octree>()->DrawDebugGeometry(true);
-    }
-    /**
-    * All good things must come to an end.
-    */
-    void HandleEndFrame(StringHash eventType,VariantMap& eventData) {
-        // We really don't have anything useful to do here for this example.
-        // Probably shouldn't be subscribing to events we don't care about.
-    }
-
+     * Urho3D Handler called each time a resource finishes loading
+     * @param eventType
+     * @param eventData
+     */
     void HandleResourceLoaded(StringHash eventType, VariantMap& eventData) {
 
         if (eventData[ResourceBackgroundLoaded::P_SUCCESS].GetBool())
         {
-            //printf("Succ: %s %s\n", eventData[ResourceBackgroundLoaded::P_RESOURCENAME].GetString().CString(), m_runImmediately[0].CString());
+            Resource* res = reinterpret_cast<Resource*>(
+                        eventData[ResourceBackgroundLoaded::P_RESOURCE]
+                            .GetVoidPtr());
 
-            // Check if the the resource is in the run run immediately list
-
-            //unsigned i = m_runImmediately.IndexOf(eventData[ResourceBackgroundLoaded::P_RESOURCENAME].GetString());
-            //if (i != -1)
-            //{
-            //    // Run the thing, probably a script
-            //    m_runImmediately.Erase(i);
-            //    ScriptFile* script = reinterpret_cast<ScriptFile*>(eventData[ResourceBackgroundLoaded::P_RESOURCE].GetVoidPtr());
-            //    VariantVector params;
-            //    params.Push(Variant(m_scene));
-            //    script->Execute("void main(Scene&)", params);
-            //}
-            Resource* res = reinterpret_cast<Resource*>(eventData[ResourceBackgroundLoaded::P_RESOURCE].GetVoidPtr());
-
-            //URHO3D_LOGINFO(res->GetTypeName());
+            // Call the loaded() function of each script file that gets loaded
+            // Remove this some day in place of a better system
             if (res->IsInstanceOf("ScriptFile"))
             {
                 ScriptFile* script = reinterpret_cast<ScriptFile*>(res);
-                asIScriptFunction* function = script->GetFunction("void loaded()");
+                asIScriptFunction* function =
+                        script->GetFunction("void loaded()");
                 //URHO3D_LOGINFOF("functopn: %p", function);
                 if (function)
                 {
@@ -401,9 +320,13 @@ public:
             }
         } else {
             // error!
-            URHO3D_LOGERRORF("Failed to load resource: %s", eventData[ResourceBackgroundLoaded::P_RESOURCENAME].GetString().CString());
+            URHO3D_LOGERRORF("Failed to load resource: %s",
+                    eventData[ResourceBackgroundLoaded::P_RESOURCENAME]
+                            .GetString().CString());
         }
+
     }
+
 };
 
 

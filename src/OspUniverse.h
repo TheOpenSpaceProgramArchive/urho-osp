@@ -43,13 +43,43 @@ public:
 
     Scene* get_hidden_scene() { return m_hiddenScene; }
 
+    /**
+     * Various debug functions that can be called from AngelScript
+     * @param which [in] Hash for which function to call
+     */
     void debug_function(const StringHash which);
+
+    /**
+     * @brief Adds an OSP resource directory
+     * @param path [in] Absolute File Path to directory
+     *
+     * The directory contents will be scanned for parts and scripts.
+     * Contents of a subdirectory named "Parts" will be scanned recursively for .gltf.sturdy files
+     *
+     */
     void process_directory(const String& path);
+
+    /**
+     * @brief Include a .gltf.sturdy's contents into the categories of parts
+     * @param gltf [in] GLTF file to process
+     */
     void register_parts(const GLTFFile* gltf);
+
     //void register_machine(ObjectFactory* factory);
+
+    /**
+     * This function shouldn't exist
+     * @param node Yes
+     */
     void make_craft(Node* node);
     
 private:
+
+    /**
+     * Recursive function used to scan through sturdy files
+     * @param partRoot glTF root that should be passed on unchanged
+     * @param node Current node
+     */
     void part_node_recurse(Node* partRoot, Node* node);
 };
 

@@ -14,23 +14,22 @@ class AstronomicalBody : public Satellite
 
 public:
 
-    AstronomicalBody()
-    {
-
-    };
+    AstronomicalBody();
+    ~AstronomicalBody() override;
 
     float get_radius()
     {
         return m_radius;
     }
 
-    void load(ActiveArea *area) const override;
+    void load(ActiveArea *area) override;
 
-    void unload() const override;
+    void unload() override;
 
 private:
 
-    float m_radius; // sea level
+    // Minimum height, for now
+    float m_radius;
 
 };
 
