@@ -12,6 +12,7 @@
 
 #include "ActiveArea.h"
 #include "MachineRocket.h"
+#include "NodeSat.h"
 #include "PlanetTerrain.h"
 #include "OspUniverse.h"
 
@@ -132,7 +133,7 @@ void OspUniverse::debug_function(const StringHash which)
         // AstronomicalBody is currently hard-coded to default to a very dense
         // astroid-sized ridiculously spherical 4km radius bumpy ball
 
-        // Set the root of the universe to a single body
+        // Set the root of the universe to a default astronomical body
         m_bigUniverse = new AstronomicalBody();
 
         // Add some more AstronomicalBody
@@ -153,27 +154,47 @@ void OspUniverse::debug_function(const StringHash which)
         moonBAA->set_position(LongVector3(0, 0, 1024 * 16000));
         moonBA->add_child(moonBAA);
 
-        // test calculation for relative position
-        LongVector3 d;
-        d = Satellite::calculate_relative_position(moonA, moonB, 1024);
-        URHO3D_LOGINFOF("moonA->moonB: %i %i %i", d.x_, d.y_, d.z_);
+        // Creata a NodeSat to represent the player's craft
+        NodeSat* subjectSat = new NodeSat();
+        subjectSat->set_node(scene->GetChild("Subject"));
+        m_bigUniverse->add_child(subjectSat);
 
         // Link the Urho scene to the universe just created
         ActiveArea* area = scene->CreateComponent<ActiveArea>();
-
         m_bigUniverse->add_child(area);
 
-        // Position 150m above the surface
+        // Make the ActiveArea follow the player's craft arouynd
+        area->set_focus(subjectSat);
+
+        // Position both 150m above the surface
         area->set_position(LongVector3(0, 4150 * 1024, 0));;
+        subjectSat->set_position(LongVector3(0, 4150 * 1024, 0));
+
+        // Now we're all set!
+        // ActiveArea will start loading everything next frame
+
+        // Universe tree should look like this:
+        // * m_bigUniverse
+        //   * moonA
+        //   * moonB
+        //     * moonBA
+        //       * moonBAA
+        //   * subjectSat
+        //   * area
+
+        // test calculation for relative position
+        //LongVector3 d;
+        //d = Satellite::calculate_relative_position(moonA, moonB, 1024);
+        //URHO3D_LOGINFOF("moonA->moonB: %i %i %i", d.x_, d.y_, d.z_);
 
         // Load them into the area
         // Usually these functions should be called by the ActiveArea itself
         // but any sort of distance checking auto loading isn't implemented yet
-        m_bigUniverse->load(area);
-        moonA->load(area);
-        moonB->load(area);
-        moonBA->load(area);
-        moonBAA->load(area);
+        //m_bigUniverse->load(area);
+        //moonA->load(area);
+        //moonB->load(area);
+        //moonBA->load(area);
+        //moonBAA->load(area);
 
     }
 

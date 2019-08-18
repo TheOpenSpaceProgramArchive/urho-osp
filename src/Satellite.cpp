@@ -15,6 +15,7 @@ void Satellite::add_child(Satellite *newChild)
     {
         // TODO: move old parent's UniquePtr child to this satellite
     }
+    newChild->m_index = m_children.Size();
     newChild->m_depth = m_depth + 1;
     newChild->m_parent = this;
     m_children.Push(UniquePtr<Satellite>(newChild));
@@ -40,10 +41,11 @@ LongVector3 Satellite::calculate_relative_position(const Satellite* from,
     
     // Relative position for satellites with different parents
     // Similar to "N-ary Tree Least Common Ancestor"
+    // TODO: account for differing m_unitsPerMeter and integer over/underflows
     
     const Satellite* satA = from;
     const Satellite* satB = to;
-    
+
     LongVector3 posA;
     LongVector3 posB;
 

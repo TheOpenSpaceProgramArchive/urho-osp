@@ -9,8 +9,9 @@ using namespace osp;
 
 AstronomicalBody::AstronomicalBody()
 {
+    m_loadRadius = 5000 * 1024;
     m_radius = 4000.0f;
-    m_name = "Untitled";
+    m_name = "Untitled Moon?";
 }
 
 AstronomicalBody::~AstronomicalBody()
@@ -18,7 +19,7 @@ AstronomicalBody::~AstronomicalBody()
     //Satellite::~Satellite();
 }
 
-void AstronomicalBody::load(ActiveArea* area)
+Node* AstronomicalBody::load(ActiveArea* area, const Vector3& pos)
 {
     Node* scene = area->GetNode();
 
@@ -38,6 +39,14 @@ void AstronomicalBody::load(ActiveArea* area)
                     floatPos.y_, floatPos.z_);
 
     m_activeNode->SetPosition(floatPos);
+
+    return m_activeNode.Get();
+}
+
+Node* AstronomicalBody::load_preview(ActiveArea *area)
+{
+    // TODO
+    return nullptr;
 }
 
 void AstronomicalBody::unload()

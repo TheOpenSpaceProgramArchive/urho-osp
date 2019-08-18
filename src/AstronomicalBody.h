@@ -22,7 +22,9 @@ public:
         return m_radius;
     }
 
-    void load(ActiveArea *area) override;
+    Node* load(ActiveArea* area, const Vector3& pos) override;
+
+    Node* load_preview(ActiveArea* area) override;
 
     void unload() override;
 
