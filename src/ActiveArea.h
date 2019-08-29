@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Urho3D/Scene/LogicComponent.h>
+#include <Urho3D/Scene/Scene.h>
 
 #include "Satellite.h"
 
@@ -10,22 +10,24 @@ namespace osp {
 
 class ActiveArea;
 
+
 /**
  * Turns an ordinary Urho3D scene into a window to the larger OSP universe
  * Loads and unloads Satellites, and handles floating origin
  */
-class ActiveArea : public LogicComponent, public Satellite
+class ActiveArea : public Satellite
 {
-    URHO3D_OBJECT(ActiveArea, LogicComponent)
+
+
+    URHO3D_OBJECT(ActiveArea, Satellite)
 
 public:
 
     ActiveArea(Context* context);
+    ActiveArea(Context* context, Scene* scene);
     ~ActiveArea();
 
-    virtual void FixedUpdate(float timeStep) override;
-
-    static void RegisterObject(Context* context);
+    void update(float timeStep);
 
     //void relocate(AstronomicalBody* body, const LongVector3& localBodyPos);
 

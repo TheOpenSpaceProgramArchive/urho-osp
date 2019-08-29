@@ -10,9 +10,12 @@ namespace osp {
  */
 class NodeSat : public Satellite
 {
+
+    URHO3D_OBJECT(NodeSat, Satellite)
+
 public:
 
-    NodeSat();
+    NodeSat(Context* context);
     ~NodeSat() override;
 
     Node* get_node()

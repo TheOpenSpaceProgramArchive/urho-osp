@@ -12,9 +12,11 @@ namespace osp {
 class AstronomicalBody : public Satellite
 {
 
+    URHO3D_OBJECT(AstronomicalBody, Satellite)
+
 public:
 
-    AstronomicalBody();
+    AstronomicalBody(Context* context);
     ~AstronomicalBody() override;
 
     float get_radius()

@@ -1,8 +1,14 @@
 #include <Urho3D/IO/Log.h>
 
+#include "ActiveArea.h"
 #include "Satellite.h"
 
 using namespace osp;
+
+Satellite::Satellite(Context* context) : Object(context)
+{
+
+}
 
 Satellite::~Satellite()
 {
@@ -24,7 +30,7 @@ void Satellite::add_child(Satellite *newChild)
 
 LongVector3 Satellite::calculate_relative_position(const Satellite* from,
                                                 const Satellite* to,
-                                                unsigned unitsPerMeter)
+                                                int precision)
 {
     // Distance to self will never be greater than or less than zero.
     if (from == to)
@@ -65,4 +71,43 @@ LongVector3 Satellite::calculate_relative_position(const Satellite* from,
     }
     
     return posB - posA;
+}
+
+
+LongVector3 Satellite::calculate_position()
+{
+    // If loaded
+    if (is_loaded())
+    {
+        // Set position to the current ActiveArea's position
+        //m_position = m_activeArea->get_position();
+        // Add the float position
+        //m_position += m_activeArea->m_unit
+
+        // TODO: account for m_precision
+
+        // Note: ActiveArea's center is its Scene origin
+
+        // Position relative to ActiveArea in meters
+        Vector3 floatPos = m_activeNode->GetPosition();
+
+        // How much the active area moved while this satellite was loaded
+        LongVector3 activeAreaDisplacement = m_activeArea->get_position()
+                - m_activeAreaLoadedPos;
+
+
+
+    }
+    else
+    {
+
+    }
+}
+
+Node* Satellite::load(ActiveArea *area, const Vector3 &pos)
+{
+    m_activeAreaLoadedPos = area->get_position();
+    m_activeArea = area;
+
+    m_positionLoaded = m_position;
 }

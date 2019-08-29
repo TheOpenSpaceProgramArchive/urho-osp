@@ -30,7 +30,7 @@ class OspUniverse : public Object
     SharedPtr<Satellite> m_bigUniverse;
 
     // List of ActiveAreas
-    Vector<SharedPtr<Scene>> m_activeScenes;
+    Vector<WeakPtr<ActiveArea>> m_activeAreas;
 
     //HashMap<StringHash, SharedPtr<ObjectFactory> > m_machines;
 

@@ -48,7 +48,6 @@
 #include <Urho3D/AngelScript/APITemplates.h>
 #include <Urho3D/ThirdParty/AngelScript/angelscript.h>
 
-#include "ActiveArea.h"
 #include "config.h"
 #include "GLTFFile.h"
 #include "Machine.h"
@@ -77,7 +76,7 @@ public:
     OSPApplication(Context * context) : Application(context), m_framecount(0),
                                         m_time(0)
     {
-        ActiveArea::RegisterObject(context);
+        //ActiveArea::RegisterObject(context);
         //AstronomicalBody::RegisterObject(context);
         //Entity::RegisterObject(context);
         GLTFFile::RegisterObject(context);

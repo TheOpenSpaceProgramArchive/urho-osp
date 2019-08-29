@@ -8,9 +8,16 @@
 using namespace osp;
 using namespace Urho3D;
 
-ActiveArea::ActiveArea(Context* context) : LogicComponent(context)
+
+ActiveArea::ActiveArea(Context* context) : Satellite(context)
+{
+
+}
+
+ActiveArea::ActiveArea(Context* context, Scene* scn) : ActiveArea(context)
 {
     m_name = "Untitled ActiveArea";
+    m_activeNode = scn;
 
     // load everything within a kilometer
     m_loadRadius = 1000 * 1024;
@@ -21,16 +28,11 @@ ActiveArea::~ActiveArea()
     //Satellite::~Satellite();
 }
 
-void ActiveArea::RegisterObject(Context* context)
-{
-    context->RegisterFactory<ActiveArea>("ActiveArea");
-}
 
-void ActiveArea::FixedUpdate(float timeStep)
+void ActiveArea::update(float timeStep)
 {
-    m_activeNode = node_;
     
-    PhysicsWorld* pw = node_->GetScene()->GetComponent<PhysicsWorld>();
+    PhysicsWorld* pw = m_activeNode->GetComponent<PhysicsWorld>();
 
     LongVector3 focusPosLong;
 
@@ -132,7 +134,7 @@ void ActiveArea::FixedUpdate(float timeStep)
         //URHO3D_LOGINFOF("move!");
         // Translate all nodes to move the camera back to the center
         PODVector<Node*> rigidBodies;
-        node_->GetChildren(rigidBodies);
+        m_activeNode->GetChildren(rigidBodies);
         for (Node* rbNode : rigidBodies)
         {
             rbNode->Translate(offsetDist, TS_WORLD);
@@ -204,7 +206,7 @@ void ActiveArea::distance_check_then_load(Satellite* sat,
         URHO3D_LOGINFOF("ActiveArea Loading: %s", sat->get_name().CString());
 
         Vector3 floatPos(Vector3(relative.x_, relative.y_, relative.z_)
-                       / m_unitsPerMeter);
+                       / (1 << m_precision));
         sat->load(this, floatPos);
     }
 }

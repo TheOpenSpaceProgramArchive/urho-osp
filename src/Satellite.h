@@ -16,10 +16,14 @@ class ActiveArea;
 /**
  * Base class for any physical object in the large universe
  */
-class Satellite : public RefCounted
+class Satellite : public Object
 {
 
+    URHO3D_OBJECT(Satellite, Object)
+
 public:
+
+    Satellite(Context* context);
 
     virtual ~Satellite();
 
@@ -28,12 +32,12 @@ public:
      * located anywhere
      * @param from [in] Reference frame
      * @param to [in] Satellite to calculate position for
-     * @param unitsPerMeter [in] Desired precision of return value
+     * @param precision [in] Desired precision of return value
      * @return Position of 'to' relative to 'from'
      */
     static LongVector3 calculate_relative_position(const Satellite* from,
                                                    const Satellite* to,
-                                                       unsigned unitsPerMeter);
+                                                   int precision);
     
     /**
      * Add a child Satellite
@@ -42,6 +46,11 @@ public:
     void add_child(Satellite* newChild);
 
     /**
+     * Returns current position. This only returns the previously stored value
+     * for position, but does not calculate a new one. Consider calling
+     * calculate_position() instead, to account for movement due to
+     * Trajectory calculations or movement of the active node if loaded.
+     *
      * @return Position relative to parent
      */
     LongVector3 get_position() const
@@ -50,14 +59,13 @@ public:
     }
 
     /**
-     * Set position relative to parent
+     * Set position relative to parent. This function is probably dangerous
      * @param pos [in] Desired value
      */
     inline void set_position(const LongVector3& pos)
     {
         m_position = pos;
     }
-
 
     inline uint64_t get_load_radius() const
     {
@@ -98,13 +106,30 @@ public:
     }
 
     /**
+     * Shorthand for checking if m_activeNode is null
+     * @return true if loaded, false if not loaded
+     */
+    inline bool is_loaded() const
+    {
+        return m_activeNode.Null();
+    }
+
+    /**
+     * Calculates a new position for this Satellite. Calls the Trajectory for a
+     * new position, or uses the position of the active node when loaded.
+     *
+     * @return Position relative to parent, same as get_position
+     */
+    virtual LongVector3 calculate_position();
+
+    /**
      * Try loading the satellite into the scene
      * Usually called when entering an ActiveArea (player gets close)
      * @param area [in] ActiveArea to load into
      * @param pos [in] Desired position in meters to load into.
      * @return Pointer to Active Node, null if load failed
      */
-    virtual Node* load(ActiveArea* area, const Vector3& pos) = 0;
+    virtual Node* load(ActiveArea* area, const Vector3& pos);
 
     /**
      * Similar to load, called when an object is visible from an ActiveArea,
@@ -153,19 +178,40 @@ protected:
 
     // Associated node when loaded by an ActiveArea
     // Can only be loaded into one ActiveArea at a time
+    // Null if not loaded
     WeakPtr<Node> m_activeNode;
+
+    // ActiveArea loaded into
+    WeakPtr<ActiveArea> m_activeArea;
+
+    // Position of the ActiveArea above the moment its loaded. Used to
+    // calculate m_position quickly
+    LongVector3 m_activeAreaLoadedPos;
+
+    // Capture of m_position taken on load
+    LongVector3 m_positionLoaded;
 
     // Preview nodes beloning to many different ActiveAreas
     // Multiple ActiveAreas can see the same Satallite from a distance
     //Vector< WeakPtr<Node> > m_previews;
 
-    // Scale for how many LongVector3 units is equal to a meter. This applies
-    // to this Satellite's children. If this was 1000, then 1 = 1mm
-    // smaller number means less precision, but larger
-    unsigned m_unitsPerMeter = 1024;
+    // Not implemented yet, but it's here
+    // Scale for how many LongVector3 units is equal to a meter. This only
+    // applies to this Satellite's children.
+    //
+    // m_precision bit shifts m_position, multiplying it by powers of two
+    //
+    // precision = 0 ->   1  units = 1 meter
+    // precision = 1 ->   2  units = 1 meter
+    // precision = 2 ->   4  units = 1 meter
+    // ...
+    // precision = 10 ->  1024 units = 1 meter (The Default)
+    //
+    // This should be able to go negative for very large sizes
+    int m_precision = 10;
 
     // orbital stuff goes here. something like:
-    // OrbitType m_orbitType
+    // Trajectory m_trajectory;
 
 };
 

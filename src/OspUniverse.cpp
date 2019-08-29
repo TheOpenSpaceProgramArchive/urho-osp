@@ -134,33 +134,34 @@ void OspUniverse::debug_function(const StringHash which)
         // astroid-sized ridiculously spherical 4km radius bumpy ball
 
         // Set the root of the universe to a default astronomical body
-        m_bigUniverse = new AstronomicalBody();
+        m_bigUniverse = new AstronomicalBody(context_);
 
         // Add some more AstronomicalBody
 
-        AstronomicalBody* moonA = new AstronomicalBody();
+        AstronomicalBody* moonA = new AstronomicalBody(context_);
         moonA->set_position(LongVector3(1024 * 16000, 0, 0));
         m_bigUniverse->add_child(moonA);
 
-        AstronomicalBody* moonB = new AstronomicalBody();
+        AstronomicalBody* moonB = new AstronomicalBody(context_);
         moonB->set_position(LongVector3(-1024 * 16000, 0, 0));
         m_bigUniverse->add_child(moonB);
         
-        AstronomicalBody* moonBA = new AstronomicalBody();
+        AstronomicalBody* moonBA = new AstronomicalBody(context_);
         moonBA->set_position(LongVector3(0, 0, 1024 * 16000));
         moonB->add_child(moonBA);
 
-        AstronomicalBody* moonBAA = new AstronomicalBody();
+        AstronomicalBody* moonBAA = new AstronomicalBody(context_);
         moonBAA->set_position(LongVector3(0, 0, 1024 * 16000));
         moonBA->add_child(moonBAA);
 
         // Creata a NodeSat to represent the player's craft
-        NodeSat* subjectSat = new NodeSat();
+        NodeSat* subjectSat = new NodeSat(context_);
         subjectSat->set_node(scene->GetChild("Subject"));
         m_bigUniverse->add_child(subjectSat);
 
         // Link the Urho scene to the universe just created
-        ActiveArea* area = scene->CreateComponent<ActiveArea>();
+        ActiveArea* area = new ActiveArea(context_, scene);
+        m_activeAreas.Push(WeakPtr<ActiveArea>(area));
         m_bigUniverse->add_child(area);
 
         // Make the ActiveArea follow the player's craft arouynd
