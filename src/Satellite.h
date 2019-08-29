@@ -18,6 +18,7 @@ class ActiveArea;
  */
 class Satellite : public Object
 {
+    friend class ActiveArea;
 
     URHO3D_OBJECT(Satellite, Object)
 
@@ -111,7 +112,7 @@ public:
      */
     inline bool is_loaded() const
     {
-        return m_activeNode.Null();
+        return m_activeNode.NotNull();
     }
 
     /**
@@ -158,6 +159,24 @@ protected:
     // Position relative to parent
     LongVector3 m_position;
 
+    // Only partially implemented
+    // Scale for how many LongVector3 units is equal to a meter. This only
+    // applies to this Satellite's children.
+    //
+    // m_precision bit shifts m_position, multiplying it by powers of two
+    //
+    // precision = -1 ->   1  unit  = 2 meters
+    // precision = 0  ->   1  units = 1 meter
+    // precision = 1  ->   2  units = 1 meter
+    // precision = 2  ->   4  units = 1 meter
+    // ...
+    // precision = 10 ->  1024 units = 1 meter (The Default)
+    //
+    // around 10-14 is good for a solar system
+    // maybe increase the value for planets
+    // Large negative values are for galactic scales
+    int m_precision = 10;
+
     // A sphere around this Satellite. When this intersects an ActiveArea's
     // sphere, then the ActiveArea will try to load this satellite.
     uint64_t m_loadRadius;
@@ -191,24 +210,14 @@ protected:
     // Capture of m_position taken on load
     LongVector3 m_positionLoaded;
 
-    // Preview nodes beloning to many different ActiveAreas
-    // Multiple ActiveAreas can see the same Satallite from a distance
-    //Vector< WeakPtr<Node> > m_previews;
+    // Allow Trajectory to control the position of the ActiveNode
+    // aka: on rails
+    // maybe set this to false when the active node gets nudged
+    bool m_trajectoryOverride;
 
-    // Not implemented yet, but it's here
-    // Scale for how many LongVector3 units is equal to a meter. This only
-    // applies to this Satellite's children.
-    //
-    // m_precision bit shifts m_position, multiplying it by powers of two
-    //
-    // precision = 0 ->   1  units = 1 meter
-    // precision = 1 ->   2  units = 1 meter
-    // precision = 2 ->   4  units = 1 meter
-    // ...
-    // precision = 10 ->  1024 units = 1 meter (The Default)
-    //
-    // This should be able to go negative for very large sizes
-    int m_precision = 10;
+    // Set this to true when the active node gets interacted with, causing a
+    // change in its velocity
+    bool m_nudged;
 
     // orbital stuff goes here. something like:
     // Trajectory m_trajectory;

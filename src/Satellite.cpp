@@ -7,7 +7,7 @@ using namespace osp;
 
 Satellite::Satellite(Context* context) : Object(context)
 {
-
+    m_trajectoryOverride = false;
 }
 
 Satellite::~Satellite()
@@ -76,8 +76,9 @@ LongVector3 Satellite::calculate_relative_position(const Satellite* from,
 
 LongVector3 Satellite::calculate_position()
 {
+
     // If loaded
-    if (is_loaded())
+    if (is_loaded() && !m_trajectoryOverride)
     {
         // Set position to the current ActiveArea's position
         //m_position = m_activeArea->get_position();
@@ -95,13 +96,21 @@ LongVector3 Satellite::calculate_position()
         LongVector3 activeAreaDisplacement = m_activeArea->get_position()
                 - m_activeAreaLoadedPos;
 
+        // Scale to m_parent's position
+        floatPos *= (1 << m_parent->m_precision);
 
+        // Long position relative to ActiveArea
+        LongVector3 longPos(floatPos.x_, floatPos.y_, floatPos.z_);
+
+        m_position = m_positionLoaded + activeAreaDisplacement + longPos;
 
     }
     else
     {
-
+        // TODO: call upon m_trajectory for a new position
     }
+
+    return m_position;
 }
 
 Node* Satellite::load(ActiveArea *area, const Vector3 &pos)

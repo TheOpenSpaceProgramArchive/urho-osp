@@ -1,4 +1,5 @@
 #include <Urho3D/Core/Context.h>
+#include <Urho3D/Physics/PhysicsEvents.h>
 #include <Urho3D/Physics/PhysicsWorld.h>
 #include <Urho3D/Physics/CollisionShape.h>
 
@@ -21,6 +22,11 @@ ActiveArea::ActiveArea(Context* context, Scene* scn) : ActiveArea(context)
 
     // load everything within a kilometer
     m_loadRadius = 1000 * 1024;
+
+    PhysicsWorld* world = scn->GetComponent<PhysicsWorld>();
+
+    SubscribeToEvent(world, E_PHYSICSPRESTEP,
+                     URHO3D_HANDLER(ActiveArea, physics_update));
 }
 
 ActiveArea::~ActiveArea()
@@ -29,19 +35,21 @@ ActiveArea::~ActiveArea()
 }
 
 
-void ActiveArea::update(float timeStep)
+void ActiveArea::physics_update(StringHash eventType, VariantMap& eventData)
 {
     
-    PhysicsWorld* pw = m_activeNode->GetComponent<PhysicsWorld>();
+    URHO3D_LOGINFOF("timestep: %f", eventData["TimeStep"].GetFloat());
+
+    const PhysicsWorld* pw = m_activeNode->GetComponent<PhysicsWorld>();
 
     LongVector3 focusPosLong;
 
-    // Loop through all objects in the tree, while continuously calculating
-    // relative positions
+    // Traverse through all objects in the tree, while calculating relative
+    // positions simultaneously
 
     // roughly based on calculate_relative_position in Satellite.cpp
 
-    // TODO: account for differing m_unitsPerMeter and integer over/underflows
+    // TODO: account for differing precisions and integer over/underflows
     // note: if the number of overflows is equal to the number of underflows,
     //       then the result is correct? I feel this has some similarities to
     //       the idea of "Parallel Universes" in Super Mario 64
@@ -103,45 +111,55 @@ void ActiveArea::update(float timeStep)
         //                satA->get_name().CString(), d.x_, d.y_, d.z_);
     }
 
-    return;
-
-
+    // Position of m_focus in meters
     Vector3 focusPos;
 
     if (m_focus.NotNull())
     {
         //focusPosLong = m_focus->get_long_position();
-        //focusPos = m_focus->get_active_node()->GetPosition();
+        focusPos = m_focus->get_active_node()->GetPosition();
+
+        //String fpostring = m_focus->calculate_position().ToString();
+        //URHO3D_LOGINFOF("Focus pos: %s", fpostring.CString());
     }
     else
     {
-        //focusPos = GetSubsystem<Renderer>()->GetViewport(0)
-        //        ->GetCamera()->GetNode()->GetWorldPosition();
+        // TODO
+
     }
 
     const float originDistance = focusPos.Length();
     const float threshold = 30.0f;
 
     if (originDistance > threshold) {
-        Vector3 offsetDist = focusPos * -1000.0f;
+
+        // Distance to offset everything with
+
+        Vector3 offsetDist = -focusPos;
+
+        // Round components for less precision loss
         offsetDist.x_ = Floor(offsetDist.x_);
         offsetDist.y_ = Floor(offsetDist.y_);
         offsetDist.z_ = Floor(offsetDist.z_);
-        //relocate(m_localBody, m_localBodyPos - LongVector3(offsetDist.x_, offsetDist.y_, offsetDist.z_));
 
-        offsetDist *= 0.001f;
+        URHO3D_LOGINFOF("move! %s", offsetDist.ToString().CString());
 
-        //URHO3D_LOGINFOF("move!");
-        // Translate all nodes to move the camera back to the center
+        // Translate all nodes to move the focus back to the center
+
         PODVector<Node*> rigidBodies;
+
         m_activeNode->GetChildren(rigidBodies);
+
         for (Node* rbNode : rigidBodies)
         {
-            rbNode->Translate(offsetDist, TS_WORLD);
+            rbNode->Translate(offsetDist, TS_PARENT);
 
-            // Delete far away nodes
+            // Delete far away nodes that have a RemoveDistance var
+            // intended to be used for explosion debris or something
+
             const VariantMap& vars = rbNode->GetVars();
             Variant removeDistance;
+
             if (vars.TryGetValue("RemoveDistance", removeDistance))
             {
                 if (rbNode->GetPosition().Length() > removeDistance.GetFloat())
@@ -152,14 +170,18 @@ void ActiveArea::update(float timeStep)
             }
         }
 
-        //GetSubsystem<Renderer>()->GetViewport(0)->GetCamera()->GetNode()->GetParent()->Translate(offsetDist, TS_WORLD);
+        // convert offsetDist to this ActiveArea's parent space
+        offsetDist *= Pow(2.0f, float(m_parent->m_precision));
+
+        // Move the ActiveArea to compensate
+        m_position -= LongVector3(offsetDist.x_, offsetDist.y_, offsetDist.z_);
     }
 
     //pw->SetGravity(Vector3::ZERO);
 
     // some gravity for temporary fun
     //float moon = 88200000;
-    //Vector3 gravity;// = (m_terrain->GetNode()->GetPosition() - node_->GetChild("CameraCenter")->GetPosition());
+    //Vector3 gravity;
     //float r = gravity.Length();
     //gravity = gravity / r;
     //gravity *= moon / (r * r);

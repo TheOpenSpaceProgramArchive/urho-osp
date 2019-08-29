@@ -1,3 +1,5 @@
+#include <Urho3D/IO/Log.h>
+
 #include "ActiveArea.h"
 #include "NodeSat.h"
 

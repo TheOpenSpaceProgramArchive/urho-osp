@@ -27,7 +27,7 @@ public:
     ActiveArea(Context* context, Scene* scene);
     ~ActiveArea();
 
-    void update(float timeStep);
+    void physics_update(StringHash eventType, VariantMap& eventData);
 
     //void relocate(AstronomicalBody* body, const LongVector3& localBodyPos);
 
