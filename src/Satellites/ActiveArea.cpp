@@ -4,7 +4,7 @@
 #include <Urho3D/Physics/CollisionShape.h>
 
 #include "ActiveArea.h"
-#include "PlanetTerrain.h"
+#include "../Terrain/PlanetTerrain.h"
 
 using namespace osp;
 using namespace Urho3D;
@@ -37,7 +37,7 @@ ActiveArea::~ActiveArea()
 
 void ActiveArea::physics_update(StringHash eventType, VariantMap& eventData)
 {
-    
+
     URHO3D_LOGINFOF("timestep: %f", eventData["TimeStep"].GetFloat());
 
     const PhysicsWorld* pw = m_activeNode->GetComponent<PhysicsWorld>();

@@ -5,7 +5,7 @@
 #include <Urho3D/Resource/JSONValue.h>
 #include <Urho3D/Container/HashMap.h>
 
-#include "PerformanceCurves.h"
+#include "../Resource/PerformanceCurves.h"
 
 using namespace Urho3D;
 

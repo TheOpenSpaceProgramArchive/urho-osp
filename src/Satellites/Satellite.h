@@ -4,7 +4,7 @@
 #include <Urho3D/Container/Ptr.h>
 #include <Urho3D/Container/RefCounted.h>
 
-#include "LongVector3.h"
+#include "../LongVector3.h"
 
 using namespace Urho3D;
 

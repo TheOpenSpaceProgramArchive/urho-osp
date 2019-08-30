@@ -11,9 +11,9 @@
 #include <Urho3D/Container/HashMap.h>
 #include <Urho3D/Core/Variant.h>
 
-#include "PerformanceCurves.h"
+#include "../Resource/PerformanceCurves.h"
 
-#include "OspUniverse.h"
+#include "../OspUniverse.h"
 #include "Machine.h"
 
 

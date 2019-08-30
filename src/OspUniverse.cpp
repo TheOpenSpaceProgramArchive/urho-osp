@@ -10,10 +10,11 @@
 #include <Urho3D/Physics/CollisionShape.h>
 #include <Urho3D/Resource/ResourceCache.h>
 
-#include "ActiveArea.h"
-#include "MachineRocket.h"
-#include "NodeSat.h"
-#include "PlanetTerrain.h"
+#include "Satellites/ActiveArea.h"
+#include "Satellites/AstronomicalBody.h"
+#include "Machines/MachineRocket.h"
+#include "Satellites/NodeSat.h"
+#include "Terrain/PlanetTerrain.h"
 #include "OspUniverse.h"
 
 using namespace osp;

@@ -5,10 +5,10 @@
 #include <Urho3D/Container/Str.h>
 #include <Urho3D/Scene/LogicComponent.h>
 
-#include "AstronomicalBody.h"
-#include "GLTFFile.h"
 #include "LongVector3.h"
-#include "PlanetWrenderer.h"
+#include "Resource/GLTFFile.h"
+#include "Satellites/AstronomicalBody.h"
+#include "Terrain/PlanetWrenderer.h"
 
 using namespace Urho3D;
 

@@ -49,11 +49,11 @@
 #include <Urho3D/ThirdParty/AngelScript/angelscript.h>
 
 #include "config.h"
-#include "GLTFFile.h"
-#include "Machine.h"
-#include "MachineRocket.h"
+#include "Machines/Machine.h"
+#include "Machines/MachineRocket.h"
 #include "OspUniverse.h"
-#include "PlanetTerrain.h"
+#include "Resource/GLTFFile.h"
+#include "Terrain/PlanetTerrain.h"
 
 using namespace Urho3D;
 using namespace osp;

@@ -3,7 +3,7 @@
 #include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/Physics/RigidBody.h>
 
-#include "AstronomicalBody.h"
+#include "../Satellites/AstronomicalBody.h"
 #include "PlanetWrenderer.h"
 
 namespace osp {

@@ -3,7 +3,7 @@
 
 #include "ActiveArea.h"
 #include "AstronomicalBody.h"
-#include "PlanetTerrain.h"
+#include "../Terrain/PlanetTerrain.h"
 
 using namespace osp;
 
