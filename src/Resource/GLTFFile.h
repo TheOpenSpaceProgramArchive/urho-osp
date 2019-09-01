@@ -13,7 +13,15 @@
 
 using namespace Urho3D;
 
-// Refer to:
+
+// This class has it's own repository, and is meant to work with other Urho3D
+// projects.
+
+// https://github.com/Capital-Asterisk/Urho3D-glTFLoader
+
+// TODO: Add a Urho3D-glTFLoader submodule or something some day, maybe
+
+// for info on glTF, Refer to:
 // https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
 
 /// Combined accessor and bufferView

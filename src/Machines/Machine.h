@@ -12,7 +12,8 @@ using namespace Urho3D;
 namespace osp {
 
 /**
- * Base class for machines
+ * Base class for Machines
+ * See wiki page (if it exists)
  */
 class Machine : public LogicComponent
 {
@@ -20,10 +21,17 @@ class Machine : public LogicComponent
 
 public:
 
-    static void parse_factors(PerformanceCurves& curves, const JSONObject& factors);
+
 
     Machine(Context* context) : LogicComponent(context) {}
 
+    /**
+     * Load data from a JSONObject
+     * Called by OspUniverse after creating a new machine
+     *
+     * @param machine [in] JSONObject directly from the "machines" array in the
+     *                      sturdy file
+     */
     virtual void load_json(const JSONObject& machine) {}
 
     static void RegisterObject(Context* context)

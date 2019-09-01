@@ -20,7 +20,8 @@
 namespace osp {
 
 /**
- * @brief Makes a part apply thrust according to a PerformanceCurve
+ * A Machine that models the thrust of a rocket by using PerformanceCurves
+ * It has some fun particle effects and sounds thrown in as well
  */
 class MachineRocket : public Machine
 {
@@ -36,30 +37,45 @@ public:
     {
         context->RegisterFactory<MachineRocket>();
 
-        URHO3D_ACCESSOR_ATTRIBUTE("Enable Thrust Curves", is_curve_thrust_enabled, set_enable_curve_thrust, bool, true, AM_DEFAULT);
-        URHO3D_ACCESSOR_ATTRIBUTE("Enable Efficiency Curves", is_curve_efficiency_enabled, set_enable_curve_efficiency, bool, true, AM_DEFAULT);
-        URHO3D_ACCESSOR_ATTRIBUTE("Enable Efficiency Curves", is_curve_efficiency_enabled, set_enable_curve_efficiency, bool, true, AM_DEFAULT);
+        // Set urho attributes so that they its easier to clone and serialize
+        // this Machine
 
-        // I have a feeling this doesn't work when netowrking.
-        //URHO3D_ACCESSOR_ATTRIBUTE("Curve Thrust", get_curve_thrust_buffer, set_curve_thrust_buffer, PODVector<unsigned char>, Variant::emptyBuffer, AM_DEFAULT);
+        URHO3D_ACCESSOR_ATTRIBUTE("Enable Thrust Curves",
+                                  is_curve_thrust_enabled,
+                                  set_enable_curve_thrust,
+                                  bool, true, AM_DEFAULT);
+        URHO3D_ACCESSOR_ATTRIBUTE("Enable Efficiency Curves",
+                                  is_curve_efficiency_enabled,
+                                  set_enable_curve_efficiency,
+                                  bool, true, AM_DEFAULT);
+        URHO3D_ACCESSOR_ATTRIBUTE("Enable Efficiency Curves",
+                                  is_curve_efficiency_enabled,
+                                  set_enable_curve_efficiency,
+                                  bool, true, AM_DEFAULT);
 
-        //URHO3D_ACCESSOR_ATTRIBUTE("Curve Thrust", get_curve_thrust, set_curve_thrust, long long, 0, AM_DEFAULT);
     }
 
-    bool is_curve_thrust_enabled() const { return m_curveThrustEnabled; }
-    void set_enable_curve_thrust(bool enable) { m_curveThrustEnabled = enable; }
+    bool is_curve_thrust_enabled() const
+    { return m_curveThrustEnabled; }
+    void set_enable_curve_thrust(bool enable)
+    { m_curveThrustEnabled = enable; }
 
-    bool is_curve_efficiency_enabled() const { return m_curveEfficiencyEnabled; }
-    void set_enable_curve_efficiency(bool enable) { m_curveEfficiencyEnabled = enable; }
+    bool is_curve_efficiency_enabled() const
+    { return m_curveEfficiencyEnabled; }
+    void set_enable_curve_efficiency(bool enable)
+    { m_curveEfficiencyEnabled = enable; }
 
-    PODVector<unsigned char> get_curve_thrust_buffer() const { return m_thrust->to_buffer(); }
-    void set_curve_thrust_buffer(const PODVector<unsigned char>& curves) { m_thrust->from_buffer(curves); }
+    PODVector<unsigned char> get_curve_thrust_buffer() const
+    { return m_thrust->to_buffer(); }
+    void set_curve_thrust_buffer(const PODVector<unsigned char>& curves)
+    { m_thrust->from_buffer(curves); }
 
     PerformanceCurves* get_curve_thrust() const { return m_thrust; }
     void set_curve_thrust(PerformanceCurves* curves) { m_thrust = curves; }
 
     PerformanceCurves* get_curve_efficiency() const { return m_efficiency; }
-    void set_curve_efficiency(PerformanceCurves* curves) { m_efficiency = curves; }
+    void set_curve_efficiency(PerformanceCurves* curves)
+    { m_efficiency = curves; }
     
     float get_base_thrust() const { return m_baseThrust; }
     void set_base_thrust(float baseThrust) { m_baseThrust = baseThrust; }
@@ -71,9 +87,23 @@ public:
 
 private:
 
+    // PerformanceCurves that takes inputs such as:
+    // * heat
+    // * pressure
+    // * throttle  (only one implemented so far)
+    // * time
+    // and outputs a percentage that can be used to scale a value like:
+    // * thrust
+    // * efficiency
+    //
+    // Both of these share the same m_curveInput
     SharedPtr<PerformanceCurves> m_thrust;
     SharedPtr<PerformanceCurves> m_efficiency;
+
+    // A cool hard-coded rocket sound
     WeakPtr<SoundSource> m_rocketSound;
+
+    // A node that has ParticleEmitters to look cool
     WeakPtr<Node> m_plume;
 
     bool m_curveThrustEnabled;
@@ -93,6 +123,7 @@ private:
     // X submerged
     // throttle
     // time
+
 
 
 };

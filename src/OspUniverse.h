@@ -20,13 +20,14 @@ namespace osp {
  */
 class OspUniverse : public Object
 {
-    // Scene to store nodes like Part Prototypes
+    // Scene to store nodes like Part Prototypes. Has no physics, rendering
+    // updating, etc... It is completely frozen in time
     SharedPtr<Scene> m_hiddenScene;
 
-    // A big list of parts, stored in the hidden scene
+    // A Node full of Part Prototypes, stored in the hidden scene
     WeakPtr<Node> m_parts;
 
-    // Root node of the entire solar system
+    // Root node of the entire solar system/universe
     SharedPtr<Satellite> m_bigUniverse;
 
     // List of ActiveAreas
@@ -38,7 +39,9 @@ class OspUniverse : public Object
     // list of countried, manufacturers, and other stuff
 
     URHO3D_OBJECT(OspUniverse, Object)
+
 public:
+
     OspUniverse(Context* context);
 
     Scene* get_hidden_scene() { return m_hiddenScene; }
@@ -54,7 +57,8 @@ public:
      * @param path [in] Absolute File Path to directory
      *
      * The directory contents will be scanned for parts and scripts.
-     * Contents of a subdirectory named "Parts" will be scanned recursively for .gltf.sturdy files
+     * Contents of a subdirectory named "Parts" will be scanned recursively for
+     * .gltf.sturdy files
      *
      */
     void process_directory(const String& path);

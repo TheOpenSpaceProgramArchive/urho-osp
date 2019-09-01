@@ -1,14 +1,44 @@
 #include <iostream>
 
 #include <Urho3D/IO/Log.h>
+#include <Urho3D/Resource/JSONValue.h>
 
 #include "PerformanceCurves.h"
 
 using namespace Urho3D;
 using namespace osp;
 
-PerformanceCurves::PerformanceCurves(Context* context) : Object(context), m_factors()
+PerformanceCurves::PerformanceCurves(Context* context) : Object(context),
+                                                            m_factors()
 {
+}
+
+void PerformanceCurves::parse_curve_factors(const JSONObject& factors)
+{
+    // Loop through all the objects in factors
+    for (auto factorIt = factors.Begin();
+         factorIt != factors.End(); factorIt ++)
+    {
+        // Factors should be full of arrays
+        if (factorIt->second_.IsArray())
+        {
+            const JSONArray& factorPointsJson = factorIt->second_.GetArray();
+
+            // factorIt->first_ is the key of the object   "key": [...]
+            FactorCurve* factor = add_factor(factorIt->first_, 100, 0);
+            //factor = curves.get_factor(factorIt->first_);
+            PODVector<uint16_t>& factorPoints = factor->get_points();
+            factorPoints.Resize(factorPointsJson.Size());
+            // Support multiple curve formats, just 0-100 for now
+
+            for (int i = 0; i < factorPoints.Size(); i ++)
+            {
+                float value = Clamp(factorPointsJson[i].GetFloat() / 100.0f,
+                                    0.0f, 1.0f);
+                factorPoints[i] = (value * 65535);
+            }
+        }
+    }
 }
 
 float PerformanceCurves::calculate_float(const HashMap<StringHash, float>& curveInputs, float f) const
