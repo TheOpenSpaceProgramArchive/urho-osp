@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 
+#include <Urho3D/Container/Ptr.h>
 #include <Urho3D/Core/CoreEvents.h>
 #include <Urho3D/Engine/Engine.h>
 #include <Urho3D/Graphics/Camera.h>
@@ -57,7 +58,7 @@ static constexpr const uint8_t sc_icoTemplateneighbours[20 * 3] {
 };
 
 // If this changes, then the universe is broken
-static const int sc_icosahedronFaceCount = 20;
+static const int gc_icosahedronFaceCount = 20;
 
 enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010,
                                E_CHUNKED = 0b0100 };
@@ -71,6 +72,17 @@ typedef unsigned chindex;
 // Index to a buffer
 typedef uint32_t buindex;
 
+struct UpdateRange
+{
+    buindex m_start, m_end;
+    // initialize with maximum buindex value for start (2^32),
+    // and minimum buindex for end (0)
+    // the first min and max operations will replace them
+    UpdateRange() : m_start(UINT32_MAX), m_end(0) {
+    }
+};
+
+// Triangle on the IcoSphereTree
 struct SubTriangle
 {
     trindex m_parent;
@@ -95,29 +107,120 @@ struct SubTriangle
     buindex m_chunkVerts; // Index to vertex data
 };
 
-struct UpdateRange
+
+// An icosahedron with subdividable faces
+// it starts with 20 triangles, and each face can be subdivided into 4 more
+// Not implemented, but this can be shared between multiple PlanetWrenderers
+class IcoSphereTree : public RefCounted
 {
-    buindex m_start, m_end;
-    // initialize with maximum buindex value for start (2^32),
-    // and minimum buindex for end (0)
-    // the first min and max operations will replace them
-    UpdateRange() : m_start(UINT32_MAX), m_end(0) {
+
+    friend class PlanetWrenderer;
+
+    IcoSphereTree();
+    virtual ~IcoSphereTree();
+
+public:
+
+    void initialize();
+
+    /**
+     * Get triangle from vector of triangles
+     * be careful of reallocation!
+     * @param t [in] Index to triangle
+     * @return Pointer to triangle
+     */
+    inline SubTriangle* get_triangle(trindex t) const
+    {
+        return m_triangles.Buffer() + t;
     }
-};
 
-//struct TriChunk
-//{
-//    buindex[3]
-//};
+    /**
+     * A quick way to set neighbours of a triangle
+     * @param tri [ref] Reference to triangle
+     * @param bot [in] Bottom
+     * @param rte [in] Right
+     * @param lft [in] Left
+     */
+    static inline void set_neighbours(SubTriangle& tri, trindex bot,
+                                      trindex rte, trindex lft);
 
-class PlanetWrenderer
-{
-    bool m_ready = false;
-    bool m_fineMode;
-    double m_radius;
+    /**
+     * A quick way to set vertices of a triangle
+     * @param tri [ref] Reference to triangle
+     * @param top [in] Top
+     * @param lft Left
+     * @param rte Right
+     */
+    static inline void set_verts(SubTriangle& tri, trindex top,
+                                 trindex lft, trindex rte);
+
+    void set_side_recurse(SubTriangle& tri, int side, trindex to);
+
+    /**
+     * Find which side a triangle is on another triangle
+     * @param [ref] tri Reference to triangle to be searched
+     * @param [in] lookingFor Index of triangle to search for
+     * @return Neighbour index (0 - 2), or bottom, left, or right
+     */
+    static inline int neighboor_index(SubTriangle& tri, trindex lookingFor);
+
+
+    /**
+     * Subdivide a triangle into 4 more
+     * @param [in] Triangle to subdivide
+     */
+    void subdivide_add(trindex t);
+
+    /**
+     * Unsubdivide a triangle.
+     * Removes children and sets neighbours of neighbours
+     * @param t [in] Index of triangle to unsubdivide
+     */
+    void subdivide_remove(trindex t);
+
+    /**
+     * Calculates and sets m_center
+     * @param tri [ref] Reference to triangle
+     */
+    void calculate_center(SubTriangle& tri);
+
+private:
+
+    //PODVector<PlanetWrenderer> m_viewers;
+
+    float m_radius;
+
+    // 6 components per vertex
+    // PosX, PosY, PosZ, NormX, NormY, NormZ
+    int m_vertCompCount = 6;
 
     unsigned m_maxDepth;
     unsigned m_previewDepth; // minimum depth. never subdivide below this
+
+    PODVector<float> m_vertBuf;
+    buindex m_vertCount;
+    buindex m_maxVertice;
+
+    PODVector<SubTriangle> m_triangles; // List of all triangles
+    PODVector<trindex> m_trianglesFree; // Deleted triangles in the m_triangles
+    buindex m_maxTriangles;
+
+    PODVector<buindex> m_vertFree; // Deleted vertices in m_vertBuf GPU data
+    // use "m_indDomain[buindex]" to get a triangle index
+
+
+};
+
+// Connects the dots between triangles in IcoSphereTree by making chunks
+// Chunks being
+class PlanetWrenderer
+{
+
+    // Not implented
+    //
+    bool m_noGPU = false;
+
+    bool m_ready = false;
 
     Vector3 m_offset;
     Vector3 m_camera;
@@ -131,29 +234,7 @@ class PlanetWrenderer
 
     Model* m_model;
 
-    Image* m_heightMap;
-
-    // ** Base geometry for preview and slightly close up
-
-    Geometry* m_geometry;
-
-    SharedPtr<IndexBuffer> m_preview;
-    SharedPtr<IndexBuffer> m_indBuf;
-    PODVector<trindex> m_indDomain; // Maps index buffer indices to triangles
-    buindex m_indCount;
-
-    buindex m_maxIndices;
-
-    SharedPtr<VertexBuffer> m_vertBuf;
-    buindex m_vertCount;
-    buindex m_maxVertice;
-
-    PODVector<SubTriangle> m_triangles; // List of all triangles
-    PODVector<trindex> m_trianglesFree; // Deleted triangles in the m_triangles
-    buindex m_maxTriangles;
-
-    PODVector<buindex> m_vertFree; // Deleted vertices in m_vertBuf GPU data
-    // use "m_indDomain[buindex]" to get a triangle index
+    SharedPtr<IcoSphereTree> m_icoTree;
 
     // Geometry for chunks
 
@@ -205,6 +286,7 @@ public:
 
     PlanetWrenderer();
     ~PlanetWrenderer();
+
     bool is_ready() { return m_ready; }
 
     /**
@@ -228,69 +310,12 @@ public:
 protected:
 
     /**
-     * A quick way to set neighbours of a triangle
-     * @param tri [ref] Reference to triangle
-     * @param bot [in] Bottom
-     * @param rte [in] Right
-     * @param lft [in] Left
-     */
-    static inline void set_neighbours(SubTriangle& tri, trindex bot,
-                                      trindex rte, trindex lft);
-
-    /**
-     * A quick way to set vertices of a triangle
-     * @param tri [ref] Reference to triangle
-     * @param top [in] Top
-     * @param lft Left
-     * @param rte Right
-     */
-    static inline void set_verts(SubTriangle& tri, trindex top,
-                                 trindex lft, trindex rte);
-
-    /**
-     * Find which side a triangle is on another triangle
-     * @param [ref] tri Reference to triangle to be searched
-     * @param [in] lookingFor Index of triangle to search for
-     * @return Neighbour index (0 - 2), or bottom, left, or right
-     */
-    static inline int neighboor_index(SubTriangle& tri, trindex lookingFor);
-
-    void set_side_recurse(SubTriangle& tri, int side, trindex to);
-
-    /**
-     * Show or hide a triangle.
-     * @param t [in] Index to the triangle
-     * @param visible [in] To hide or to show
-     */
-    void set_visible(trindex t, bool visible, UpdateRange* gpuInd = nullptr);
-
-    /**
      * Recursively check every triangle for which ones need
      * (un)subdividing or chunking
      * @param t [in] Triangle to start with
      */
     void sub_recurse(trindex t);
 
-    /**
-     * Subdivide a triangle into 4 more
-     * @param [in] Triangle to subdivide
-     */
-    void subdivide_add(trindex t, UpdateRange* gpuVert = nullptr,
-                       UpdateRange* gpuInd = nullptr);
-
-    /**
-     * Unsubdivide a triangle.
-     * Removes children and sets neighbours of neighbours
-     * @param t [in] Index of triangle to unsubdivide
-     */
-    void subdivide_remove(trindex t, UpdateRange* gpuVert = nullptr,
-                          UpdateRange* gpuInd = nullptr);
-
-    /**
-     * Calculates and sets m_center
-     * @param tri [ref] Reference to triangle
-     */
-    void calculate_center(SubTriangle& tri);
 
     /**
      *
@@ -308,16 +333,6 @@ protected:
     void chunk_remove(trindex t, UpdateRange* gpuVertChunk = nullptr,
                       UpdateRange* gpuVertInd = nullptr);
 
-    /**
-     * Get triangle from vector of triangles
-     * be careful of reallocation!
-     * @param t [in] Index to triangle
-     * @return Pointer to triangle
-     */
-    inline SubTriangle* get_triangle(trindex t) const
-    {
-        return m_triangles.Buffer() + t;
-    }
 
     /**
      * Convert XY coordinates to a triangular number index

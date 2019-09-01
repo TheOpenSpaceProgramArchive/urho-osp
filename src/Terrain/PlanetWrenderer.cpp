@@ -1,8 +1,141 @@
 // "PlanetRenderer is a little too boring" -- Capital Asterisk, 2018
+
 #include "PlanetWrenderer.h"
 
+IcoSphereTree::IcoSphereTree() : RefCounted()
+{
+    m_maxTriangles = 480000;
+    m_maxVertice = 1600000;
+    m_maxDepth = 5;
+    m_previewDepth = 0;
+}
 
-inline void PlanetWrenderer::set_neighbours(SubTriangle& tri,
+IcoSphereTree::~IcoSphereTree()
+{
+
+}
+
+void IcoSphereTree::initialize()
+{
+    // Pentagon stuff, from wolfram alpha
+    // This part is kind of messy and should be revised
+    // "X pointing" pentagon goes on the top
+
+    //float s = float(size / 280.43394944265);
+    const float h = 114.486680448f;
+
+    const float ca = 79.108350559987f;
+    const float cb = 207.10835055999f;
+    const float sa = 243.47046817156f;
+    const float sb = 150.47302458687f;
+
+    // Reserve some space on the vertex buffer
+    m_vertBuf.Reserve(m_maxVertice * m_vertCompCount);
+    m_vertBuf.Resize(m_maxVertice * 6);
+
+    float* vertInit = m_vertBuf.Buffer();
+
+    // VERT XYZ, NORMAL XYZ, VERT XYZ, NORMAL XYZ, ...
+    // Set initial data for the normal icosahedron
+    // There should be a better way to do this (as of now i'm still too lazy)
+    vertInit[0] = 0; // Top vertex 0
+    vertInit[1] = 280.43394944265f;
+    vertInit[2] = 0;
+    vertInit[6] = 280.43394944265f; // Pentagon top aligned point 1
+    vertInit[7] = h;
+    vertInit[8] = 0;
+    vertInit[12] = ca; // going clockwise from top 2
+    vertInit[13] = h;
+    vertInit[14] = -sa;
+    vertInit[18] = -cb; // 3
+    vertInit[19] = h;
+    vertInit[20] = -sb;
+    vertInit[24] = -cb; // 4
+    vertInit[25] = h;
+    vertInit[26] = sb;
+    vertInit[30] = ca; // 5
+    vertInit[31] = h;
+    vertInit[32] = sa;
+    vertInit[36] = -256; // Pentagon bottom aligned 6
+    vertInit[37] = -h;
+    vertInit[38] = 0;
+    vertInit[42] = -ca; // 7
+    vertInit[43] = -h;
+    vertInit[44] = -sa;
+    vertInit[48] = cb; // 8
+    vertInit[49] = -h;
+    vertInit[50] = -sb;
+    vertInit[54] = cb; // 9
+    vertInit[55] = -h;
+    vertInit[56] = sb;
+    vertInit[60] = -ca; // 10
+    vertInit[61] = -h;
+    vertInit[62] = sa;
+    vertInit[66] = 0; // Bottom vertex 11
+    vertInit[67] = -256;
+    vertInit[68] = 0;
+
+    m_vertCount = 12; // 12 Vertices make up a basic icosahedron
+
+    // Normalize into the right sized sphere
+    float vx, vy, vz;
+    for (int i = 0; i < 68; i += 6)
+    {
+
+        vx = vertInit[i + 0];
+        vy = vertInit[i + 1];
+        vz = vertInit[i + 2];
+        float mag = Sqrt(vx * vx
+                          + vy * vy
+                          + vz * vz);
+        vertInit[i + 0] = vx / mag * float(m_radius);
+        vertInit[i + 1] = vy / mag * float(m_radius);
+        vertInit[i + 2] = vz / mag * float(m_radius);
+        vertInit[i + 3] = vx / mag;
+        vertInit[i + 4] = vy / mag;
+        vertInit[i + 5] = vz / mag;
+    }
+
+    // Allocate some space on empty triangles array
+    m_triangles.Reserve(3000);
+
+
+    // This part is instuctions saying that
+    // position and normal data is interleved
+    //PODVector<VertexElement> elements;
+    //elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
+    //elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
+
+
+    // Initialize first 20 triangles, indices from sc_icoTemplateTris
+    for (int i = 0; i < gc_icosahedronFaceCount; i ++)
+    {
+        // Set triangles
+        SubTriangle tri;
+        //printf("Triangle: %p\n", t);
+        //tri.m_parent = 0;
+
+        // indices were already calculated beforehand
+        set_verts(tri, sc_icoTemplateTris[i * 3 + 0],
+                        sc_icoTemplateTris[i * 3 + 1],
+                        sc_icoTemplateTris[i * 3 + 2]);
+
+        // which triangles neighboor which were calculated beforehand too
+        set_neighbours(tri, sc_icoTemplateneighbours[i * 3 + 0],
+                            sc_icoTemplateneighbours[i * 3 + 1],
+                            sc_icoTemplateneighbours[i * 3 + 2]);
+
+        tri.m_bitmask = 0;
+        tri.m_depth = 0;
+        calculate_center(tri);
+        m_triangles.Push(tri);
+        //if (i != 0)
+        //set_visible(i, true);
+    }
+}
+
+
+inline void IcoSphereTree::set_neighbours(SubTriangle& tri,
                                             trindex bot,
                                             trindex rte,
                                             trindex lft)
@@ -12,7 +145,7 @@ inline void PlanetWrenderer::set_neighbours(SubTriangle& tri,
     tri.m_neighbours[2] = lft;
 }
 
-inline void PlanetWrenderer::set_verts(SubTriangle& tri, trindex top,
+inline void IcoSphereTree::set_verts(SubTriangle& tri, trindex top,
                                        trindex lft, trindex rte)
 {
     tri.m_corners[0] = top;
@@ -20,7 +153,7 @@ inline void PlanetWrenderer::set_verts(SubTriangle& tri, trindex top,
     tri.m_corners[2] = rte;
 }
 
-inline int PlanetWrenderer::neighboor_index(SubTriangle& tri,
+inline int IcoSphereTree::neighboor_index(SubTriangle& tri,
                                             trindex lookingFor)
 {
     // Loop through neighbours on the edges. child 4 (center) is not considered
@@ -37,23 +170,14 @@ inline int PlanetWrenderer::neighboor_index(SubTriangle& tri,
     return 255;
 }
 
-PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(),
-                                        m_vertFree(), m_chunkVertFreeShared()
+PlanetWrenderer::PlanetWrenderer()
 {
     // Numbers that work nicely, though not ideal
 
     m_chunkAreaThreshold = 0.04f;
     m_subdivAreaThreshold = 0.02f;
 
-    m_maxTriangles = 480000;
-
-    m_maxIndices = 480000;
-    m_maxVertice = 1600000;
-
-    m_maxDepth = 5;
-    m_previewDepth = 3;
-
-    m_chunkResolution = 17;
+    m_chunkResolution = 31;
 
     m_maxChunks = 300;
     m_chunkMaxVertShared = 10000;
@@ -62,205 +186,22 @@ PlanetWrenderer::PlanetWrenderer() : m_triangles(), m_trianglesFree(),
 
 PlanetWrenderer::~PlanetWrenderer()
 {
-    //m_vertBuf->Release();
-    //m_indBuf->Release();
-    //printf("pppp %p;\n", m_indDomain);
-    //delete[] m_indDomain;
+
 }
 
 void PlanetWrenderer::initialize(Context* context,
                                  Image* heightMap, double size) {
 
-    m_radius = size;
-    m_heightMap = heightMap;
 
-    // calculate proper numbers later, use magic numbers for now
+    m_icoTree = SharedPtr<IcoSphereTree>(new IcoSphereTree());
+    m_icoTree->m_radius = size;
 
     m_model = new Model(context);
-    m_model->SetNumGeometries(2);
+    m_model->SetNumGeometries(1);
     m_model->SetBoundingBox(BoundingBox(Sphere(Vector3(0.0f, 0.0f, 0.0f),
                                                float(size) * 2.0f)));
 
-    {
-
-        // Pentagon stuff, from wolfram alpha
-        // This part is kind of messy and should be revised
-        // "X pointing" pentagon goes on the top
-
-        //float s = float(size / 280.43394944265);
-        float h = 114.486680448f;
-
-        float ca = 79.108350559987f;
-        float cb = 207.10835055999f;
-        float sa = 243.47046817156f;
-        float sb = 150.47302458687f;
-
-        float* vertInit = new float[m_maxVertice * 6];
-
-        // VERT XYZ, NORMAL XYZ, VERT XYZ, NORMAL XYZ, ...
-        // Set initial data for the normal icosahedron
-        // There should be a better way to do this
-        vertInit[0] = 0; // Top vertex 0
-        vertInit[1] = 280.43394944265f;
-        vertInit[2] = 0;
-        vertInit[6] = 280.43394944265f; // Pentagon top aligned point 1
-        vertInit[7] = h;
-        vertInit[8] = 0;
-        vertInit[12] = ca; // going clockwise from top 2
-        vertInit[13] = h;
-        vertInit[14] = -sa;
-        vertInit[18] = -cb; // 3
-        vertInit[19] = h;
-        vertInit[20] = -sb;
-        vertInit[24] = -cb; // 4
-        vertInit[25] = h;
-        vertInit[26] = sb;
-        vertInit[30] = ca; // 5
-        vertInit[31] = h;
-        vertInit[32] = sa;
-        vertInit[36] = -256; // Pentagon bottom aligned 6
-        vertInit[37] = -h;
-        vertInit[38] = 0;
-        vertInit[42] = -ca; // 7
-        vertInit[43] = -h;
-        vertInit[44] = -sa;
-        vertInit[48] = cb; // 8
-        vertInit[49] = -h;
-        vertInit[50] = -sb;
-        vertInit[54] = cb; // 9
-        vertInit[55] = -h;
-        vertInit[56] = sb;
-        vertInit[60] = -ca; // 10
-        vertInit[61] = -h;
-        vertInit[62] = sa;
-        vertInit[66] = 0; // Bottom vertex 11
-        vertInit[67] = -256;
-        vertInit[68] = 0;
-
-        m_vertCount = 12; // 12 Vertices make up a basic icosahedron
-        m_indCount = 0; // Start with 0 faces, set_visible increases this
-
-        // Shape into the right sized sphere
-        float vx, vy, vz;
-        for (int i = 0; i < 68; i += 6)
-        {
-
-            vx = vertInit[i + 0];
-            vy = vertInit[i + 1];
-            vz = vertInit[i + 2];
-            float mag = Sqrt(vx * vx
-                              + vy * vy
-                              + vz * vz);
-            vertInit[i + 0] = vx / mag * float(size);
-            vertInit[i + 1] = vy / mag * float(size);
-            vertInit[i + 2] = vz / mag * float(size);
-            vertInit[i + 3] = vx / mag;
-            vertInit[i + 4] = vy / mag;
-            vertInit[i + 5] = vz / mag;
-        }
-
-        // Urho3D specific, make buffers and stuff
-        m_indBuf = new IndexBuffer(context);
-        m_vertBuf = new VertexBuffer(context);
-        m_geometry = new Geometry(context);
-
-        // Allocate index domain, some space on empty triangles array
-        m_indDomain.Resize(m_maxIndices * 3);
-        m_triangles.Reserve(3000);
-
-        // This part is instuctions saying that
-        // position and normal data is interleved
-        PODVector<VertexElement> elements;
-        elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
-        elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
-
-        // Set size and data of vertex data
-        m_vertBuf->SetSize(m_maxVertice, elements);
-        m_vertBuf->SetShadowed(true);
-
-        // This line causes random SIGSEGVs sometimes, TODO: investigate
-        m_vertBuf->SetData(vertInit);
-
-        // Set size and data but with index buffer
-        m_indBuf->SetSize(m_maxIndices * 3, true, true);
-        //indBuf_->SetData();
-        m_indBuf->SetShadowed(true);
-
-        // Create the geometry, urho3d specific
-        m_geometry->SetNumVertexBuffers(1);
-        m_geometry->SetVertexBuffer(0, m_vertBuf);
-        m_geometry->SetIndexBuffer(m_indBuf);
-        m_geometry->SetDrawRange(TRIANGLE_LIST, 0,
-                                 sc_icosahedronFaceCount * 3);
-
-        // Add geometry to model, urho3d specific
-        m_model->SetGeometry(0, 0, m_geometry);
-
-        // Initialize first 20 triangles, indices from sc_icoTemplateTris
-        for (int i = 0; i < sc_icosahedronFaceCount; i ++)
-        {
-            // Set triangles
-            SubTriangle tri;
-            //printf("Triangle: %p\n", t);
-            //tri.m_parent = 0;
-
-            // indices were already calculated beforehand
-            set_verts(tri, sc_icoTemplateTris[i * 3 + 0],
-                            sc_icoTemplateTris[i * 3 + 1],
-                            sc_icoTemplateTris[i * 3 + 2]);
-
-            // which triangles neighboor which were calculated beforehand too
-            set_neighbours(tri, sc_icoTemplateneighbours[i * 3 + 0],
-                                sc_icoTemplateneighbours[i * 3 + 1],
-                                sc_icoTemplateneighbours[i * 3 + 2]);
-
-            tri.m_bitmask = 0;
-            tri.m_depth = 0;
-            calculate_center(tri);
-            m_triangles.Push(tri);
-            //if (i != 0)
-            //set_visible(i, true);
-        }
-
-        // Not leaking memory
-        delete[] vertInit;
-    }
-
-    // Preview model
-    {
-
-        UpdateRange vertRange, indRange;
-        // Generate preview
-        for (trindex i = 0; i < sc_icosahedronFaceCount; i ++)
-        {
-            subdivide_add(i, &vertRange, &indRange);
-        }
-
-        // update to GPU
-        if (vertRange.m_start < vertRange.m_end)
-        {
-            m_vertBuf->SetDataRange(m_vertBuf->GetShadowData()
-                                    + vertRange.m_start
-                                    * m_vertBuf->GetVertexSize(),
-
-                                    vertRange.m_start,
-                                    vertRange.m_end - vertRange.m_start);
-        }
-        if (indRange.m_start < indRange.m_end)
-        {
-            m_indBuf->SetDataRange(m_indBuf->GetShadowData()
-                                   + indRange.m_start
-                                   * m_indBuf->GetIndexSize(),
-
-                                   indRange.m_start,
-                                   indRange.m_end - indRange.m_start);
-        }
-
-        m_geometry->SetDrawRange(TRIANGLE_LIST, 0, m_indCount * 3);
-
-        // unused for now
-        m_preview = new IndexBuffer(context);
-    }
+    m_icoTree->initialize();
 
     // Chunks
     {
@@ -303,10 +244,10 @@ void PlanetWrenderer::initialize(Context* context,
         m_geometryChunk->SetVertexBuffer(0, m_chunkVertBuf);
         m_geometryChunk->SetIndexBuffer(m_indBufChunk);
         m_geometryChunk->SetDrawRange(TRIANGLE_LIST, 0,
-                                      sc_icosahedronFaceCount * 3);
+                                      gc_icosahedronFaceCount * 3);
 
         // Add geometry to model, urho3d specific
-        m_model->SetGeometry(1, 0, m_geometryChunk);
+        m_model->SetGeometry(0, 0, m_geometryChunk);
 
         // Calculate m_chunkSharedIndices;
         // use:
@@ -385,20 +326,12 @@ void PlanetWrenderer::initialize(Context* context,
             }
         }
 
-        // For Debugging
-        //for (int i = 0; i < m_chunkSharedCount; i ++)
-        //{
-        //    URHO3D_LOGINFOF("Index: %i", m_chunkSharedIndices[i]);
-        //}
-
     }
 
     // Not sure what this is doing, urho3d specific
     Vector<SharedPtr<VertexBuffer> > vrtBufs;
     Vector<SharedPtr<IndexBuffer> > indBufs;
-    vrtBufs.Push(m_vertBuf);
     vrtBufs.Push(m_chunkVertBuf);
-    indBufs.Push(m_indBuf);
     indBufs.Push(m_indBufChunk);
     PODVector<unsigned> morphRangeStarts;
     PODVector<unsigned> morphRangeCounts;
@@ -408,127 +341,23 @@ void PlanetWrenderer::initialize(Context* context,
     m_model->SetIndexBuffers(indBufs);
 
     m_ready = true;
+
+    // don't mind this debug code
+    m_icoTree->subdivide_add(0);
+    //chunk_add(0);
+
+    for (trindex i = 1; i < 24; i ++)
+    {
+        chunk_add(i);
+    }
 }
 
-void PlanetWrenderer::set_visible(trindex t, bool visible, UpdateRange* gpuInd)
-{
-    //printf("Setting visible: %u\n", t);
-    SubTriangle* tri = get_triangle(t);
-
-    // Don't even touch subdiveded triangles, would lead to problems
-    if (tri->m_bitmask & E_SUBDIVIDED)
-    {
-        return;
-    }
-
-    // Check if the triangle is already visible/invisible
-    if (bool(tri->m_bitmask & E_VISIBLE) == visible)
-    {
-        return;
-    }
-
-    if (visible)
-    {
-
-        // Put new vertex indices into the end of the index buffer
-
-        // indDomain keeps track of which vertices belong to what triangle
-        m_indDomain[m_indCount] = t;
-        tri->m_index = m_indCount * 3;
-
-        // Put data into indBuf
-        if (gpuInd)
-        {
-            unsigned* indData = reinterpret_cast<unsigned*>(
-                                    m_indBuf->GetShadowData())
-                                + tri->m_index;
-            indData[0] = tri->m_corners[0];
-            indData[1] = tri->m_corners[1];
-            indData[2] = tri->m_corners[2];
-
-            gpuInd->m_start = Min(gpuInd->m_start, tri->m_index);
-            gpuInd->m_end = Max(gpuInd->m_end, tri->m_index + 3);
-        }
-        else
-        {
-            unsigned xz[3];
-            xz[0] = tri->m_corners[0];
-            xz[1] = tri->m_corners[1];
-            xz[2] = tri->m_corners[2];
-            m_indBuf->SetDataRange(&xz, tri->m_index, 3);
-        }
-        //printf("Showing: %u %u %u \n", xz[0], xz[1], xz[2]);
-
-        // Increment m_indCount as a new element was added to the end
-        m_indCount ++;
-
-
-    }
-    else
-    {
-
-        // commented out javascript... this file is based on subdividing.html
-        //console.log("removed!");
-
-        // How to remove a triangle from the buffer:
-        // Move the last element of the buffer (3 ints) into the location of
-        // the triangle that is suppose to be removed. this keeps holes out
-        // of the index buffer so the gpu doesn't have to deal with holes,
-        // and holes dont have to be seeked out for a new triangle to be added.
-
-        // decrement the index count, is now the index of the last triangle
-        m_indCount --;
-        // change the last triangle class's index to new location.
-        //console.log(this.indexDomain[this.indexCount]);
-        m_triangles[m_indDomain[m_indCount]].m_index = tri->m_index;
-        // move the location of the last element's domain to the new location
-        m_indDomain[tri->m_index / 3] = m_indDomain[m_indCount];
-
-        // get the index buffer data of the last triangle (last 3 ints)
-        // and put it into the new location
-
-        unsigned* xz = reinterpret_cast<unsigned*>(m_indBuf->GetShadowData()
-                                                   + (m_indCount * 3
-                                                      * sizeof(unsigned)));
-        //printf("Hiding: %u, %u, %u\n", xz[0], xz[1], xz[2]);
-        if (gpuInd)
-        {
-
-        }
-        else
-        {
-            m_indBuf->SetDataRange(xz, tri->m_index, 3);
-        }
-        // indicates that tri is now invisible
-
-    }
-
-    if (gpuInd)
-    {
-
-    }
-    else
-    {
-        m_geometry->SetDrawRange(TRIANGLE_LIST, 0, m_indCount * 3);
-    }
-
-    // toggle visibility
-    tri->m_bitmask ^= E_VISIBLE;
-}
-
-void PlanetWrenderer::subdivide_add(trindex t, UpdateRange* gpuVert,
-                                    UpdateRange* gpuInd)
+void IcoSphereTree::subdivide_add(trindex t)
 {
     // if bottom triangle is deeper, use that vertex
     // same with left and right
 
     SubTriangle* tri = get_triangle(t);
-
-    // if visible, then hide
-    set_visible(t, false);
-
-    // Remove chunks if currently chunked
-    chunk_remove(t);
 
     // Add the 4 new triangles
     // Top Left Right Center
@@ -588,8 +417,8 @@ void PlanetWrenderer::subdivide_add(trindex t, UpdateRange* gpuVert,
     // Subdivide lines and add verticies, or take from other triangles
 
     // Preparation to write to vertex buffer
-    unsigned char* vertData = m_vertBuf->GetShadowData();
-    unsigned vertSize = m_vertBuf->GetVertexSize();
+    //unsigned char* vertData = m_vertBuf->GetShadowData();
+    //unsigned vertSize = m_vertBuf->GetVertexSize();
     //float writeMe[3];
     //printf("Vertex size: %u\n", vertSize);
 
@@ -611,11 +440,12 @@ void PlanetWrenderer::subdivide_add(trindex t, UpdateRange* gpuVert,
             }
 
             // Technique taken from an urho3D example
+            // Read vertex buffer data as Vector3
             const Vector3& vertA = (*reinterpret_cast<const Vector3*>(
-                                        vertData + vertSize
+                                        m_vertBuf.Buffer() + m_vertCompCount
                                         * tri->m_corners[(i + 1) % 3]));
             const Vector3& vertB = (*reinterpret_cast<const Vector3*>(
-                                        vertData + vertSize
+                                        m_vertBuf.Buffer() + m_vertCompCount
                                         * tri->m_corners[(i + 2) % 3]));
 
             Vector3 vertM[2];
@@ -623,32 +453,8 @@ void PlanetWrenderer::subdivide_add(trindex t, UpdateRange* gpuVert,
 
             vertM[0] = vertM[1] * float(m_radius);
 
-            // this old code accesses a heightmap
-            // * (m_radius + (m_heightMap->GetPixelBilinear(Mod(
-            //Atan2(vertM[1].z_, vertM[1].x_) + 360.0f, 360.0f) / 360.0f,
-            //Acos(vertM[1].y_) / 180.0f).r_ * 100.0f));
-
-            //printf("VA %s, VB: %s, \n", vertA.ToString().CString(),
-            // vertB.ToString().CString());
-
-            //printf("DataRange: %u\n", tri->m_midVerts[i]);
-            if (gpuVert)
-            {
-                // Set the min and max range the vertex buffer will be updated
-                // later at the main thread
-                memcpy(vertData + tri->m_midVerts[i] * vertSize,
-                       vertM, vertSize);
-
-                gpuVert->m_start = Min(gpuVert->m_start, tri->m_midVerts[i]);
-                gpuVert->m_end = Max(gpuVert->m_start,
-                                     (tri->m_midVerts[i] + 1));
-            }
-            else
-            {
-                m_vertBuf->SetDataRange(vertM, tri->m_midVerts[i], 1);
-            }
-
-            //console.log(i + ": Created new vertex");
+            memcpy(m_vertBuf.Buffer() + tri->m_midVerts[i] * m_vertCompCount,
+                   vertM, m_vertCompCount * sizeof(float));
         }
         else
         {
@@ -712,61 +518,16 @@ void PlanetWrenderer::subdivide_add(trindex t, UpdateRange* gpuVert,
         // subdivide_add will cause undefiend behaviour
         //URHO3D_LOGINFOF("depth: %i tri: %i", tri->m_depth, t);
         trindex childs = tri->m_children;
-        subdivide_add(childs + 0, gpuVert, gpuInd);
-        subdivide_add(childs + 1, gpuVert, gpuInd);
-        subdivide_add(childs + 2, gpuVert, gpuInd);
-        subdivide_add(childs + 3, gpuVert, gpuInd);
+        subdivide_add(childs + 0);
+        subdivide_add(childs + 1);
+        subdivide_add(childs + 2);
+        subdivide_add(childs + 3);
 
-    }
-    else
-    {
-        set_visible(tri->m_children + 0, true, gpuInd);
-        set_visible(tri->m_children + 1, true, gpuInd);
-        set_visible(tri->m_children + 2, true, gpuInd);
-        set_visible(tri->m_children + 3, true, gpuInd);
     }
 
 }
 
-void PlanetWrenderer::find_refs(SubTriangle& tri)
-{
-    //uint ohno = neighboor_index(tri, what);
-
-    // this part was writtern for debugging
-
-    for (int i = 0; i < 3; i ++)
-    {
-        unsigned whateven
-                = m_trianglesFree.IndexOf(tri.m_neighbours[i] / 4 * 4);
-        if (whateven != m_trianglesFree.Size() )
-        {
-            printf("Deleted triangle %u referenced on side: %u\n",
-                   m_trianglesFree[whateven], i);
-        }
-    }
-
-
-    if (tri.m_bitmask & E_SUBDIVIDED)
-    {
-
-        for (int i = 0; i < 4; i ++)
-        {
-            unsigned whateven = m_trianglesFree.IndexOf(tri.m_children + i);
-            if (whateven != m_trianglesFree.Size() )
-            {
-                printf("Deleted triangle %u referenced on child: %u\n",
-                       m_trianglesFree[whateven], i);
-            }
-            else
-            {
-                find_refs(m_triangles[tri.m_children + i]);
-            }
-        }
-    }
-}
-
-void PlanetWrenderer::subdivide_remove(trindex t, UpdateRange* gpuVert,
-                                       UpdateRange* gpuInd)
+void IcoSphereTree::subdivide_remove(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
 
@@ -787,8 +548,8 @@ void PlanetWrenderer::subdivide_remove(trindex t, UpdateRange* gpuVert,
         {
             //find_refs(m_triangles[tri->m_children + i]);
         }
-        chunk_remove(tri->m_children + i);
-        set_visible(tri->m_children + i, false);
+
+        //chunk_remove(tri->m_children + i);
     }
 
 
@@ -817,26 +578,23 @@ void PlanetWrenderer::subdivide_remove(trindex t, UpdateRange* gpuVert,
 
     // Now mark triangles for removal. they're always in groups of 4.
     m_trianglesFree.Push(tri->m_children);
-    //printf("Triangles Killed: %u - %u\n", tri->m_children, tri->m_children + 3);
-    //this.triangles[tri.children[0]] = null;
-    //this.triangles[tri.children[1]] = null;
-    //this.triangles[tri.children[2]] = null;
-    //this.triangles[tri.children[3]] = null;
 
     tri->m_bitmask ^= E_SUBDIVIDED;
     tri->m_children = unsigned(-1);
-
-    set_visible(t, true);
-
 }
 
-void PlanetWrenderer::calculate_center(SubTriangle &tri)
+void IcoSphereTree::calculate_center(SubTriangle &tri)
 {
-    const unsigned char* vertData = m_vertBuf->GetShadowData();
-    const unsigned vertSize = m_vertBuf->GetVertexSize();
-    const Vector3& vertA = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_corners[0]));
-    const Vector3& vertB = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_corners[1]));
-    const Vector3& vertC = (*reinterpret_cast<const Vector3*>(vertData + vertSize * tri.m_corners[2]));
+    const float* vertData = m_vertBuf.Buffer();
+    const Vector3& vertA = (*reinterpret_cast<const Vector3*>(
+                                vertData
+                                + m_vertCompCount * tri.m_corners[0]));
+    const Vector3& vertB = (*reinterpret_cast<const Vector3*>(
+                                vertData
+                                + m_vertCompCount * tri.m_corners[1]));
+    const Vector3& vertC = (*reinterpret_cast<const Vector3*>(
+                                vertData
+                                + m_vertCompCount * tri.m_corners[2]));
 
     tri.m_center = (vertA + vertB + vertC) / 3.0f;
     //printf("Center: %s\n", tri.m_center.ToString().CString());
@@ -848,7 +606,7 @@ void PlanetWrenderer::calculate_center(SubTriangle &tri)
  * @param side [in] Which side to set
  * @param to [in] Neighbour to operate on
  */
-void PlanetWrenderer::set_side_recurse(SubTriangle& tri, int side, trindex to)
+void IcoSphereTree::set_side_recurse(SubTriangle& tri, int side, trindex to)
 {
     tri.m_neighbours[side] = to;
     if (tri.m_bitmask & E_SUBDIVIDED) {
@@ -868,25 +626,23 @@ void PlanetWrenderer::update(const Vector3& camera)
     // vector, and the surface normal at the viewd edge of a perfect sphere
     // 0.45f is added because the triangles at the edge of the spehere are
     // curved, and are still visible even when they point away from the camera.
-    m_threshold = float(m_radius) / m_cameraDist - 0.45f;
+    m_threshold = float(m_icoTree->m_radius) / m_cameraDist - 0.45f;
 
     //printf("Camera! %s\n", camera.ToString().CString());
     //printf("vert count: %ux\n", m_vertCount);
-    for (trindex i = 0; i < sc_icosahedronFaceCount; i ++) {
+    for (trindex i = 0; i < gc_icosahedronFaceCount; i ++) {
         sub_recurse(i);
     }
 
     //URHO3D_LOGINFOF("Memory Usage: %fMb",
     //                float(get_memory_usage()) / 1000000.0f);
 
-    assert(m_indCount < m_maxIndices);
-    assert(m_vertCount < m_maxVertice);
-    assert(m_triangles.Size() < m_maxTriangles);
+    assert(m_icoTree->m_triangles.Size() < m_icoTree->m_maxTriangles);
 }
 
 void PlanetWrenderer::sub_recurse(trindex t)
 {
-    SubTriangle* tri = get_triangle(t);
+    SubTriangle* tri = m_icoTree->get_triangle(t);
 
     bool shouldSubdivide, shouldChunk;
 
@@ -900,7 +656,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
 
     // close enough approximation
     // (should be a bit higher because it's spherical)
-    float edgeLength = float(4.0 * m_radius)
+    float edgeLength = float(4.0 * m_icoTree->m_radius)
                        / Sqrt(10.0f + 2.0f * Sqrt(5.0f))
                        / Pow(2, int(tri->m_depth));
 
@@ -931,7 +687,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
 
         if (shouldSubdivide)
         {
-            if (tri->m_depth < m_maxDepth)
+            if (tri->m_depth < m_icoTree->m_maxDepth)
             {
                 // triangle vector might reallocate making tri invalid
                 // so keep a copy of m_children
@@ -942,18 +698,18 @@ void PlanetWrenderer::sub_recurse(trindex t)
                 sub_recurse(childs + 3);
             }
         }
-        else if (tri->m_depth > m_previewDepth)
+        else if (tri->m_depth > m_icoTree->m_previewDepth)
         {
-            subdivide_remove(t);
+            m_icoTree->subdivide_remove(t);
         }
     }
     else
     {
         if (shouldSubdivide)
         {
-            if (tri->m_depth < m_maxDepth)
+            if (tri->m_depth < m_icoTree->m_maxDepth)
             {
-                subdivide_add(t);
+                m_icoTree->subdivide_add(t);
                 return;
             }
         }
@@ -965,7 +721,6 @@ void PlanetWrenderer::sub_recurse(trindex t)
         else
         {
             chunk_remove(t);
-            set_visible(t, true);
 
         }
     }
@@ -1005,7 +760,7 @@ unsigned PlanetWrenderer::get_index_ringed(int x, int y) const
 void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
                                 UpdateRange* gpuVertInd)
 {
-    SubTriangle* tri = get_triangle(t);
+    SubTriangle* tri = m_icoTree->get_triangle(t);
 
     if (m_chunkCount >= m_maxChunks)
     {
@@ -1032,8 +787,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
     //
     //     <----> m_chunkResolution
 
-    unsigned char* vertData = m_vertBuf->GetShadowData();
-    unsigned vertSize = m_vertBuf->GetVertexSize();
+    float* vertData = m_icoTree->m_vertBuf.Buffer();
 
     unsigned char* vertDataChunk = m_chunkVertBuf->GetShadowData();
     unsigned vertSizeChunk = m_chunkVertBuf->GetVertexSize();
@@ -1041,11 +795,11 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
     // top, left, right
     const Vector3 verts[3] = {
         (*reinterpret_cast<const Vector3*>(vertData
-                                            + vertSize * tri->m_corners[0])),
+                        + m_icoTree->m_vertCompCount * tri->m_corners[0])),
         (*reinterpret_cast<const Vector3*>(vertData
-                                            + vertSize * tri->m_corners[1])),
+                        + m_icoTree->m_vertCompCount * tri->m_corners[1])),
         (*reinterpret_cast<const Vector3*>(vertData
-                                            + vertSize * tri->m_corners[2]))
+                        + m_icoTree->m_vertCompCount * tri->m_corners[2]))
     };
 
     const Vector3 dirRight = (verts[2] - verts[1]) / (m_chunkResolution - 1);
@@ -1058,7 +812,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
 
     for (int i = 0; i < 3; i ++)
     {
-        SubTriangle* triB = get_triangle(tri->m_neighbours[i]);
+        SubTriangle* triB = m_icoTree->get_triangle(tri->m_neighbours[i]);
         chunkedNeighbours[i] = (triB->m_bitmask & E_CHUNKED);
     }
 
@@ -1164,21 +918,24 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
             Vector3 pos = verts[0] + (dirRight * x + dirDown * y);
             Vector3 normal = pos.Normalized();
 
-            pos = normal * float(m_radius);
-            // * (m_radius + (100.0f * m_heightMap->GetPixelBilinear(Mod(Atan2(normal.z_, normal.x_) + 360.0f, 360.0f) / 360.0f, Acos(normal.y_) / 180.0f).r_));
+            pos = normal * float(m_icoTree->m_radius);
 
             // Position and normal
             Vector3 vertM[2] = {pos, normal};
 
             if (gpuVertChunk)
             {
-                // Copy vertex data to shadow buffer, then set min/max update range for sending to the gpu later
+                // Copy vertex data to shadow buffer, then set min/max update
+                // range for sending to the gpu later
                 // Intended to reduce buffer update calls to the gpu
 
-                memcpy(vertDataChunk + vertIndex * vertSizeChunk, vertM, vertSizeChunk);
+                memcpy(vertDataChunk + vertIndex * vertSizeChunk,
+                       vertM, vertSizeChunk);
 
-                //gpuVertChunk->m_start = Min(gpuVertChunk->m_start, vertSizeChunk);
-                //gpuVertChunk->m_end = Max(gpuVertChunk->m_start, (tri->m_midVerts[i] + 1));
+                //gpuVertChunk->m_start =
+                //      Min(gpuVertChunk->m_start, vertSizeChunk);
+                //gpuVertChunk->m_end =
+                //      Max(gpuVertChunk->m_start, (tri->m_midVerts[i] + 1));
             }
             else
             {
@@ -1232,9 +989,6 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
         }
     }
 
-    // Hide triangle
-    set_visible(t, false);
-
     // Keep track of which part of the index buffer refers to which triangle
     m_chunkIndDomain[m_chunkCount] = t;
 
@@ -1257,7 +1011,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
 void PlanetWrenderer::chunk_remove(trindex t, UpdateRange* gpuVertChunk,
                                    UpdateRange* gpuVertInd)
 {
-    SubTriangle* tri = get_triangle(t);
+    SubTriangle* tri = m_icoTree->get_triangle(t);
 
     if (!bool(tri->m_bitmask & E_CHUNKED))
     {
@@ -1276,7 +1030,8 @@ void PlanetWrenderer::chunk_remove(trindex t, UpdateRange* gpuVertChunk,
     // chunks have been processed)
 
     // The last triangle in the buffer
-    SubTriangle* lastTriangle = get_triangle(m_chunkIndDomain[m_chunkCount]);
+    SubTriangle* lastTriangle =
+            m_icoTree->get_triangle(m_chunkIndDomain[m_chunkCount]);
 
     // Get positions in index buffer
     unsigned* lastTriIndData = reinterpret_cast<unsigned*>(
@@ -1337,21 +1092,21 @@ uint64_t PlanetWrenderer::get_memory_usage() const
     uint64_t total = sizeof(PlanetWrenderer);
     if (m_ready)
     {
-        total += m_preview->GetIndexCount() * m_preview->GetIndexSize();
-        total += m_indBuf->GetIndexCount() * m_indBuf->GetIndexSize();
+        //total += m_preview->GetIndexCount() * m_preview->GetIndexSize();
+        //total += m_indBuf->GetIndexCount() * m_indBuf->GetIndexSize();
         total += m_indBufChunk->GetIndexCount()
                     * m_indBufChunk->GetIndexSize();
 
-        total += m_vertBuf->GetVertexCount()
-                    * m_vertBuf->GetVertexSize();
+        //total += m_vertBuf->GetVertexCount()
+        //            * m_vertBuf->GetVertexSize();
 
         total += m_chunkVertBuf->GetVertexCount()
                     * m_chunkVertBuf->GetVertexSize();
 
-        total += m_indDomain.Capacity() * sizeof(trindex);
-        total += m_triangles.Capacity() * sizeof(SubTriangle);
-        total += m_trianglesFree.Capacity() * sizeof(trindex);
-        total += m_vertFree.Capacity() * sizeof(buindex);
+        //total += m_indDomain.Capacity() * sizeof(trindex);
+        //total += m_triangles.Capacity() * sizeof(SubTriangle);
+        //total += m_trianglesFree.Capacity() * sizeof(trindex);
+        //total += m_vertFree.Capacity() * sizeof(buindex);
         //total += m_chunkFree.Capacity() * sizeof(buindex);
         total += m_chunkIndDomain.Capacity() * sizeof(trindex);
         total += m_chunkVertFreeShared.Capacity() * sizeof(buindex);

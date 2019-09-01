@@ -38,8 +38,6 @@ ActiveArea::~ActiveArea()
 void ActiveArea::physics_update(StringHash eventType, VariantMap& eventData)
 {
 
-    URHO3D_LOGINFOF("timestep: %f", eventData["TimeStep"].GetFloat());
-
     const PhysicsWorld* pw = m_activeNode->GetComponent<PhysicsWorld>();
 
     LongVector3 focusPosLong;

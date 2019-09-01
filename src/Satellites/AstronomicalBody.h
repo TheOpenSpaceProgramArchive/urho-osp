@@ -32,6 +32,8 @@ public:
 
 private:
 
+    // Maybe allow being loaded multiple times
+
     // Minimum height, for now
     float m_radius;
 
