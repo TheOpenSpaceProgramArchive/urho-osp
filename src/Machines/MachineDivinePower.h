@@ -20,26 +20,27 @@
 namespace osp {
 
 /**
- * @brief Makes a part apply thrust according to a PerformanceCurve
+ * A Machine designed to the laws of physics for the purpose of debugging,
+ * testing, and fun
  */
-class MachineDebugger : public Machine
+class MachineDivinePower : public Machine
 {
-    URHO3D_OBJECT(MachineDebugger, Machine)
+    URHO3D_OBJECT(MachineDivinePower, Machine)
 
     //float m_throttle;
 
 public:
-    MachineDebugger(Context* context);
-    ~MachineDebugger();
+    MachineDivinePower(Context* context);
+    ~MachineDivinePower();
 
     static void RegisterObject(Context* context)
     {
-        context->RegisterFactory<MachineDebugger>();
+        context->RegisterFactory<MachineDivinePower>();
 
     }
 
-    void DelayedStart() override;
-    void FixedUpdate(float timeStep) override;
+    void loaded_active() override {}
+    void loaded_editor() override {}
 
     void load_json(const JSONObject& machine) override;
 

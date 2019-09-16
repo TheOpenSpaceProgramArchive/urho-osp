@@ -418,7 +418,8 @@ void OspUniverse::part_node_recurse(Node* partRoot, Node* node)
 void OspUniverse::make_craft(Node* node)
 {
     //node->CreateComponent<Entity>();
-    PODVector<Node*> printthese = node->GetChildrenWithComponent("StaticModel", true);
+    //PODVector<Node*> printthese =
+    //node->GetChildrenWithComponent("StaticModel", true);
 
     //for (Node* n : printthese)
     //{
@@ -427,5 +428,13 @@ void OspUniverse::make_craft(Node* node)
     //    m->SetScene(GetSubsystem<Renderer>()->GetViewport(0)->GetScene());
     //}
 
-    // TODO: turn all MachineBlueprints into real machines
+    // messy workaround to call loaded_active() on machines:
+    // Trigger the scene changed event
+    PODVector<Machine*> yes;
+    node->GetDerivedComponents<Machine>(yes, true);
+
+    for (Machine* mach : yes) {
+        mach->OnSceneSet(mach->GetScene());
+    }
+
 }

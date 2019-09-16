@@ -1,4 +1,6 @@
 #include <Urho3D/Graphics/ParticleEmitter.h>
+#include <Urho3D/Physics/PhysicsWorld.h>
+
 
 #include "MachineRocket.h"
 
@@ -24,7 +26,7 @@ MachineRocket::~MachineRocket()
 
 }
 
-void MachineRocket::DelayedStart()
+void MachineRocket::loaded_active()
 {
     // Load some data if there's a prototype
     // The "prototype" var is set after cloning, and points to the original
@@ -81,9 +83,14 @@ void MachineRocket::DelayedStart()
 
     node_->AddChild(plume);
     m_plume = plume;
+
+    GetScene()->GetComponent<PhysicsWorld>();
+
+    SubscribeToEvent(GetFixedUpdateSource(), E_PHYSICSPRESTEP,
+                     URHO3D_HANDLER(MachineRocket, update_active));
 }
 
-void MachineRocket::FixedUpdate(float timeStep)
+void MachineRocket::update_active(StringHash eventType, VariantMap& eventData)
 {
     // Most of the code in this function is temporary.
     // Only here to fake a rocket game,

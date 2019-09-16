@@ -770,10 +770,10 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 int LunchTime(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
 {
     //ui.root.RemoveAllChildren();
-    SolidifyBlueprint(editor.m_subject);
     cast<SoundSource>(editor.GetNode().GetComponent("SoundSource")).Stop();
     
     osp.debug_function(StringHash("create_universe"));
+    SolidifyBlueprint(editor.m_subject);
     
     editor.Close();
     

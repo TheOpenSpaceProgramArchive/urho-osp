@@ -19,6 +19,8 @@ ActiveArea::ActiveArea(Context* context, Scene* scn) : ActiveArea(context)
 {
     m_name = "Untitled ActiveArea";
     m_activeNode = scn;
+    //scn->AddTag("ACTIVE");
+    scn->SetVar("ActiveArea", this);
 
     // load everything within a kilometer
     m_loadRadius = 1000 * 1024;

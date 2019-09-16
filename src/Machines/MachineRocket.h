@@ -80,8 +80,13 @@ public:
     float get_base_thrust() const { return m_baseThrust; }
     void set_base_thrust(float baseThrust) { m_baseThrust = baseThrust; }
 
-    void DelayedStart() override;
-    void FixedUpdate(float timeStep) override;
+    //void DelayedStart() override;
+    //void FixedUpdate(float timeStep) override;
+
+    void update_active(StringHash eventType, VariantMap& eventData);
+
+    void loaded_active() override;
+    void loaded_editor() override {}
 
     void load_json(const JSONObject& machine) override;
 
