@@ -7,14 +7,29 @@
 // @ = handle
 // & = reference (functions only)
 
+// Different "Feature Operations" that can be called into features.
+// Pass into features through args["FeatureOp"] = FEATUREOP_SOMETHING;
+// Some features ignore FeatureOp entirely
+// eg. Calling START into MoveFree starts dragging the selected parts
 const int FEATUREOP_NONE = 0;
 const int FEATUREOP_START = 1;
+
+// STAYON is used on Features in the FixedUpdate loop that have m_stayOn = true
 const int FEATUREOP_STAYON = 2;
+
+// Features can "lock the cursor" by setting m_cursorLock to itself. Used by
+// features that drag things. CANCEL and CONFIRM are called into  m_cursorLock
+// when the cancel or confirm features are activated.
+// eg. clicking while MoveFree is locking the cursor, confirms and places the
+//     parts being dragged
 const int FEATUREOP_CONFIRM = 3;
 const int FEATUREOP_CANCEL = 4;
 
 funcdef int EditorFunction_t(CraftEditor@, EditorFeature@, VariantMap&);
 
+// The Feature class, It has a few identifiers and a function pointer that can
+// be called to add functionality to the editor. The plan is to make Features
+// modular af, so that addons can easily extend and modify the editor.
 class EditorFeature
 {
     // Some identifiers
@@ -43,34 +58,61 @@ class AttachmentPair
     float distanceScreen;
 }
 
-// Should be added to the editor scene
+// Add this to the editor scene using a ScriptInstance. That turns the scene
+// into a Craft Editor
 class CraftEditor : UIController
 {
+    // Main list of features
     Array<EditorFeature@> m_features;
     // Maps feature names to indices to features
     Dictionary m_featureMap;
     
+    // Handles all the controls, and calls ActivateFeature according to defined
+    // button presses. Can bind to mouse, keyboard, and maybe controllers.
     HotkeyHandler@ m_hotkeys;
-    EditorFeature@ m_cursorLock;
-    Vector2 m_cursor;
-    Vector3 m_cursorRay;
     
+    // A feature sets itself to this when it wants to do a "cursor lock," such
+    // as dragging a part.
+    EditorFeature@ m_cursorLock;
+    
+    // Cursor on screen, maybe control using a controller some day
+    Vector2 m_cursor; 
+
+    // Ray in global space, not normalized, m_cursor position going directly
+    // out of the camera 
+    Vector3 m_cursorRay;
+
+    // Main list of selected parts
     Array<Node@> m_selection;
 
-    Node@ m_camera;
-    Node@ m_cameraCenter;
-    Node@ m_subject;
-    
+    Node@ m_camera; // Node that contains the Camera component
     Camera@ m_cameraComponent;
+    Node@ m_cameraCenter; // Node the camera node is parented to, orbits this
+
+    // Root node of the craft being edited. Every part is parented to this.
+    Node@ m_subject; 
+    
+    // Play all sort of sound effects through here, like that metal clang
     SoundSource@ m_sfx;
 
+    // Suppose to be different modes the editor can be put in
+    // barely implemented, and needs work
+    // construction - Modify the craft and add parts
+    // wiring       - Edit wiring
+    // crew         - Change who gets to sit in the seats
+    // testing      - Test the craft like a wind tunnel
+    // More can be added by addons
     Array<UIElement@> m_workspaces;
-    UIElement@ m_uiCursor;
     int m_currentWorkspace;
     
+    // A UIElement that follows the cursor
+    UIElement@ m_uiCursor;
+
+    // Set to true when exiting the editor
     bool m_isClosed;
 
-    VariantMap m_vars;
+    
+    //VariantMap m_vars;
 
     /**
      * Add a new feature to the editor
@@ -79,7 +121,8 @@ class CraftEditor : UIController
      * @param func [in] Function pointer to the function
      * @return A handle to the EditorFeature just added
      */
-    EditorFeature@ AddFeature(const String& name, const String& desc, EditorFunction_t@ func)
+    EditorFeature@ AddFeature(const String& name, const String& desc,
+                              EditorFunction_t@ func)
     {
         EditorFeature@ feature = EditorFeature();
         //feature.m_name = name;
@@ -121,13 +164,19 @@ class CraftEditor : UIController
     }
 
     /**
-     * Calculate a list of possible snaps between the selected parts and other placed parts
-     * Two thresholds are used to consider if two parts are close enough for a possible snap
+     * Calculate a list of possible snaps between the selected parts and other
+     * placed parts. Two thresholds are used to consider if two parts are close
+     * enough for a possible snap.
      * @param pairs [out] Array for pairs of possible attachments
-     * @param screenDistance [in] threshold in screen pixels for how far apart attachments can be on-screen, before counting as a snap 
-     * @param distance [in] threshold in physical meters for how far apart attachments can physically be, before counting as a snap
+     * @param screenDistance [in] threshold in screen pixels for how far apart
+                                  attachments can be on-screen, before counting
+                                  as a snap 
+     * @param distance [in] threshold in physical meters for how far apart
+                            attachments can physically be, before counting as a
+                            snap
      */
-    void CalculatePossibleSnaps(Array<AttachmentPair>& pairs, float screenDistance, float distance)
+    void CalculatePossibleSnaps(Array<AttachmentPair>& pairs,
+                                float screenDistance, float distance)
     {
         // TODO: add any sort of filtering for different kinds of attachments
         // TODO: optimize all of this
@@ -146,14 +195,15 @@ class CraftEditor : UIController
         //Print("not selected " + nonSelected.length);
         
         // Loop through all selected parts
- 
+        // Maybe find a way to optimize this
         
         Variant[]@ attachmentsA;
         Variant[]@ attachmentsB;
         
         for (int i = 0; i < m_selection.length; i ++)
         {
-            @attachmentsA = m_selection[i].vars["Attachments"].GetVariantVector();
+            @attachmentsA = m_selection[i].vars["Attachments"]
+                                .GetVariantVector();
             
             for (int j = 0; j < attachmentsA.length; j ++)
             {
@@ -162,7 +212,8 @@ class CraftEditor : UIController
                 
                 for (int k = 0; k < nonSelected.length; k ++)
                 {
-                    @attachmentsB = nonSelected[k].vars["Attachments"].GetVariantVector();
+                    @attachmentsB = nonSelected[k].vars["Attachments"]
+                                        .GetVariantVector();
                     for (int l = 0; l < attachmentsB.length; l ++)
                     {
                     
@@ -170,7 +221,8 @@ class CraftEditor : UIController
                         
                         bool snapped = false;
                     
-                        float testDistance = (attachA.worldPosition - attachB.worldPosition).length;
+                        float testDistance = (attachA.worldPosition
+                                              - attachB.worldPosition).length;
                         
                         if (testDistance < distance)
                         {
@@ -207,8 +259,8 @@ class CraftEditor : UIController
 
     /**
      * Unproject a point on the screen into a ray going out of the camera
-     * Returned vector will not be normalized, instead is a point on a plane 1m from the camera
-     * Camera rotation is dealt with, translation ignored
+     * Returned vector will not be normalized, instead is a point on a plane
+     * 1m from the camera. Camera rotation is dealt with, translation ignored
      * @param input [in] Position on screen in pixels
      * @return Vector3 camera ray
      */
@@ -216,9 +268,11 @@ class CraftEditor : UIController
     {
         Vector2 mouseCenter(input.x - (graphics.width - graphics.width / 2),
                           -input.y + (graphics.height - graphics.height / 2));
-        float scaleFactor = (graphics.height - graphics.height / 2) / Tan(float(m_cameraComponent.fov) / 2.0f);
+        float scaleFactor = (graphics.height - graphics.height / 2)
+                                / Tan(float(m_cameraComponent.fov) / 2.0f);
         mouseCenter /= scaleFactor;
-        return m_camera.worldRotation * (Vector3(mouseCenter.x, mouseCenter.y, 1));
+        return m_camera.worldRotation
+                    * (Vector3(mouseCenter.x, mouseCenter.y, 1));
     }
 
     // Functions below are used by ScriptObject
@@ -353,7 +407,8 @@ class CraftEditor : UIController
         m_hotkeys.BindToKey(viewOrbitHotkey, KEY_E, INPUT_HIGH);
 
         // For Undo...
-        // Activate is HIGH when (Ctrl is HIGH) AND (Shift is LOW) AND (Alt is LOW) AND (KeyZ is RISING)
+        // Activate is HIGH when (Ctrl is HIGH) AND (Shift is LOW)
+        //                          AND (Alt is LOW) AND (KeyZ is RISING)
         m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_CTRL, INPUT_HIGH); 
         m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_SHIFT, INPUT_LOW);
         m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_ALT, INPUT_LOW);
