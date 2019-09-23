@@ -3,36 +3,60 @@ Another Open Space Program project, but made with Urho3D.
 
 ![screenshot](https://cdn.discordapp.com/attachments/421375838953537546/553854430005690368/Screenshot_2019-03-09_00-16-52.png "This is what it looks like at the time this README is being written")
 
-Build instructions can be found in the [wiki](https://github.com/TheOpenSpaceProgram/urho-osp/wiki/Building-from-Source-on-Linux).
+Build instructions can be found in the [Wiki](https://github.com/TheOpenSpaceProgram/urho-osp/wiki/).
 
-### Working Features
- * Loading resources from files
-   * Parts use glTF format (.sturdy.gltf)
-   * Functionality can be added to parts (Rocket that apply thrust)
-   * Can be created directly in Blender
- * Assembling spacecraft from these parts
-   * Parts are dragged together into a single rigid body that has physics
- * Piloting spacecraft
-   * Rockets with throttle and instantaneous torque control
-   * Spacecraft can reach orbit (uses physics engine)
- * Large universe
-   * Coordinate system can reach 400× the distance to Alpha Centauri
-   * Multiple areas can have active physics (capable, but not used yet)
-   * Floating Origin
+## Contributing
+
+If you have any cool ideas, discuss in the [Discord Server](https://discord.gg/7xFsKRg). This is an open source project, yet there's mostly one guy working on it, so a ton of technical documentation is being written in the [Wiki](https://github.com/TheOpenSpaceProgram/urho-osp/wiki).
+
+### Technical Features
+ * Loading Resources from Files
+   * Parts use modified glTF format (.sturdy.gltf)
+     * Can be created directly in Blender
+   * Functionality can be added to parts (Machines)
+     * MachineRocket - A Rocket engine
+     * MachinePutMoreHere - Add more Machines
+ * Large Universe
+   * Coordinate system is practically infinite
+     * A tree of "Satellites"
+   * Active Physics Areas (ActiveArea)
+     * Floating Origin
+     * There can be multiple of these
  * Planet Level of Detail
    * Subdivides an Icosahedron
    * Generating chunks for a solid surface
    * Logarithmic Depth Buffer (disabled)
    * Doesn't kill the computer and runs smoothly on a chromebook
 
-Features listed are not 100% complete, but work.
+### (Planned) Gameplay Features
+ * Atmosphereic Flight
+ * Building and Flying spacecraft
+ * Built-in Mod Manager
+ * Multiplayer
+ * Swappable solar systems 
+ * Way too early and technical to really say much here, but there's big lists of features in a google doc somewhere.
 
-### Currently in Progress
+ * Assembling spacecraft from these parts
+   * Parts are dragged together into a single rigid body that has physics
+ * Piloting spacecraft
+   * Rockets with throttle and instantaneous torque control
+   * Spacecraft can reach orbit (uses physics engine)
 
- * A real way to build spacecraft (known as entities in the codebase)
-   * Better Interface for the construction scene
-   * Different kinds of structural attachments for parts
-   * Proper data structure for entities
+
+
+## Screenshots
+
+Precise arrangement of Marlin-1D rockets and a few cubes
+
+![screenshot](https://cdn.discordapp.com/attachments/418085421747011585/603044840300871730/unknown.png "")
+
+Fridge with rockets on it
+
+![screenshot](https://cdn.discordapp.com/attachments/418085421747011585/603694930279530498/unknown.png "")
+
+Multiple Astronomical Bodies
+
+![screenshot](https://cdn.discordapp.com/attachments/421375838953537546/608817108666548265/Screenshot_2019-08-07_17-17-36.png "")
 
 ## Old Media:
 
