@@ -58,28 +58,28 @@ static constexpr const uint8_t sc_icoTemplateneighbours[20 * 3] {
 };
 
 // If this changes, then the universe is broken
-static const int gc_icosahedronFaceCount = 20;
+static constexpr int gc_icosahedronFaceCount = 20;
 
 enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010,
                                E_CHUNKED = 0b0100 };
 
 // Index to a triangle
-typedef uint32_t trindex;
+using trindex = uint32_t;
 
 // Index to a chunk
-typedef unsigned chindex;
+using chindex = unsigned int; // TODO: Why use 'unsigned' instead of uint32_t?
 
 // Index to a buffer
-typedef uint32_t buindex;
+using buindex = uint32_t;
 
 struct UpdateRange
 {
-    buindex m_start, m_end;
     // initialize with maximum buindex value for start (2^32),
     // and minimum buindex for end (0)
     // the first min and max operations will replace them
-    UpdateRange() : m_start(UINT32_MAX), m_end(0) {
-    }
+    buindex m_start = UINT32_MAX
+    buindex m_end   = 0;
+    UpdateRange() = default;
 };
 
 // Triangle on the IcoSphereTree
@@ -129,7 +129,7 @@ public:
      * @param t [in] Index to triangle
      * @return Pointer to triangle
      */
-    inline SubTriangle* get_triangle(trindex t) const
+    SubTriangle* get_triangle(trindex t) const
     {
         return m_triangles.Buffer() + t;
     }
@@ -141,8 +141,8 @@ public:
      * @param rte [in] Right
      * @param lft [in] Left
      */
-    static inline void set_neighbours(SubTriangle& tri, trindex bot,
-                                      trindex rte, trindex lft);
+    static void set_neighbours(SubTriangle& tri, trindex bot,
+                               trindex rte, trindex lft);
 
     /**
      * A quick way to set vertices of a triangle
@@ -151,8 +151,8 @@ public:
      * @param lft Left
      * @param rte Right
      */
-    static inline void set_verts(SubTriangle& tri, trindex top,
-                                 trindex lft, trindex rte);
+    static void set_verts(SubTriangle& tri, trindex top,
+                          trindex lft, trindex rte);
 
     void set_side_recurse(SubTriangle& tri, int side, trindex to);
 
@@ -162,7 +162,7 @@ public:
      * @param [in] lookingFor Index of triangle to search for
      * @return Neighbour index (0 - 2), or bottom, left, or right
      */
-    static inline int neighboor_index(SubTriangle& tri, trindex lookingFor);
+    static int neighboor_index(SubTriangle& tri, trindex lookingFor);
 
 
     /**
@@ -207,8 +207,6 @@ private:
 
     PODVector<buindex> m_vertFree; // Deleted vertices in m_vertBuf GPU data
     // use "m_indDomain[buindex]" to get a triangle index
-
-
 };
 
 // Connects the dots between triangles in IcoSphereTree by making chunks
@@ -306,7 +304,6 @@ public:
 
     Model* get_model() { return m_model; }
 
-
 protected:
 
     /**
@@ -347,7 +344,7 @@ protected:
      * @param y [in]
      * @return
      */
-    inline unsigned get_index(int x, int y) const;
+    unsigned get_index(int x, int y) const;
 
     /**
      * Similar to the normal get_index, but the first possible indices returned
@@ -378,5 +375,4 @@ protected:
      * @param tri
      */
     void find_refs(SubTriangle& tri);
-
 };
