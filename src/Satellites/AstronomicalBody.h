@@ -19,7 +19,7 @@ public:
     AstronomicalBody(Context* context);
     ~AstronomicalBody() override;
 
-    float get_radius()
+    constexpr float get_radius()
     {
         return m_radius;
     }
