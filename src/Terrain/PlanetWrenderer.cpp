@@ -21,13 +21,14 @@ void IcoSphereTree::initialize()
     // This part is kind of messy and should be revised
     // "X pointing" pentagon goes on the top
 
-    //float s = float(size / 280.43394944265);
-    const float h = 114.486680448f;
-
-    const float ca = 79.108350559987f;
-    const float cb = 207.10835055999f;
-    const float sa = 243.47046817156f;
-    const float sb = 150.47302458687f;
+    // TODO: Replace constants with compile-time calculations.
+    // Enables the compiler to recognize higher level math
+    // operations and re-arrange some computations appropriately.
+    static constexpr float h = 114.486680448f;
+    static constexpr float ca = 79.108350559987f;
+    static constexpr float cb = 207.10835055999f;
+    static constexpr float sa = 243.47046817156f;
+    static constexpr float sb = 150.47302458687f;
 
     // Reserve some space on the vertex buffer
     m_vertBuf.Reserve(m_maxVertice * m_vertCompCount);
@@ -135,36 +136,33 @@ void IcoSphereTree::initialize()
 }
 
 
-inline void IcoSphereTree::set_neighbours(SubTriangle& tri,
-                                            trindex bot,
-                                            trindex rte,
-                                            trindex lft)
+void IcoSphereTree::set_neighbours(SubTriangle& tri,
+                                   trindex bot,
+                                   trindex rte,
+                                   trindex lft)
 {
     tri.m_neighbours[0] = bot;
     tri.m_neighbours[1] = rte;
     tri.m_neighbours[2] = lft;
 }
 
-inline void IcoSphereTree::set_verts(SubTriangle& tri, trindex top,
-                                       trindex lft, trindex rte)
+void IcoSphereTree::set_verts(SubTriangle& tri, trindex top,
+                              trindex lft, trindex rte)
 {
     tri.m_corners[0] = top;
     tri.m_corners[1] = lft;
     tri.m_corners[2] = rte;
 }
 
-inline int IcoSphereTree::neighboor_index(SubTriangle& tri,
-                                            trindex lookingFor)
+int IcoSphereTree::neighboor_index(SubTriangle& tri,
+                                   trindex lookingFor)
 {
     // Loop through neighbours on the edges. child 4 (center) is not considered
     // as all it's neighbours are its siblings
-    for (int i = 0; i < 3; i ++)
-    {
-        if (tri.m_neighbours[i] == lookingFor)
-        {
-            return i;
-        }
-    }
+    if(tri.m_neighbours[0] == lookingFor) return 0;
+    if(tri.m_neighbours[1] == lookingFor) return 1;
+    if(tri.m_neighbours[2] == lookingFor) return 2;
+
     // this means there's an error
     assert(0);
     return 255;
@@ -181,7 +179,6 @@ PlanetWrenderer::PlanetWrenderer()
 
     m_maxChunks = 300;
     m_chunkMaxVertShared = 10000;
-
 }
 
 PlanetWrenderer::~PlanetWrenderer()
@@ -726,7 +723,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
     }
 }
 
-inline unsigned PlanetWrenderer::get_index(int x, int y) const
+unsigned PlanetWrenderer::get_index(int x, int y) const
 {
     return unsigned(y * (y + 1) / 2 + x);
 }
@@ -1006,7 +1003,6 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
     tri->m_bitmask ^= E_CHUNKED;
 
 }
-
 
 void PlanetWrenderer::chunk_remove(trindex t, UpdateRange* gpuVertChunk,
                                    UpdateRange* gpuVertInd)
