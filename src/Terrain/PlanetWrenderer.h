@@ -77,7 +77,7 @@ struct UpdateRange
     // initialize with maximum buindex value for start (2^32),
     // and minimum buindex for end (0)
     // the first min and max operations will replace them
-    buindex m_start = UINT32_MAX
+    buindex m_start = UINT32_MAX;
     buindex m_end   = 0;
     UpdateRange() = default;
 };
