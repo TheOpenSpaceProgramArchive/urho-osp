@@ -63,12 +63,12 @@ public:
      * Set position relative to parent. This function is probably dangerous
      * @param pos [in] Desired value
      */
-    inline void set_position(const LongVector3& pos)
+    void set_position(const LongVector3& pos)
     {
         m_position = pos;
     }
 
-    inline uint64_t get_load_radius() const
+    uint64_t get_load_radius() const
     {
         return m_loadRadius;
     }
@@ -76,32 +76,32 @@ public:
     /**
      * @return Pointer to the active node. Null if not loaded
      */
-    inline Node* get_active_node() const
+    Node* get_active_node() const
     {
         return m_activeNode.Get();
     }
 
-    inline const Vector< UniquePtr<Satellite> >& get_children() const
+    const Vector< UniquePtr<Satellite> >& get_children() const
     {
         return m_children;
     }
 
-    inline const String& get_name() const
+    const String& get_name() const
     {
         return m_name;
     }
 
-    inline Satellite* get_parent() const
+    Satellite* get_parent() const
     {
         return m_parent;
     }
 
-    inline unsigned get_depth() const
+    unsigned get_depth() const
     {
         return m_depth;
     }
 
-    inline unsigned get_index() const
+    unsigned get_index() const
     {
         return m_index;
     }
@@ -110,7 +110,7 @@ public:
      * Shorthand for checking if m_activeNode is null
      * @return true if loaded, false if not loaded
      */
-    inline bool is_loaded() const
+    bool is_loaded() const
     {
         return m_activeNode.NotNull();
     }
