@@ -1,46 +1,28 @@
 // "PlanetRenderer is a little too boring" -- Capital Asterisk, 2018
 #pragma once
 
-#include <cstdint>
-#include <iostream>
-#include <sstream>
-#include <string>
-
-#include <Urho3D/Container/Ptr.h>
-#include <Urho3D/Core/CoreEvents.h>
-#include <Urho3D/Engine/Engine.h>
-#include <Urho3D/Graphics/Camera.h>
-#include <Urho3D/Graphics/DebugRenderer.h>
 #include <Urho3D/Graphics/Geometry.h>
 #include <Urho3D/Graphics/Graphics.h>
 #include <Urho3D/Graphics/IndexBuffer.h>
-#include <Urho3D/Graphics/Light.h>
-#include <Urho3D/Graphics/Material.h>
 #include <Urho3D/Graphics/Model.h>
-#include <Urho3D/Graphics/Octree.h>
 #include <Urho3D/Graphics/Renderer.h>
-#include <Urho3D/Graphics/Skybox.h>
-#include <Urho3D/Graphics/StaticModel.h>
 #include <Urho3D/Graphics/VertexBuffer.h>
-#include <Urho3D/Input/InputEvents.h>
-#include <Urho3D/Input/Input.h>
-#include <Urho3D/IO/Log.h>
-#include <Urho3D/Math/MathDefs.h>
+
 #include <Urho3D/Resource/ResourceCache.h>
-#include <Urho3D/Resource/XMLFile.h>
-#include <Urho3D/Scene/SceneEvents.h>
-#include <Urho3D/Scene/Scene.h>
-#include <Urho3D/UI/Button.h>
-#include <Urho3D/UI/Font.h>
-#include <Urho3D/UI/Text.h>
-#include <Urho3D/UI/UIEvents.h>
-#include <Urho3D/UI/UI.h>
+
+#include <Urho3D/Container/Ptr.h>
+
+#include <Urho3D/IO/Log.h>
+
+#include <Urho3D/Core/CoreEvents.h>
+
+#include <cstdint>
 
 using namespace Urho3D;
 
 // The 20 faces of the icosahedron (Top, Left, Right)
 // Each number pointing to a vertex
-static constexpr const uint8_t sc_icoTemplateTris[20 * 3] {
+static constexpr uint8_t sc_icoTemplateTris[20 * 3] {
 //  TT  LL  RR   TT  LL  RR   TT  LL  RR   TT  LL  RR   TT  LL  RR
      0,  2,  1,   0,  3,  2,   0,  4,  3,   0,  5,  4,   0,  1,  5,
      8,  1,  2,   2,  7,  8,   7,  2,  3,   3,  6,  7,   6,  3,  4,
@@ -49,7 +31,7 @@ static constexpr const uint8_t sc_icoTemplateTris[20 * 3] {
 };
 
 // The 20 faces of the icosahedron (Bottom, Right, Left)
-static constexpr const uint8_t sc_icoTemplateneighbours[20 * 3] {
+static constexpr uint8_t sc_icoTemplateneighbours[20 * 3] {
 //  BB  RR  LL   BB  RR  LL   BB  RR  LL   BB  RR  LL   BB  RR  LL
      5,  4,  1,   7,  0,  2,   9,  1,  3,  11,  2,  4,  13,  3,  0,
      0,  6, 14,  16,  5,  7,   1,  8,  6,  15,  7,  9,   2, 10,  8,
@@ -60,8 +42,9 @@ static constexpr const uint8_t sc_icoTemplateneighbours[20 * 3] {
 // If this changes, then the universe is broken
 static constexpr int gc_icosahedronFaceCount = 20;
 
-enum TriangleStats : uint8_t { E_SUBDIVIDED = 0b0001, E_VISIBLE = 0b0010,
-                               E_CHUNKED = 0b0100 };
+static constexpr std::uint8_t gc_triangleMaskSubdivided = 0b0001;
+//static constexpr std::uint8_t gc_triangleMaskVisible    = 0b0010; //< Currently unused.
+static constexpr std::uint8_t gc_triangleMaskChunked    = 0b0100;
 
 // Index to a triangle
 using trindex = uint32_t;
@@ -113,11 +96,10 @@ struct SubTriangle
 // Not implemented, but this can be shared between multiple PlanetWrenderers
 class IcoSphereTree : public RefCounted
 {
-
     friend class PlanetWrenderer;
 
     IcoSphereTree();
-    virtual ~IcoSphereTree();
+    virtual ~IcoSphereTree() = default;
 
 public:
 
@@ -187,6 +169,16 @@ public:
 private:
 
     //PODVector<PlanetWrenderer> m_viewers;
+    PODVector<float> m_vertBuf;
+    PODVector<SubTriangle> m_triangles; // List of all triangles
+    PODVector<trindex> m_trianglesFree; // Deleted triangles in the m_triangles
+    PODVector<buindex> m_vertFree; // Deleted vertices in m_vertBuf GPU data
+    // use "m_indDomain[buindex]" to get a triangle index
+
+    buindex m_vertCount;
+    buindex m_maxVertice;
+
+    buindex m_maxTriangles;
 
     float m_radius;
 
@@ -196,65 +188,31 @@ private:
 
     unsigned m_maxDepth;
     unsigned m_previewDepth; // minimum depth. never subdivide below this
-
-    PODVector<float> m_vertBuf;
-    buindex m_vertCount;
-    buindex m_maxVertice;
-
-    PODVector<SubTriangle> m_triangles; // List of all triangles
-    PODVector<trindex> m_trianglesFree; // Deleted triangles in the m_triangles
-    buindex m_maxTriangles;
-
-    PODVector<buindex> m_vertFree; // Deleted vertices in m_vertBuf GPU data
-    // use "m_indDomain[buindex]" to get a triangle index
 };
 
 // Connects the dots between triangles in IcoSphereTree by making chunks
 // Chunks being
 class PlanetWrenderer
 {
+    // How much screen area a triangle can take before it should be subdivided
+    static constexpr float m_subdivAreaThreshold = 0.02f;
+    // How much screen area a triangle can take before it should be chunked
+    static constexpr float m_chunkAreaThreshold = 0.04f;
+    static constexpr unsigned m_chunkResolution = 31; // How many vertices wide each chunk is
+    static constexpr chindex m_maxChunks = 300; // Max number of chunks
+    static constexpr buindex m_chunkMaxVertShared = 10000; // How much is reserved for shared vertices
 
-    // Not implented
-    //
-    bool m_noGPU = false;
-
-    bool m_ready = false;
+    SharedPtr<IcoSphereTree> m_icoTree;
+    SharedPtr<IndexBuffer> m_indBufChunk;
+    SharedPtr<VertexBuffer> m_chunkVertBuf;
 
     Vector3 m_offset;
     Vector3 m_camera;
-    float m_cameraDist;
-    float m_threshold;
-
-    // How much screen area a triangle can take before it should be subdivided
-    float m_subdivAreaThreshold;
-    // How much screen area a triangle can take before it should be chunked
-    float m_chunkAreaThreshold;
-
-    Model* m_model;
-
-    SharedPtr<IcoSphereTree> m_icoTree;
-
-    // Geometry for chunks
-
-    Geometry* m_geometryChunk;
-
-    SharedPtr<IndexBuffer> m_indBufChunk;
-    unsigned m_chunkResolution; // How many vertices wide each chunk is
-    unsigned m_chunkSharedCount; // How many shared verticies per chunk
-    unsigned m_chunkSize; // How many vertices there are in each chunk
-    unsigned m_chunkSizeInd; // How many triangles in each chunk
-    chindex m_maxChunks; // Max number of chunks
     chindex m_chunkCount; // How many chunks there are right now
 
     PODVector<trindex> m_chunkIndDomain; // Maps chunks to triangles
     // Spots in the index buffer that want to die
     PODVector<chindex> m_chunkIndDeleteMe;
-
-    SharedPtr<VertexBuffer> m_chunkVertBuf;
-    buindex m_chunkMaxVert; // How large the chunk vertex buffer is in total
-    buindex m_chunkMaxVertShared; // How much is reserved for shared vertices
-
-    buindex m_chunkVertCountShared; // Current of shared vertices (chunk edges)
     PODVector<buindex> m_chunkVertFree; // Deleted chunk data to overwrite
     PODVector<buindex> m_chunkVertFreeShared; // same as above but for shared
 
@@ -266,6 +224,26 @@ class PlanetWrenderer
     PODVector<uint8_t> m_chunkVertUsers;
     // Indicies that point to shared vertices.
     PODVector<buindex> m_chunkSharedIndices;
+
+    Model* m_model;
+    Geometry* m_geometryChunk; // Geometry for chunks
+
+    buindex m_chunkMaxVert; // How large the chunk vertex buffer is in total
+
+    buindex m_chunkVertCountShared; // Current of shared vertices (chunk edges)
+
+    float m_cameraDist;
+    float m_threshold;
+
+    unsigned m_chunkSharedCount; // How many shared verticies per chunk
+    unsigned m_chunkSize; // How many vertices there are in each chunk
+    unsigned m_chunkSizeInd; // How many triangles in each chunk
+
+    // Not implented
+    //
+    //bool m_noGPU = false;
+
+    bool m_ready = false;
 
     // Vertex buffer data is divided unevenly for chunks
     // In m_chunkVertBuf:
@@ -281,11 +259,10 @@ class PlanetWrenderer
     // (m_chunkSize - m_chunkSharedCount)
 
 public:
+    PlanetWrenderer() = default;
+    ~PlanetWrenderer() = default;
 
-    PlanetWrenderer();
-    ~PlanetWrenderer();
-
-    bool is_ready() { return m_ready; }
+    constexpr bool is_ready() const;
 
     /**
      * Calculate initial icosahedron and initialize buffers.
@@ -313,7 +290,6 @@ protected:
      */
     void sub_recurse(trindex t);
 
-
     /**
      *
      * @param t [in] Index of triangle to add chunk to
@@ -330,7 +306,6 @@ protected:
     void chunk_remove(trindex t, UpdateRange* gpuVertChunk = nullptr,
                       UpdateRange* gpuVertInd = nullptr);
 
-
     /**
      * Convert XY coordinates to a triangular number index
      *
@@ -344,7 +319,7 @@ protected:
      * @param y [in]
      * @return
      */
-    unsigned get_index(int x, int y) const;
+    constexpr unsigned get_index(int x, int y) const;
 
     /**
      * Similar to the normal get_index, but the first possible indices returned
@@ -376,3 +351,13 @@ protected:
      */
     void find_refs(SubTriangle& tri);
 };
+
+inline bool PlanetWrenderer::is_ready() const
+{
+    return m_ready;
+}
+
+inline unsigned PlanetWrenderer::get_index(int x, int y) const
+{
+    return unsigned(y * (y + 1) / 2 + x);
+}

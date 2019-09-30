@@ -10,11 +10,6 @@ IcoSphereTree::IcoSphereTree() : RefCounted()
     m_previewDepth = 0;
 }
 
-IcoSphereTree::~IcoSphereTree()
-{
-
-}
-
 void IcoSphereTree::initialize()
 {
     // Pentagon stuff, from wolfram alpha
@@ -166,24 +161,6 @@ int IcoSphereTree::neighboor_index(SubTriangle& tri,
     // this means there's an error
     assert(0);
     return 255;
-}
-
-PlanetWrenderer::PlanetWrenderer()
-{
-    // Numbers that work nicely, though not ideal
-
-    m_chunkAreaThreshold = 0.04f;
-    m_subdivAreaThreshold = 0.02f;
-
-    m_chunkResolution = 31;
-
-    m_maxChunks = 300;
-    m_chunkMaxVertShared = 10000;
-}
-
-PlanetWrenderer::~PlanetWrenderer()
-{
-
 }
 
 void PlanetWrenderer::initialize(Context* context,
@@ -425,7 +402,7 @@ void IcoSphereTree::subdivide_add(trindex t)
         SubTriangle* triB = get_triangle(tri->m_neighbours[i]);
         // Check if the line is already subdivided,
         // or if there is no triangle on the other side
-        if (!(triB->m_bitmask & E_SUBDIVIDED)
+        if (!(triB->m_bitmask & gc_triangleMaskSubdivided)
                 || (triB->m_depth != tri->m_depth)) {
             // A new vertex has to be created in the middle of the line
             if (m_vertFree.Size() == 0) {
@@ -506,7 +483,7 @@ void IcoSphereTree::subdivide_add(trindex t)
     calculate_center(children[2]);
     calculate_center(children[3]);
 
-    tri->m_bitmask ^= E_SUBDIVIDED;
+    tri->m_bitmask ^= gc_triangleMaskSubdivided;
 
     // subdivide if below minimum depth
     if (tri->m_depth < m_previewDepth)
@@ -528,7 +505,7 @@ void IcoSphereTree::subdivide_remove(trindex t)
 {
     SubTriangle* tri = get_triangle(t);
 
-    if (!(tri->m_bitmask & E_SUBDIVIDED))
+    if (!(tri->m_bitmask & gc_triangleMaskSubdivided))
     {
         // If not subdivided
         return;
@@ -537,7 +514,7 @@ void IcoSphereTree::subdivide_remove(trindex t)
     // unsubdiv children if subdivided, and hide if hidden
     for (trindex i = 0; i < 4; i ++)
     {
-        if (m_triangles[tri->m_children + i].m_bitmask & E_SUBDIVIDED)
+        if (m_triangles[tri->m_children + i].m_bitmask & gc_triangleMaskSubdivided)
         {
             subdivide_remove(tri->m_children + i);
         }
@@ -557,7 +534,7 @@ void IcoSphereTree::subdivide_remove(trindex t)
 
         // If the triangle on the other side is not subdivided
         // it means that the vertex will have no more users
-        if (!(triB->m_bitmask & E_SUBDIVIDED) || triB->m_depth != tri->m_depth)
+        if (!(triB->m_bitmask & gc_triangleMaskSubdivided) || triB->m_depth != tri->m_depth)
         {
             // Mark side vertex for replacement
             m_vertFree.Push(tri->m_midVerts[i]);
@@ -576,7 +553,7 @@ void IcoSphereTree::subdivide_remove(trindex t)
     // Now mark triangles for removal. they're always in groups of 4.
     m_trianglesFree.Push(tri->m_children);
 
-    tri->m_bitmask ^= E_SUBDIVIDED;
+    tri->m_bitmask ^= gc_triangleMaskSubdivided;
     tri->m_children = unsigned(-1);
 }
 
@@ -606,7 +583,7 @@ void IcoSphereTree::calculate_center(SubTriangle &tri)
 void IcoSphereTree::set_side_recurse(SubTriangle& tri, int side, trindex to)
 {
     tri.m_neighbours[side] = to;
-    if (tri.m_bitmask & E_SUBDIVIDED) {
+    if (tri.m_bitmask & gc_triangleMaskSubdivided) {
         set_side_recurse(m_triangles[tri.m_children + ((side + 1) % 3)],
                 side, to);
         set_side_recurse(m_triangles[tri.m_children + ((side + 2) % 3)],
@@ -679,7 +656,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
     //chunk_add(t);
 
     // Check if already subdivided
-    if (tri->m_bitmask & E_SUBDIVIDED)
+    if (tri->m_bitmask & gc_triangleMaskSubdivided)
     {
 
         if (shouldSubdivide)
@@ -723,11 +700,6 @@ void PlanetWrenderer::sub_recurse(trindex t)
     }
 }
 
-unsigned PlanetWrenderer::get_index(int x, int y) const
-{
-    return unsigned(y * (y + 1) / 2 + x);
-}
-
 unsigned PlanetWrenderer::get_index_ringed(int x, int y) const
 {
     // || (x == y) ||
@@ -765,7 +737,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
         return;
     }
 
-    if (tri->m_bitmask & (E_CHUNKED | E_SUBDIVIDED))
+    if (tri->m_bitmask & (gc_triangleMaskChunked | gc_triangleMaskSubdivided))
     {
         // return if already chunked, or is subdivided
         return;
@@ -810,7 +782,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
     for (int i = 0; i < 3; i ++)
     {
         SubTriangle* triB = m_icoTree->get_triangle(tri->m_neighbours[i]);
-        chunkedNeighbours[i] = (triB->m_bitmask & E_CHUNKED);
+        chunkedNeighbours[i] = (triB->m_bitmask & gc_triangleMaskChunked);
     }
 
     //URHO3D_LOGINFOF("DirDown: %f %f %f", dirDown.x_, dirDown.y_, dirDown.z_);
@@ -1000,7 +972,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
                                   m_chunkCount * chunkIndData.Size());
 
     // The triangle is now chunked
-    tri->m_bitmask ^= E_CHUNKED;
+    tri->m_bitmask ^= gc_triangleMaskChunked;
 
 }
 
@@ -1009,7 +981,7 @@ void PlanetWrenderer::chunk_remove(trindex t, UpdateRange* gpuVertChunk,
 {
     SubTriangle* tri = m_icoTree->get_triangle(t);
 
-    if (!bool(tri->m_bitmask & E_CHUNKED))
+    if (!bool(tri->m_bitmask & gc_triangleMaskChunked))
     {
         // If not chunked
         return;
@@ -1080,7 +1052,7 @@ void PlanetWrenderer::chunk_remove(trindex t, UpdateRange* gpuVertChunk,
                                   m_chunkCount * m_chunkSizeInd * 3);
 
     // Set chunked bit
-    tri->m_bitmask ^= E_CHUNKED;
+    tri->m_bitmask ^= gc_triangleMaskChunked;
 }
 
 uint64_t PlanetWrenderer::get_memory_usage() const
