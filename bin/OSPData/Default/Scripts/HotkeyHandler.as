@@ -2,8 +2,12 @@
 
 const int INPUT_LOW = 0;
 const int INPUT_HIGH = 1;
+
 const int INPUT_RISING = 2;
 const int INPUT_FALLING = 3;
+
+const int INPUT_POSITIVE = 1;
+const int INPUT_NEGATIVE = 4;
 
 const int INPUTOP_AND = 0;
 const int INPUTOP_OR = 1;
@@ -18,19 +22,29 @@ class Hotkey
     // Feature that will be called
     String m_feature;
     // A boolean expression describing the input conditions needed to activate
-    // [Index to m_inputs, [0/1/rising/falling], next operation [and/or], repeat...]
+    // [Index to m_inputs, [0/1/rising/falling], next op [and/or], repeat...]
     Array<int> m_expression;
 }
 
 
 class HotkeyHandler
 {
+    // List of ints that each represent a button from any input device
+    // 0 = not pressed, 1 = pressed
+    // ie. [mouse button 1, keyboard E, mouse button 2, keyboard shift, ...]
     Array<int> m_inputs;
+    
+    // Copy of m_inputs above, used to trigger RISING and FALLING binds
     Array<int> m_inputsPrevious;
+
     Array<Hotkey@> m_hotkeys;
     Array<Vector2> m_joysticks;
     
     bool m_enabled;
+    
+    // Set this true to disable the mouse and mouse wheel, useful for when the
+    // mouse is over some UI
+    // Should be renamed to something more meaningful
     bool m_enableMouseDown;
 
     UIController@ m_controller;
@@ -51,6 +65,7 @@ class HotkeyHandler
         // Subscribe to user input events
         SubscribeToEvent("MouseButtonDown", "HandleMouseDown");
         SubscribeToEvent("MouseButtonUp", "HandleMouseUp");
+        SubscribeToEvent("MouseWheel", "HandleMouseWheel");
         SubscribeToEvent("KeyDown", "HandleKeyDown");
         SubscribeToEvent("KeyUp", "HandleKeyUp");
 
@@ -71,7 +86,8 @@ class HotkeyHandler
     }
 
     /**
-     * Get an m_inputs index from a hashed string to a physical input device button
+     * Get an m_inputs index from a hashed string to a physical input device
+     * button
      * eg. m_inputs[ControlIndex(StringHash("MB" + MOUSEB_RIGHT))] is the input
      *     that responds to the right mouse button
      * A new entry in m_index will be created, if one is not found
@@ -118,6 +134,22 @@ class HotkeyHandler
 
         hotkey.m_expression.Push(inputIndex);
         hotkey.m_expression.Push(press);
+        hotkey.m_expression.Push(INPUTOP_AND);
+    }
+
+    /**
+     * Bind mouse wheel to a Hotkey
+     * @param hotkey [ref] Hotkey to write binds to
+     * @param inputOp [in] Usually INPUT_POSITIVE/NEGATIVE for scroll up/down
+     */
+    void BindToMouseWheel(Hotkey@ hotkey, int inputOp)
+    {
+        StringHash hash = StringHash("MW");
+        
+        int inputIndex = ControlIndex(hash);
+
+        hotkey.m_expression.Push(inputIndex);
+        hotkey.m_expression.Push(inputOp);
         hotkey.m_expression.Push(INPUTOP_AND);
     }
 
@@ -254,12 +286,36 @@ class HotkeyHandler
         // else no binds use this mouse button
     }
     
+    // Handle Mouse Wheel events, see the SubscribeToEvent functions above
+    void HandleMouseWheel(StringHash eventType, VariantMap& eventData)
+    {
+        //Print("Mouse wheel event detected:" + eventData["Wheel"].ToString());
+        
+        if (!m_enableMouseDown)
+        {
+            return;
+        }
+    
+        // Mouse wheel is triggered. 1 for scrolling up, -1 for scolling down.
+        int wheel = eventData["Wheel"].GetInt();
+        
+        StringHash hash = StringHash("MW");
+        Variant input = m_binds[hash];
+        
+        if (!input.empty)
+        {
+            // Add 1 or -1 to m_inputs. this will be reset to 0 next update.
+            m_inputs[input.GetInt()] = m_inputs[input.GetInt()] + wheel;
+        }
+    }
+    
     // Handle MouseMove events, see the SubscribeToEvent functions above
     void HandleMouseMove(StringHash eventType, VariantMap& eventData)
     {
         // in the future, make m_joysticks respond to actual controllers
         // for now, this is hard-coded
-        m_joysticks[0] = m_joysticks[0] + Vector2(eventData["DX"].GetInt(), eventData["DY"].GetInt());
+        m_joysticks[0] = m_joysticks[0] + Vector2(eventData["DX"].GetInt(),
+                                                  eventData["DY"].GetInt());
     }
 
     void Update()
@@ -281,7 +337,9 @@ class HotkeyHandler
 
             Array<int>@ expression = hotkey.m_expression;
 
-            int lastOperator = INPUTOP_OR; // Set to OR because the first condition is going to be compared by total, which is false
+            // Set to OR because the first condition is going to be compared by
+            // total, which is initialized false
+            int lastOperator = INPUTOP_OR;
             bool total = false;
             bool currentValue;
             
@@ -299,15 +357,21 @@ class HotkeyHandler
                 case INPUT_HIGH:
                     currentValue = (m_inputs[index] > 0);
                     break;
+                case INPUT_NEGATIVE:
+                    currentValue = (m_inputs[index] < 0);
+                    break;
                 case INPUT_RISING:
-                    currentValue = (m_inputs[index] - m_inputsPrevious[index] > 0);
+                    currentValue = (m_inputs[index]
+                                    - m_inputsPrevious[index] > 0);
                     break;
                 case INPUT_FALLING:
-                    currentValue = (m_inputsPrevious[index] - m_inputs[index] > 0);
+                    currentValue = (m_inputsPrevious[index]
+                                    - m_inputs[index] > 0);
                     break;
                 }
                 
-                // Combine the currentValue with the calculated total using the specified operator
+                // Combine the currentValue with the calculated total using the
+                // specified operator
                 switch (lastOperator)
                 {
                 case INPUTOP_AND:
@@ -345,6 +409,15 @@ class HotkeyHandler
         
         // Save previous inputs state
         m_inputsPrevious = m_inputs;
+        
+        // Set mouse wheel back to zero
+        // maybe do a similar thing for joystick axis support?
+        Variant input = m_binds["MW"];
+        
+        if (!input.empty)
+        {
+            m_inputs[input.GetInt()] = 0;
+        }
     }
     
     

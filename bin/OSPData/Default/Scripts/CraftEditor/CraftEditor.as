@@ -349,8 +349,9 @@ class CraftEditor : UIController
         //       been a good idea.
         @m_hotkeys = HotkeyHandler(this);
 
-        // Add Mouse and keyboard binds
-        // + some simple boolean algebra
+        // Start adding features. This registers the functions, so they can be
+        // called using ActivateFeature
+        // eg. ActivateFeature("confirm", ...);
 
         // Add basic features
         AddFeature("confirm", "Confirm", @CursorLockConfirm);
@@ -359,9 +360,12 @@ class CraftEditor : UIController
         AddFeature("moveFree", "Select Parts", @MoveFree);
         AddFeature("lunch", "Start eating the meal", @LunchTime);
 
-
-        // Add Orbit View and Undo features
+        // Add Navigation features
         AddFeature("vorbit", "Orbit View", @Navigation::ViewOrbit);
+        AddFeature("vzoomIn", "Zoom In", @Navigation::ZoomIn);
+        AddFeature("vzoomOut", "Zoom Out", @Navigation::ZoomOut);
+        
+        // Add utility features
         AddFeature("uundo", "Orbit View", @Utility::Undo);
         AddFeature("uclear", "Clear All", @Utility::ClearAll);
 
@@ -370,55 +374,94 @@ class CraftEditor : UIController
         AddFeature("rotateLeft", "Rotate part Left", @Utility::RotateLeft);
         AddFeature("rotateRight", "Rotate part Right", @Utility::RotateRight);
 
+        // Bind features to hotkeys.
+        // HotkeyHandler calls this craft editor's features through the
+        // ActivateFeature function.
+        
+        // TODO: use some sort of config file later, instead of this spaghetti
 
-        // Create blank hotkeys for them all
-        Hotkey@ confirmHotkey = m_hotkeys.AddHotkey("confirm");
-        Hotkey@ cancelHotkey = m_hotkeys.AddHotkey("cancel");
-        Hotkey@ launchHotkey = m_hotkeys.AddHotkey("lunch");
-        Hotkey@ viewOrbitHotkey = m_hotkeys.AddHotkey("vorbit");
-        Hotkey@ undoHotkey = m_hotkeys.AddHotkey("uundo");
-        Hotkey@ clearHotkey = m_hotkeys.AddHotkey("uclear");
-    
+        // Create and bind hotkeys for confirm and cancel
+        {
+            Hotkey@ confirmHotkey = m_hotkeys.AddHotkey("confirm");
+            Hotkey@ cancelHotkey = m_hotkeys.AddHotkey("cancel");
+            
+            // Left mouse to confirm, backspace to cancel
+            m_hotkeys.BindToMouseButton(confirmHotkey, MOUSEB_LEFT,
+                                        INPUT_RISING);
+            m_hotkeys.BindToKey(cancelHotkey, KEY_BACKSPACE, INPUT_RISING);
+        }
+        
+        // Create and bind hotkeys for basic functions
+        {
+            Hotkey@ undoHotkey = m_hotkeys.AddHotkey("uundo");
+            Hotkey@ clearHotkey = m_hotkeys.AddHotkey("uclear");
+            Hotkey@ launchHotkey = m_hotkeys.AddHotkey("lunch");
+            
+            // For Lunch...
+            // Activate is HIGH when (SPACE is RISING)
+            m_hotkeys.BindToKey(launchHotkey, KEY_SPACE, INPUT_RISING);
+            
+            // For Undo... (Not implemented, it just prints a message)
+            // Activate is HIGH when (Ctrl is HIGH) AND (Shift is LOW)
+            //                       AND (Alt is LOW) AND (KeyZ is RISING)
+            m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_CTRL, INPUT_HIGH); 
+            m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_SHIFT, INPUT_LOW);
+            m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_ALT, INPUT_LOW);
+            m_hotkeys.BindToKey(undoHotkey, KEY_Z, INPUT_RISING);
 
-        //these keys will allow orientation of spacecraft parts
-        Hotkey@ rotateUp = m_hotkeys.AddHotkey("rotateUp");
-        Hotkey@ rotateDown = m_hotkeys.AddHotkey("rotateDown");
-        Hotkey@ rotateLeft = m_hotkeys.AddHotkey("rotateLeft");
-        Hotkey@ rotateRight = m_hotkeys.AddHotkey("rotateRight");
+            // For Clear
+            // Activate is HIGH when (R is rising)
+            m_hotkeys.BindToKey(clearHotkey, KEY_R, INPUT_RISING);
+        }
+        
+        // Create and bind hotkeys for messing with the craft
+        {
+                
+            // these keys will allow orientation of spacecraft parts
+            Hotkey@ rotateUp = m_hotkeys.AddHotkey("rotateUp");
+            Hotkey@ rotateDown = m_hotkeys.AddHotkey("rotateDown");
+            Hotkey@ rotateLeft = m_hotkeys.AddHotkey("rotateLeft");
+            Hotkey@ rotateRight = m_hotkeys.AddHotkey("rotateRight");
+            
+            Hotkey@ moveFree = m_hotkeys.AddHotkey("moveFree");
+            
+            // WASD to rotate the whole thing
+            // ideally this should be a single rotate function with arguments
+            m_hotkeys.BindToKey(rotateUp, KEY_W, INPUT_RISING);
+            m_hotkeys.BindToKey(rotateDown, KEY_S, INPUT_RISING);
+            m_hotkeys.BindToKey(rotateLeft, KEY_A, INPUT_RISING);
+            m_hotkeys.BindToKey(rotateRight, KEY_D, INPUT_RISING);
+            
+            // Press G to drag, but there isn't a select function to know what
+            // to drag, so be careful :)
+            m_hotkeys.BindToKey(moveFree, KEY_G, INPUT_RISING);
+            // Make the bind above include an argument, see MoveFree function
+            moveFree.m_arguments["FeatureOp"] = FEATUREOP_START;
+        }
+        
+        // Create and bind hotkeys for camera navigation
+        {
+            Hotkey@ viewOrbitHotkey = m_hotkeys.AddHotkey("vorbit");
+            Hotkey@ viewZoomIn = m_hotkeys.AddHotkey("vzoomIn");
+            Hotkey@ viewZoomOut = m_hotkeys.AddHotkey("vzoomOut");
 
-        m_hotkeys.BindToKey(rotateUp, KEY_W, INPUT_RISING);
-        m_hotkeys.BindToKey(rotateDown, KEY_S, INPUT_RISING);
-        m_hotkeys.BindToKey(rotateLeft, KEY_A, INPUT_RISING);
-        m_hotkeys.BindToKey(rotateRight, KEY_D, INPUT_RISING);
-
-
-        // Confirm and cancel
-        m_hotkeys.BindToMouseButton(confirmHotkey, MOUSEB_LEFT, INPUT_RISING);
-        m_hotkeys.BindToKey(cancelHotkey, KEY_BACKSPACE, INPUT_RISING);
-
-        // For Lunch...
-        // Activate is HIGH when (SPACE is RISING)
-        m_hotkeys.BindToKey(launchHotkey, KEY_SPACE, INPUT_RISING);
-
-        // For Orbit...
-        // Activate is HIGH when (RightMouse is HIGH) OR (KeyQ is HIGH)
-        m_hotkeys.BindToMouseButton(viewOrbitHotkey, MOUSEB_RIGHT, INPUT_HIGH);
-        m_hotkeys.BindAddOr(viewOrbitHotkey);
-        m_hotkeys.BindToKey(viewOrbitHotkey, KEY_E, INPUT_HIGH);
-
-        // For Undo...
-        // Activate is HIGH when (Ctrl is HIGH) AND (Shift is LOW)
-        //                          AND (Alt is LOW) AND (KeyZ is RISING)
-        m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_CTRL, INPUT_HIGH); 
-        m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_SHIFT, INPUT_LOW);
-        m_hotkeys.BindToKeyScancode(undoHotkey, SCANCODE_ALT, INPUT_LOW);
-        m_hotkeys.BindToKey(undoHotkey, KEY_Z, INPUT_RISING);
-
+            // For Orbit...
+            // Activate is HIGH when (RightMouse is HIGH) OR (KeyQ is HIGH)
+            m_hotkeys.BindToMouseButton(viewOrbitHotkey, MOUSEB_RIGHT,
+                                        INPUT_HIGH);
+            m_hotkeys.BindAddOr(viewOrbitHotkey);
+            m_hotkeys.BindToKey(viewOrbitHotkey, KEY_E, INPUT_HIGH);
+            
+            m_hotkeys.BindToMouseWheel(viewZoomIn, INPUT_POSITIVE);
+            m_hotkeys.BindToMouseWheel(viewZoomOut, INPUT_NEGATIVE);
+            
+            
+        }
         
         
-        // For Clear
-        // Activate is HIGH when (R is rising)
-        m_hotkeys.BindToKey(clearHotkey, KEY_R, INPUT_RISING);
+
+
+
     }
 
     void FixedUpdate(float timeStep)
