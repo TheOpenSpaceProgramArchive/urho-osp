@@ -31,8 +31,8 @@ class Machine : public Component
 
 public:
 
-    Machine(Context* context);
-    ~Machine() {}
+    using Component::Component;
+    ~Machine() = default;
 
     /**
      * Load data from a JSONObject

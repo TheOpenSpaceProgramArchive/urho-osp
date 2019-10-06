@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <Urho3D/Container/RefCounted.h>
 #include <Urho3D/Container/Str.h>
 #include <Urho3D/Scene/LogicComponent.h>
@@ -10,10 +9,8 @@
 #include "Satellites/AstronomicalBody.h"
 #include "Terrain/PlanetWrenderer.h"
 
-using namespace Urho3D;
-
-namespace osp {
-
+namespace osp
+{
 
 /**
  * @brief A (singleton) class that handles many in-game functions
@@ -22,29 +19,29 @@ class OspUniverse : public Object
 {
     // Scene to store nodes like Part Prototypes. Has no physics, rendering
     // updating, etc... It is completely frozen in time
-    SharedPtr<Scene> m_hiddenScene;
+    Urho3D::SharedPtr<Scene> m_hiddenScene;
 
     // A Node full of Part Prototypes, stored in the hidden scene
-    WeakPtr<Node> m_parts;
+    Urho3D::WeakPtr<Node> m_parts;
 
     // Root node of the entire solar system/universe
-    SharedPtr<Satellite> m_bigUniverse;
+    Urho3D::SharedPtr<Satellite> m_bigUniverse;
 
     // List of ActiveAreas
-    Vector<WeakPtr<ActiveArea>> m_activeAreas;
+    Urho3D::Vector<Urho3D::WeakPtr<ActiveArea>> m_activeAreas;
 
     //HashMap<StringHash, SharedPtr<ObjectFactory> > m_machines;
 
     //Vector<OspPart>
     // list of countried, manufacturers, and other stuff
 
-    URHO3D_OBJECT(OspUniverse, Object)
+    URHO3D_OBJECT(OspUniverse, Urho3D::Object)
 
 public:
 
-    OspUniverse(Context* context);
+    OspUniverse(Urho3D::Context* context);
 
-    Scene* get_hidden_scene() { return m_hiddenScene; }
+    Urho3D::Scene* get_hidden_scene() { return m_hiddenScene; }
 
     /**
      * Various debug functions that can be called from AngelScript
@@ -69,8 +66,6 @@ public:
      */
     void register_parts(const GLTFFile* gltf);
 
-    //void register_machine(ObjectFactory* factory);
-
     /**
      * This function shouldn't exist
      * @param node Yes
@@ -87,4 +82,4 @@ private:
     void part_node_recurse(Node* partRoot, Node* node);
 };
 
-}
+} // namespace osp

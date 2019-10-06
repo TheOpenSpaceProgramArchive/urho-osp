@@ -8,8 +8,10 @@
 
 using namespace Urho3D;
 
-namespace osp {
+namespace osp
+{
 
+// Forward declare
 class AstronomicalBody;
 class ActiveArea;
 
@@ -54,66 +56,36 @@ public:
      *
      * @return Position relative to parent
      */
-    LongVector3 get_position() const
-    {
-        return m_position;
-    }
+    LongVector3 get_position() const;
 
     /**
      * Set position relative to parent. This function is probably dangerous
      * @param pos [in] Desired value
      */
-    void set_position(const LongVector3& pos)
-    {
-        m_position = pos;
-    }
+    void set_position(const LongVector3& pos);
 
-    uint64_t get_load_radius() const
-    {
-        return m_loadRadius;
-    }
+    uint64_t get_load_radius() const;
 
     /**
      * @return Pointer to the active node. Null if not loaded
      */
-    Node* get_active_node() const
-    {
-        return m_activeNode.Get();
-    }
+    Node* get_active_node() const;
 
-    const Vector< UniquePtr<Satellite> >& get_children() const
-    {
-        return m_children;
-    }
+    const Vector< UniquePtr<Satellite> >& get_children() const;
 
-    const String& get_name() const
-    {
-        return m_name;
-    }
+    const String& get_name() const;
 
-    Satellite* get_parent() const
-    {
-        return m_parent;
-    }
+    Satellite* get_parent() const;
 
-    unsigned get_depth() const
-    {
-        return m_depth;
-    }
+    unsigned get_depth() const;
 
-    unsigned get_index() const
-    {
-        return m_index;
-    }
+    unsigned get_index() const;
 
     /**
      * Shorthand for checking if m_activeNode is null
      * @return true if loaded, false if not loaded
      */
-    bool is_loaded() const
-    {
-        return m_activeNode.NotNull();
-    }
+    bool is_loaded() const;
 
     /**
      * Calculates a new position for this Satellite. Calls the Trajectory for a
@@ -223,5 +195,55 @@ protected:
     // Trajectory m_trajectory;
 
 };
+
+inline LongVector3 Satellite::get_position() const
+{
+    return m_position;
+}
+
+inline void Satellite::set_position(const LongVector3& pos)
+{
+    m_position = pos;
+}
+
+inline uint64_t Satellite::get_load_radius() const
+{
+    return m_loadRadius;
+}
+
+inline Node* Satellite::get_active_node() const
+{
+    return m_activeNode.Get();
+}
+
+inline Vector< UniquePtr<Satellite> > const& Satellite::get_children() const
+{
+    return m_children;
+}
+
+inline String const& Satellite::get_name() const
+{
+    return m_name;
+}
+
+inline Satellite* Satellite::get_parent() const
+{
+    return m_parent;
+}
+
+inline unsigned Satellite::get_depth() const
+{
+    return m_depth;
+}
+
+inline unsigned Satellite::get_index() const
+{
+    return m_index;
+}
+
+inline bool Satellite::is_loaded() const
+{
+    return m_activeNode.NotNull();
+}
 
 }

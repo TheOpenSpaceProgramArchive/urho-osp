@@ -18,7 +18,8 @@
 
 #include <cstdint>
 
-using namespace Urho3D;
+namespace osp
+{
 
 // The 20 faces of the icosahedron (Top, Left, Right)
 // Each number pointing to a vertex
@@ -75,7 +76,7 @@ struct SubTriangle
     //bool subdivided;
     uint8_t m_bitmask;
     uint8_t m_depth;
-    Vector3 m_center;
+    Urho3D::Vector3 m_center;
 
     // Data used when subdivided
 
@@ -94,12 +95,12 @@ struct SubTriangle
 // An icosahedron with subdividable faces
 // it starts with 20 triangles, and each face can be subdivided into 4 more
 // Not implemented, but this can be shared between multiple PlanetWrenderers
-class IcoSphereTree : public RefCounted
+class IcoSphereTree : public Urho3D::RefCounted
 {
     friend class PlanetWrenderer;
 
-    IcoSphereTree();
-    virtual ~IcoSphereTree() = default;
+    IcoSphereTree() = default;
+    ~IcoSphereTree() = default;
 
 public:
 
@@ -168,26 +169,27 @@ public:
 
 private:
 
-    //PODVector<PlanetWrenderer> m_viewers;
-    PODVector<float> m_vertBuf;
-    PODVector<SubTriangle> m_triangles; // List of all triangles
-    PODVector<trindex> m_trianglesFree; // Deleted triangles in the m_triangles
-    PODVector<buindex> m_vertFree; // Deleted vertices in m_vertBuf GPU data
-    // use "m_indDomain[buindex]" to get a triangle index
+    static constexpr buindex m_maxVertice = 1600000;
 
-    buindex m_vertCount;
-    buindex m_maxVertice;
-
-    buindex m_maxTriangles;
-
-    float m_radius;
+    static constexpr buindex m_maxTriangles = 480000;
 
     // 6 components per vertex
     // PosX, PosY, PosZ, NormX, NormY, NormZ
-    int m_vertCompCount = 6;
+    static constexpr int m_vertCompCount = 6;
 
-    unsigned m_maxDepth;
-    unsigned m_previewDepth; // minimum depth. never subdivide below this
+    static constexpr unsigned m_maxDepth = 5;
+    static constexpr unsigned m_previewDepth = 0; // minimum depth. never subdivide below this
+
+    //PODVector<PlanetWrenderer> m_viewers;
+    Urho3D::PODVector<float> m_vertBuf;
+    Urho3D::PODVector<SubTriangle> m_triangles; // List of all triangles
+    Urho3D::PODVector<trindex> m_trianglesFree; // Deleted triangles in the m_triangles
+    Urho3D::PODVector<buindex> m_vertFree; // Deleted vertices in m_vertBuf GPU data
+    // use "m_indDomain[buindex]" to get a triangle index
+
+    buindex m_vertCount;
+
+    float m_radius;
 };
 
 // Connects the dots between triangles in IcoSphereTree by making chunks
@@ -202,31 +204,31 @@ class PlanetWrenderer
     static constexpr chindex m_maxChunks = 300; // Max number of chunks
     static constexpr buindex m_chunkMaxVertShared = 10000; // How much is reserved for shared vertices
 
-    SharedPtr<IcoSphereTree> m_icoTree;
-    SharedPtr<IndexBuffer> m_indBufChunk;
-    SharedPtr<VertexBuffer> m_chunkVertBuf;
+    Urho3D::SharedPtr<IcoSphereTree> m_icoTree;
+    Urho3D::SharedPtr<Urho3D::IndexBuffer> m_indBufChunk;
+    Urho3D::SharedPtr<Urho3D::VertexBuffer> m_chunkVertBuf;
 
-    Vector3 m_offset;
-    Vector3 m_camera;
+    Urho3D::Vector3 m_offset;
+    Urho3D::Vector3 m_camera;
     chindex m_chunkCount; // How many chunks there are right now
 
-    PODVector<trindex> m_chunkIndDomain; // Maps chunks to triangles
+    Urho3D::PODVector<trindex> m_chunkIndDomain; // Maps chunks to triangles
     // Spots in the index buffer that want to die
-    PODVector<chindex> m_chunkIndDeleteMe;
-    PODVector<buindex> m_chunkVertFree; // Deleted chunk data to overwrite
-    PODVector<buindex> m_chunkVertFreeShared; // same as above but for shared
+    Urho3D::PODVector<chindex> m_chunkIndDeleteMe;
+    Urho3D::PODVector<buindex> m_chunkVertFree; // Deleted chunk data to overwrite
+    Urho3D::PODVector<buindex> m_chunkVertFreeShared; // same as above but for shared
 
     // it's impossible for a vertex to have more than 6 users
     // Delete a shared vertex when it's users goes to zero
     // And use user count to calculate normals
 
     // Count how many times each shared chunk vertex is being used
-    PODVector<uint8_t> m_chunkVertUsers;
+    Urho3D::PODVector<uint8_t> m_chunkVertUsers;
     // Indicies that point to shared vertices.
-    PODVector<buindex> m_chunkSharedIndices;
+    Urho3D::PODVector<buindex> m_chunkSharedIndices;
 
-    Model* m_model;
-    Geometry* m_geometryChunk; // Geometry for chunks
+    Urho3D::Model* m_model;
+    Urho3D::Geometry* m_geometryChunk; // Geometry for chunks
 
     buindex m_chunkMaxVert; // How large the chunk vertex buffer is in total
 
@@ -270,16 +272,16 @@ public:
      * @param context [in] Context used to initialize Urho3D objects
      * @param size [in] Minimum height of planet, or radius
      */
-    void initialize(Context* context, Image* heightMap, double size);
+    void initialize(Urho3D::Context* context, Urho3D::Image* heightMap, double size);
 
     /**
      * Recalculates camera positiona and sub_recurses the main 20 triangles.
      * Call this when the camera moves.
      * @param camera [in] Position of camera center
      */
-    void update(const Vector3& camera);
+    void update(Urho3D::Vector3 const& camera);
 
-    Model* get_model() { return m_model; }
+    Urho3D::Model* get_model() { return m_model; }
 
 protected:
 
@@ -361,3 +363,5 @@ constexpr unsigned PlanetWrenderer::get_index(int x, int y) const
 {
     return unsigned(y * (y + 1) / 2 + x);
 }
+
+} // namespace osp

@@ -3,7 +3,8 @@
 #include "ActiveArea.h"
 #include "Satellite.h"
 
-using namespace osp;
+namespace osp
+{
 
 Satellite::Satellite(Context* context) : Object(context)
 {
@@ -27,10 +28,9 @@ void Satellite::add_child(Satellite *newChild)
     m_children.Push(UniquePtr<Satellite>(newChild));
 }
 
-
-LongVector3 Satellite::calculate_relative_position(const Satellite* from,
-                                                const Satellite* to,
-                                                int precision)
+LongVector3 Satellite::calculate_relative_position(Satellite const* from,
+                                                   Satellite const* to,
+                                                   int precision)
 {
     // Distance to self will never be greater than or less than zero.
     if (from == to)
@@ -73,10 +73,8 @@ LongVector3 Satellite::calculate_relative_position(const Satellite* from,
     return posB - posA;
 }
 
-
 LongVector3 Satellite::calculate_position()
 {
-
     // If loaded
     if (is_loaded() && !m_trajectoryOverride)
     {
@@ -103,7 +101,6 @@ LongVector3 Satellite::calculate_position()
         LongVector3 longPos(floatPos.x_, floatPos.y_, floatPos.z_);
 
         m_position = m_positionLoaded + activeAreaDisplacement + longPos;
-
     }
     else
     {
@@ -113,10 +110,14 @@ LongVector3 Satellite::calculate_position()
     return m_position;
 }
 
-Node* Satellite::load(ActiveArea *area, const Vector3 &pos)
+Node* Satellite::load(ActiveArea *area, Vector3 const& pos)
 {
     m_activeAreaLoadedPos = area->get_position();
     m_activeArea = area;
 
     m_positionLoaded = m_position;
+    // TODO:
+    return nullptr;
 }
+
+} // namespace osp

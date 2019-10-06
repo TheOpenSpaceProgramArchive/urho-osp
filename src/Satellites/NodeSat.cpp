@@ -3,17 +3,8 @@
 #include "ActiveArea.h"
 #include "NodeSat.h"
 
-using namespace osp;
-
-NodeSat::NodeSat(Context* context) : Satellite(context)
+namespace osp
 {
-    m_name = "Probably a rocket";
-}
-
-NodeSat::~NodeSat()
-{
-    //Satellite::~Satellite();
-}
 
 Node* NodeSat::load(ActiveArea* area, const Vector3& pos)
 {
@@ -32,12 +23,4 @@ Node* NodeSat::load(ActiveArea* area, const Vector3& pos)
     return m_node.Get();
 }
 
-Node* NodeSat::load_preview(ActiveArea* area)
-{
-
-}
-
-void NodeSat::unload()
-{
-
-}
+} // namespace osp

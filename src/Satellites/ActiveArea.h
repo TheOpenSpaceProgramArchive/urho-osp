@@ -17,29 +17,22 @@ class ActiveArea;
  */
 class ActiveArea : public Satellite
 {
-
-
     URHO3D_OBJECT(ActiveArea, Satellite)
 
 public:
-
-    ActiveArea(Context* context);
+    /* Forward base class constructor */
+    using Satellite::Satellite;
     ActiveArea(Context* context, Scene* scene);
-    ~ActiveArea();
+
+    ~ActiveArea() = default;
 
     void physics_update(StringHash eventType, VariantMap& eventData);
 
     //void relocate(AstronomicalBody* body, const LongVector3& localBodyPos);
 
-    Satellite* get_focus() const
-    {
-        return m_focus;
-    }
+    Satellite* get_focus() const;
 
-    void set_focus(Satellite* sat)
-    {
-        m_focus = sat;
-    }
+    void set_focus(Satellite* sat);
 
     Node* load(ActiveArea* area, const Vector3& pos) override;
 
@@ -79,4 +72,19 @@ private:
 
 };
 
+inline Node* ActiveArea::load_preview(ActiveArea *area)
+{
+    return nullptr;
 }
+
+inline Satellite* ActiveArea::get_focus() const
+{
+    return m_focus;
+}
+
+inline void ActiveArea::set_focus(Satellite* sat)
+{
+    m_focus = sat;
+}
+
+} // namespace osp
