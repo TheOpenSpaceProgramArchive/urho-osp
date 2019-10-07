@@ -352,12 +352,12 @@ protected:
     void find_refs(SubTriangle& tri);
 };
 
-inline bool PlanetWrenderer::is_ready() const
+constexpr bool PlanetWrenderer::is_ready() const
 {
     return m_ready;
 }
 
-inline unsigned PlanetWrenderer::get_index(int x, int y) const
+constexpr unsigned PlanetWrenderer::get_index(int x, int y) const
 {
     return unsigned(y * (y + 1) / 2 + x);
 }
