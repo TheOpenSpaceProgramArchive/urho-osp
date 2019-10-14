@@ -5,19 +5,8 @@
 #include "AstronomicalBody.h"
 #include "../Terrain/PlanetTerrain.h"
 
-using namespace osp;
-
-AstronomicalBody::AstronomicalBody(Context* context) : Satellite(context)
+namespace osp
 {
-    m_loadRadius = 5000 * 1024;
-    m_radius = 4000.0f;
-    m_name = "Untitled Moon?";
-}
-
-AstronomicalBody::~AstronomicalBody()
-{
-    //Satellite::~Satellite();
-}
 
 Node* AstronomicalBody::load(ActiveArea* area, const Vector3& pos)
 {
@@ -46,13 +35,4 @@ Node* AstronomicalBody::load(ActiveArea* area, const Vector3& pos)
     return m_activeNode.Get();
 }
 
-Node* AstronomicalBody::load_preview(ActiveArea *area)
-{
-    // TODO
-    return nullptr;
-}
-
-void AstronomicalBody::unload()
-{
-    m_activeNode->Remove();
-}
+} // namespace osp

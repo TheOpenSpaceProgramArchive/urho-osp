@@ -10,8 +10,9 @@ namespace osp
 class MachineControl : public Machine
 {
 public:
-    MachineControl(Context* context);
-    ~MachineControl();
+    /* Forward base class constructor */
+    using Machine::Machine;
+    ~MachineControl() = default;
 
     static void RegisterObject(Context* context)
     {

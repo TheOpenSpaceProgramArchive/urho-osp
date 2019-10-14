@@ -128,11 +128,6 @@ private:
     // X submerged
     // throttle
     // time
-
-
-
 };
 
-
-
-}
+} // namespace osp

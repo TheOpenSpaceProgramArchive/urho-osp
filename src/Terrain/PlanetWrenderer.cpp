@@ -2,13 +2,8 @@
 
 #include "PlanetWrenderer.h"
 
-IcoSphereTree::IcoSphereTree() : RefCounted()
+namespace osp
 {
-    m_maxTriangles = 480000;
-    m_maxVertice = 1600000;
-    m_maxDepth = 5;
-    m_previewDepth = 0;
-}
 
 void IcoSphereTree::initialize()
 {
@@ -81,9 +76,9 @@ void IcoSphereTree::initialize()
         vx = vertInit[i + 0];
         vy = vertInit[i + 1];
         vz = vertInit[i + 2];
-        float mag = Sqrt(vx * vx
-                          + vy * vy
-                          + vz * vz);
+        float mag = Urho3D::Sqrt(  vx * vx
+                                 + vy * vy
+                                 + vz * vz);
         vertInit[i + 0] = vx / mag * float(m_radius);
         vertInit[i + 1] = vy / mag * float(m_radius);
         vertInit[i + 2] = vz / mag * float(m_radius);
@@ -159,20 +154,19 @@ int IcoSphereTree::neighboor_index(SubTriangle& tri,
     if(tri.m_neighbours[2] == lookingFor) return 2;
 
     // this means there's an error
-    assert(0);
+    assert(false);
     return 255;
 }
 
-void PlanetWrenderer::initialize(Context* context,
-                                 Image* heightMap, double size) {
-
-
-    m_icoTree = SharedPtr<IcoSphereTree>(new IcoSphereTree());
+void PlanetWrenderer::initialize(Urho3D::Context* context,
+                                 Urho3D::Image* heightMap, double size)
+{
+    m_icoTree = Urho3D::SharedPtr<IcoSphereTree>(new IcoSphereTree());
     m_icoTree->m_radius = size;
 
-    m_model = new Model(context);
+    m_model = new Urho3D::Model(context);
     m_model->SetNumGeometries(1);
-    m_model->SetBoundingBox(BoundingBox(Sphere(Vector3(0.0f, 0.0f, 0.0f),
+    m_model->SetBoundingBox(Urho3D::BoundingBox(Urho3D::Sphere(Urho3D::Vector3(0.0f, 0.0f, 0.0f),
                                                float(size) * 2.0f)));
 
     m_icoTree->initialize();
@@ -184,7 +178,7 @@ void PlanetWrenderer::initialize(Context* context,
         m_chunkSize = m_chunkResolution * (m_chunkResolution + 1) / 2;
 
         // This is how many triangles is in a chunk
-        m_chunkSizeInd = Pow(m_chunkResolution - 1, 2u);
+        m_chunkSizeInd = Urho3D::Pow(m_chunkResolution - 1, 2u);
         m_chunkSharedCount = (m_chunkResolution - 1) * 3;
 
 
@@ -194,16 +188,16 @@ void PlanetWrenderer::initialize(Context* context,
         m_chunkVertCountShared = 0;
 
         // Initialize objects for dealing with chunks
-        m_indBufChunk = new IndexBuffer(context);
-        m_chunkVertBuf = new VertexBuffer(context);
-        m_geometryChunk = new Geometry(context);
+        m_indBufChunk = new Urho3D::IndexBuffer(context);
+        m_chunkVertBuf = new Urho3D::VertexBuffer(context);
+        m_geometryChunk = new Urho3D::Geometry(context);
         m_chunkIndDomain.Resize(m_maxChunks);
         m_chunkVertUsers.Resize(m_chunkMaxVertShared);
 
         // Say that each vertex has position, normal, and tangent data
-        PODVector<VertexElement> elements;
-        elements.Push(VertexElement(TYPE_VECTOR3, SEM_POSITION));
-        elements.Push(VertexElement(TYPE_VECTOR3, SEM_NORMAL));
+        Urho3D::PODVector<Urho3D::VertexElement> elements;
+        elements.Push(Urho3D::VertexElement(Urho3D::TYPE_VECTOR3, Urho3D::SEM_POSITION));
+        elements.Push(Urho3D::VertexElement(Urho3D::TYPE_VECTOR3, Urho3D::SEM_NORMAL));
         //elements.Push(VertexElement(TYPE_VECTOR3, SEM_TEXCOORD));
         //elements.Push(VertexElement(TYPE_VECTOR3, SEM_COLOR));
 
@@ -217,7 +211,7 @@ void PlanetWrenderer::initialize(Context* context,
         m_geometryChunk->SetNumVertexBuffers(1);
         m_geometryChunk->SetVertexBuffer(0, m_chunkVertBuf);
         m_geometryChunk->SetIndexBuffer(m_indBufChunk);
-        m_geometryChunk->SetDrawRange(TRIANGLE_LIST, 0,
+        m_geometryChunk->SetDrawRange(Urho3D::TRIANGLE_LIST, 0,
                                       gc_icosahedronFaceCount * 3);
 
         // Add geometry to model, urho3d specific
@@ -303,12 +297,12 @@ void PlanetWrenderer::initialize(Context* context,
     }
 
     // Not sure what this is doing, urho3d specific
-    Vector<SharedPtr<VertexBuffer> > vrtBufs;
-    Vector<SharedPtr<IndexBuffer> > indBufs;
+    Urho3D::Vector<Urho3D::SharedPtr<Urho3D::VertexBuffer> > vrtBufs;
+    Urho3D::Vector<Urho3D::SharedPtr<Urho3D::IndexBuffer> > indBufs;
     vrtBufs.Push(m_chunkVertBuf);
     indBufs.Push(m_indBufChunk);
-    PODVector<unsigned> morphRangeStarts;
-    PODVector<unsigned> morphRangeCounts;
+    Urho3D::PODVector<unsigned> morphRangeStarts;
+    Urho3D::PODVector<unsigned> morphRangeCounts;
     morphRangeStarts.Push(0);
     morphRangeCounts.Push(0);
     m_model->SetVertexBuffers(vrtBufs, morphRangeStarts, morphRangeCounts);
@@ -415,14 +409,14 @@ void IcoSphereTree::subdivide_add(trindex t)
 
             // Technique taken from an urho3D example
             // Read vertex buffer data as Vector3
-            const Vector3& vertA = (*reinterpret_cast<const Vector3*>(
+            const Urho3D::Vector3& vertA = (*reinterpret_cast<const Urho3D::Vector3*>(
                                         m_vertBuf.Buffer() + m_vertCompCount
                                         * tri->m_corners[(i + 1) % 3]));
-            const Vector3& vertB = (*reinterpret_cast<const Vector3*>(
+            const Urho3D::Vector3& vertB = (*reinterpret_cast<const Urho3D::Vector3*>(
                                         m_vertBuf.Buffer() + m_vertCompCount
                                         * tri->m_corners[(i + 2) % 3]));
 
-            Vector3 vertM[2];
+            Urho3D::Vector3 vertM[2];
             vertM[1] = ((vertA + vertB) / 2).Normalized();
 
             vertM[0] = vertM[1] * float(m_radius);
@@ -496,9 +490,7 @@ void IcoSphereTree::subdivide_add(trindex t)
         subdivide_add(childs + 1);
         subdivide_add(childs + 2);
         subdivide_add(childs + 3);
-
     }
-
 }
 
 void IcoSphereTree::subdivide_remove(trindex t)
@@ -560,13 +552,13 @@ void IcoSphereTree::subdivide_remove(trindex t)
 void IcoSphereTree::calculate_center(SubTriangle &tri)
 {
     const float* vertData = m_vertBuf.Buffer();
-    const Vector3& vertA = (*reinterpret_cast<const Vector3*>(
+    const Urho3D::Vector3& vertA = (*reinterpret_cast<const Urho3D::Vector3*>(
                                 vertData
                                 + m_vertCompCount * tri.m_corners[0]));
-    const Vector3& vertB = (*reinterpret_cast<const Vector3*>(
+    const Urho3D::Vector3& vertB = (*reinterpret_cast<const Urho3D::Vector3*>(
                                 vertData
                                 + m_vertCompCount * tri.m_corners[1]));
-    const Vector3& vertC = (*reinterpret_cast<const Vector3*>(
+    const Urho3D::Vector3& vertC = (*reinterpret_cast<const Urho3D::Vector3*>(
                                 vertData
                                 + m_vertCompCount * tri.m_corners[2]));
 
@@ -591,7 +583,7 @@ void IcoSphereTree::set_side_recurse(SubTriangle& tri, int side, trindex to)
     }
 }
 
-void PlanetWrenderer::update(const Vector3& camera)
+void PlanetWrenderer::update(const Urho3D::Vector3& camera)
 {
     m_camera = camera;
     m_cameraDist = camera.Length();
@@ -631,12 +623,12 @@ void PlanetWrenderer::sub_recurse(trindex t)
     // close enough approximation
     // (should be a bit higher because it's spherical)
     float edgeLength = float(4.0 * m_icoTree->m_radius)
-                       / Sqrt(10.0f + 2.0f * Sqrt(5.0f))
-                       / Pow(2, int(tri->m_depth));
+                       / Urho3D::Sqrt(10.0f + 2.0f * Urho3D::Sqrt(5.0f))
+                       / Urho3D::Pow(2, int(tri->m_depth));
 
     // Approximation of the triangle's area
     // (Area of equalateral triangle)
-    float triArea = Sqrt(3) * edgeLength * edgeLength / 4;
+    float triArea = Urho3D::Sqrt(3) * edgeLength * edgeLength / 4;
 
     // Distance squared from viewer
     float distanceSquared = (tri->m_center - m_camera).LengthSquared();
@@ -762,17 +754,17 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
     unsigned vertSizeChunk = m_chunkVertBuf->GetVertexSize();
 
     // top, left, right
-    const Vector3 verts[3] = {
-        (*reinterpret_cast<const Vector3*>(vertData
+    const Urho3D::Vector3 verts[3] = {
+        (*reinterpret_cast<const Urho3D::Vector3*>(vertData
                         + m_icoTree->m_vertCompCount * tri->m_corners[0])),
-        (*reinterpret_cast<const Vector3*>(vertData
+        (*reinterpret_cast<const Urho3D::Vector3*>(vertData
                         + m_icoTree->m_vertCompCount * tri->m_corners[1])),
-        (*reinterpret_cast<const Vector3*>(vertData
+        (*reinterpret_cast<const Urho3D::Vector3*>(vertData
                         + m_icoTree->m_vertCompCount * tri->m_corners[2]))
     };
 
-    const Vector3 dirRight = (verts[2] - verts[1]) / (m_chunkResolution - 1);
-    const Vector3 dirDown = (verts[1] - verts[0]) / (m_chunkResolution - 1);
+    const Urho3D::Vector3 dirRight = (verts[2] - verts[1]) / (m_chunkResolution - 1);
+    const Urho3D::Vector3 dirDown = (verts[1] - verts[0]) / (m_chunkResolution - 1);
 
     // Loop through neighbours and see which ones are already chunked to share
     // vertices with
@@ -799,7 +791,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
         m_chunkVertFree.Pop();
     }
 
-    PODVector<unsigned> indices(m_chunkSize);
+    Urho3D::PODVector<unsigned> indices(m_chunkSize);
 
     unsigned middleIndex = 0;
     int i = 0;
@@ -848,7 +840,6 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
                     // Get corresponding neighbour's edge
                     // Set vertIndex to neighbour's shared vertex
                     // Increase user count for that vertex
-
                 }
                 else
                 {
@@ -872,8 +863,6 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
                     m_chunkVertCountShared ++;
                     m_chunkVertUsers[vertIndex] = 1;
                 }
-
-
             }
             else
             {
@@ -884,13 +873,13 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
                 middleIndex ++;
             }
 
-            Vector3 pos = verts[0] + (dirRight * x + dirDown * y);
-            Vector3 normal = pos.Normalized();
+            Urho3D::Vector3 pos = verts[0] + (dirRight * x + dirDown * y);
+            Urho3D::Vector3 normal = pos.Normalized();
 
             pos = normal * float(m_icoTree->m_radius);
 
             // Position and normal
-            Vector3 vertM[2] = {pos, normal};
+            Urho3D::Vector3 vertM[2] = {pos, normal};
 
             if (gpuVertChunk)
             {
@@ -919,7 +908,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
     }
 
     // The data that will be pushed directly into the chunk index buffer
-    PODVector<unsigned> chunkIndData(m_chunkSizeInd * 3);
+    Urho3D::PODVector<unsigned> chunkIndData(m_chunkSizeInd * 3);
 
     i = 0;
     // indices array is now populated, connect the dots!
@@ -968,7 +957,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
 
     m_chunkCount ++;
 
-    m_geometryChunk->SetDrawRange(TRIANGLE_LIST, 0,
+    m_geometryChunk->SetDrawRange(Urho3D::TRIANGLE_LIST, 0,
                                   m_chunkCount * chunkIndData.Size());
 
     // The triangle is now chunked
@@ -1048,7 +1037,7 @@ void PlanetWrenderer::chunk_remove(trindex t, UpdateRange* gpuVertChunk,
                                 m_chunkSizeInd * 3);
 
     // Update draw range
-    m_geometryChunk->SetDrawRange(TRIANGLE_LIST, 0,
+    m_geometryChunk->SetDrawRange(Urho3D::TRIANGLE_LIST, 0,
                                   m_chunkCount * m_chunkSizeInd * 3);
 
     // Set chunked bit
@@ -1081,3 +1070,5 @@ uint64_t PlanetWrenderer::get_memory_usage() const
     }
     return total;
 }
+
+} // namespace osp

@@ -2,7 +2,8 @@
 
 #include <Urho3D/Core/Context.h>
 
-using namespace osp;
+namespace osp
+{
 
 PlanetTerrain::PlanetTerrain(Context* context) : StaticModel(context),
                                                     m_first(false)
@@ -54,3 +55,4 @@ void PlanetTerrain::RegisterObject(Context* context)
     context->RegisterFactory<PlanetTerrain>("PlanetTerrain");
 }
 
+} // namespace osp

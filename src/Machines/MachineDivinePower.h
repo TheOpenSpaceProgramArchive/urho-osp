@@ -27,11 +27,10 @@ class MachineDivinePower : public Machine
 {
     URHO3D_OBJECT(MachineDivinePower, Machine)
 
-    //float m_throttle;
-
 public:
-    MachineDivinePower(Context* context);
-    ~MachineDivinePower();
+    /* Forward base class constructor */
+    using Machine::Machine;
+    ~MachineDivinePower() = default;
 
     static void RegisterObject(Context* context)
     {

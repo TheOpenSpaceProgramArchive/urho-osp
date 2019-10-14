@@ -55,16 +55,17 @@
 #include "Resource/GLTFFile.h"
 #include "Terrain/PlanetTerrain.h"
 
-using namespace Urho3D;
-using namespace osp;
+namespace osp
+{
 
-class OSPApplication : public Application {
+class OSPApplication : public Application
+{
 public:
     int m_framecount;
     float m_time;
 
-    SharedPtr<Scene> m_scene;
-    SharedPtr<OspUniverse> m_osp;
+    Urho3D::SharedPtr<Scene> m_scene;
+    Urho3D::SharedPtr<OspUniverse> m_osp;
     Vector<String> m_runImmediately;
 
     /**
@@ -73,8 +74,10 @@ public:
      * whatever instance variables you have.
      * You can also do this in the Setup method.
      */
-    OSPApplication(Context * context) : Application(context), m_framecount(0),
-                                        m_time(0)
+    OSPApplication(Context * context)
+     : Application(context)
+     , m_framecount(0)
+     , m_time(0)
     {
         //ActiveArea::RegisterObject(context);
         //AstronomicalBody::RegisterObject(context);
@@ -102,7 +105,7 @@ public:
      * of engine importance happens (such as windows, search paths,
      * resolution and other things that might be user configurable).
      */
-    virtual void Setup()
+    void Setup() override final
     {
         engineParameters_["FullScreen"] = false;
         engineParameters_["WindowWidth"] = 1280;
@@ -112,7 +115,8 @@ public:
         engineParameters_["ResourcePaths"] = "Data;CoreData;OSPData";
     }
 
-    virtual void Start() {
+    void Start() override final
+    {
         // Get the subsystem that is used to load resources
         ResourceCache* cache = GetSubsystem<ResourceCache>();
 
@@ -140,8 +144,6 @@ public:
         // Add a single viewport
         Renderer* renderer = GetSubsystem<Renderer>();
         renderer->SetHDRRendering(true);
-
-
 
         SharedPtr<Viewport> viewport(new Viewport(context_));
         viewport->SetScene(m_scene);
@@ -177,10 +179,10 @@ public:
 
 
         // Path to OSPData directory
-        String ospDir = cache->GetResourceDirs()[2];
+        String const& ospDir = cache->GetResourceDirs()[2];
 
         // List directories in OSPData
-        Vector<String> subDirs;
+        Urho3D::Vector<String> subDirs;
         fileSystem->ScanDir(subDirs, ospDir, String("*"), SCAN_DIRS, false);
 
         // Remove invalid folders (there should be a better way to do this)
@@ -198,7 +200,7 @@ public:
         }
 
         // Call process_directory on every valid folder
-        for(String name : subDirs)
+        for(String const& name : subDirs)
         {
             m_osp->process_directory(ospDir + name);
         }
@@ -223,8 +225,8 @@ public:
     * but there's no need, this method will get called when the engine stops,
     * for whatever reason (short of a segfault).
     */
-    virtual void Stop() {
-    }
+    void Stop() override final
+    { }
 
 
     /**
@@ -233,20 +235,20 @@ public:
      * @param eventType
      * @param eventData
      */
-    void HandleKeyDown(StringHash eventType, VariantMap& eventData) {
-
+    void HandleKeyDown(StringHash eventType, VariantMap& eventData)
+    {
         using namespace KeyDown;
 
         int key = eventData[P_KEY].GetInt();
 
         // Exit with ESC
-        if (key == KEY_ESCAPE)
+        if(key == KEY_ESCAPE)
         {
             engine_->Exit();
         }
 
         // Toggle planet material wireframe
-        if (key == KEY_Q)
+        if(key == KEY_Q)
         {
             Material* m = GetSubsystem<ResourceCache>()
                             ->GetResource<Material>("Materials/Planet.xml");
@@ -269,7 +271,8 @@ public:
      * @param eventType
      * @param eventData
      */
-    void HandleClosePressed(StringHash eventType,VariantMap& eventData) {
+    void HandleClosePressed(StringHash eventType,VariantMap& eventData)
+    {
         engine_->Exit();
     }
 
@@ -278,7 +281,8 @@ public:
      * @param eventType
      * @param eventData
      */
-    void HandleUpdate(StringHash eventType,VariantMap& eventData) {
+    void HandleUpdate(StringHash eventType,VariantMap& eventData)
+    {
         float timeStep = eventData[Update::P_TIMESTEP].GetFloat();
         m_framecount ++;
         m_time += timeStep;
@@ -289,9 +293,10 @@ public:
      * @param eventType
      * @param eventData
      */
-    void HandleResourceLoaded(StringHash eventType, VariantMap& eventData) {
+    void HandleResourceLoaded(StringHash eventType, VariantMap& eventData)
+    {
 
-        if (eventData[ResourceBackgroundLoaded::P_SUCCESS].GetBool())
+        if(eventData[ResourceBackgroundLoaded::P_SUCCESS].GetBool())
         {
             Resource* res = reinterpret_cast<Resource*>(
                         eventData[ResourceBackgroundLoaded::P_RESOURCE]
@@ -299,25 +304,27 @@ public:
 
             // Call the loaded() function of each script file that gets loaded
             // Remove this some day in place of a better system
-            if (res->IsInstanceOf("ScriptFile"))
+            if(res->IsInstanceOf("ScriptFile"))
             {
                 ScriptFile* script = reinterpret_cast<ScriptFile*>(res);
                 asIScriptFunction* function =
                         script->GetFunction("void loaded()");
                 //URHO3D_LOGINFOF("functopn: %p", function);
-                if (function)
+                if(function)
                 {
                     VariantVector params;
                     params.Push(Variant(m_scene));
                     script->Execute(function, params);
                 }
             }
-            else if (res->IsInstanceOf("GLTFFile"))
+            else if(res->IsInstanceOf("GLTFFile"))
             {
                 GLTFFile* gltf = reinterpret_cast<GLTFFile*>(res);
                 m_osp->register_parts(gltf);
             }
-        } else {
+        }
+        else
+        {
             // error!
             URHO3D_LOGERRORF("Failed to load resource: %s",
                     eventData[ResourceBackgroundLoaded::P_RESOURCENAME]
@@ -328,5 +335,6 @@ public:
 
 };
 
+} // namespace osp
 
-URHO3D_DEFINE_APPLICATION_MAIN(OSPApplication)
+URHO3D_DEFINE_APPLICATION_MAIN(osp::OSPApplication)

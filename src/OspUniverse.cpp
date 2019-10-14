@@ -17,7 +17,8 @@
 #include "Terrain/PlanetTerrain.h"
 #include "OspUniverse.h"
 
-using namespace osp;
+namespace osp
+{
 
 OspUniverse::OspUniverse(Context* context) : Object(context)
 {
@@ -37,7 +38,7 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
     category->SetVar("DisplayName", "Debug Parts");
 
     // Make 4 different sized paperweight cubes
-    for (int i = 2; i < 6; i ++)
+    for(int i = 2; i < 6; i ++)
     {
         // Make a new child in the dbg category
         Node* aPart = category->CreateChild("dbg_" + String(i));
@@ -87,7 +88,7 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
 
         Vector3 dir(0.0f, 0.0f, 0.5f);
 
-        for (int i = 0; i < 6; i ++)
+        for(int i = 0; i < 6; i ++)
         {
             // make the node
             Node* attachment = aPart->CreateChild("attach_" + String(i));
@@ -111,9 +112,9 @@ OspUniverse::OspUniverse(Context* context) : Object(context)
 void OspUniverse::debug_function(const StringHash which)
 {
     // Get scene
-    Scene* scene = GetSubsystem<Renderer>()->GetViewport(0)->GetScene();
+    Urho3D::Scene* scene = GetSubsystem<Renderer>()->GetViewport(0)->GetScene();
 
-    if (which == StringHash("make_planet"))
+    if(which == StringHash("make_planet"))
     {
 
         // Make planet
@@ -122,11 +123,11 @@ void OspUniverse::debug_function(const StringHash which)
 
         // Make terrain
         Node* terrain = scene->CreateChild("PlanetTerrain");
-        PlanetTerrain* component = terrain->CreateComponent<PlanetTerrain>();
+        PlanetTerrain * component = terrain->CreateComponent<PlanetTerrain>();
         terrain->SetPosition(Vector3(0, 0, 0));
         //component->Initialize();
     }
-    else if (which == StringHash("create_universe"))
+    else if(which == StringHash("create_universe"))
     {
         URHO3D_LOGINFOF("Creating universe...");
 
@@ -171,7 +172,7 @@ void OspUniverse::debug_function(const StringHash which)
         area->set_focus(subjectSat);
 
         // Position both 150m above the surface
-        area->set_position(LongVector3(0, 4150 * 1024, 0));;
+        area->set_position(LongVector3(0, 4150 * 1024, 0));
         subjectSat->set_position(LongVector3(0, 4150 * 1024, 0));
 
         // Now we're all set!
@@ -214,14 +215,14 @@ void OspUniverse::process_directory(const String& path)
                     dirName.CString(), path.CString());
 
     String pathParts = path + "/Parts";
-    if (fileSystem->DirExists(pathParts))
+    if(fileSystem->DirExists(pathParts))
     {
         // Start loading sturdy.gltf files
         URHO3D_LOGINFOF("Parts Directory Found: %s", pathParts.CString());
-        Vector<String> gltfs;
+        Urho3D::Vector<String> gltfs;
         fileSystem->ScanDir(gltfs, pathParts,
                             "*.sturdy.gltf", SCAN_FILES, true);
-        for (String s : gltfs)
+        for(String const& s : gltfs)
         {
             URHO3D_LOGINFOF("Part %s", (dirName + "/Parts/" + s).CString());
             cache->BackgroundLoadResource<GLTFFile>(dirName + "/Parts/" + s);
@@ -229,14 +230,14 @@ void OspUniverse::process_directory(const String& path)
     }
 
     // This is really bad and a new script loading system would be cool
-    String pathScripts = path + "/Scripts";
-    if (fileSystem->DirExists(pathScripts))
+    String const& pathScripts = path + "/Scripts";
+    if(fileSystem->DirExists(pathScripts))
     {
         // Start loading scripts
         URHO3D_LOGINFOF("Scripts Directory Found: %s", pathScripts.CString());
         Vector<String> scripts;
         fileSystem->ScanDir(scripts, pathScripts, "*.as", SCAN_FILES, false);
-        for (String s : scripts)
+        for(String const& s : scripts)
         {
             URHO3D_LOGINFOF("Script %s",
                             (dirName + "/Scripts/" + s).CString());
@@ -258,23 +259,25 @@ void OspUniverse::register_parts(const GLTFFile* gltf)
     gltf->GetScene(0, gltfScene);
 
     // don't make this a reference, original will be modified
-    const Vector<SharedPtr<Node>> children = gltfScene->GetChildren();
+    Urho3D::Vector<Urho3D::SharedPtr<Node>> const children = gltfScene->GetChildren();
 
-    for (SharedPtr<Node> part : children)
+    for(Urho3D::SharedPtr<Node> const& part : children)
     {
-        String partName = part->GetName();
+        String const& partName = part->GetName();
 
         // Any node that is prefixed with part_ will be a part usable in game
-        if (partName.StartsWith("part_"))
+        if(partName.StartsWith("part_"))
         {
 
             // This is a part, parse it
-            const VariantMap& vars = part->GetVars();
-            const JSONObject* extras = reinterpret_cast<JSONObject*>(
+            VariantMap const& vars = part->GetVars();
+            JSONObject const* extras = reinterpret_cast<JSONObject*>(
                                         vars["extras"]->GetVoidPtr());
 
             if (!extras)
+            {
                 continue;
+            }
 
             part->SetVar("country",
                          GLTFFile::StringValue((*extras)["country"]));
@@ -294,19 +297,19 @@ void OspUniverse::register_parts(const GLTFFile* gltf)
             // there should be a "machines": [...] in the sturdy file
             // see Machines wiki page if it exists
 
-            if (JSONValue* machines = (*extras)["machines"])
+            if(JSONValue* machines = (*extras)["machines"])
             {
-                if (machines->IsArray())
+                if(machines->IsArray())
                 {
                     // Loop through the entire array
-                    for (const JSONValue& machineValue : machines->GetArray())
+                    for(JSONValue const& machineValue : machines->GetArray())
                     {
                         if (!machineValue.IsObject())
                         {
                             continue;
                         }
 
-                        const JSONObject& machineObject =
+                        JSONObject const& machineObject =
                                 machineValue.GetObject();
 
                         // "type" defines what kind of machine the JSONObject
@@ -322,7 +325,7 @@ void OspUniverse::register_parts(const GLTFFile* gltf)
                                 DynamicCast<Machine>(
                                     context_->CreateObject("Machine" + type));
 
-                        if (machineComponent.NotNull())
+                        if(machineComponent.NotNull())
                         {
                             // Machine exists and is a machine
                             part->AddComponent(machineComponent,
@@ -345,29 +348,28 @@ void OspUniverse::register_parts(const GLTFFile* gltf)
             part->SetPosition(Vector3::ZERO);
             part->SetRotation(Quaternion::IDENTITY);
 
-            const Vector<SharedPtr<Node>>& partChildren = part->GetChildren();
+            Vector<SharedPtr<Node>> const& partChildren = part->GetChildren();
 
-            for (SharedPtr<Node> node : partChildren)
+            for(SharedPtr<Node> const& node : partChildren)
             {
                 part_node_recurse(part, node);
             }
 
             m_parts->GetChild("dbg")->AddChild(part.Get());
- 
-        }
+         }
     }
 }
 
 void OspUniverse::part_node_recurse(Node* partRoot, Node* node)
 {
-    const VariantMap& vars = node->GetVars();
+    VariantMap const& vars = node->GetVars();
 
-    const JSONObject* extras =
+    JSONObject const* extras =
             (vars["extras"]) ? reinterpret_cast<JSONObject*>(
                                    vars["extras"]->GetVoidPtr())
                             : nullptr;
 
-    if (node->GetName().StartsWith("col_"))
+    if(node->GetName().StartsWith("col_"))
     {
 
         // Parse a collider
@@ -383,7 +385,7 @@ void OspUniverse::part_node_recurse(Node* partRoot, Node* node)
         CollisionShape* shape =
                 node->GetParent()->CreateComponent<CollisionShape>();
 
-        if (shapeType == "cylinder")
+        if(shapeType == "cylinder")
         {
             shape->SetCylinder(Min(scale.x_, scale.z_) * 2.0f,
                                scale.y_ * 2.0f, pos, rot);
@@ -397,7 +399,7 @@ void OspUniverse::part_node_recurse(Node* partRoot, Node* node)
         // don't loop through collider's children. terminate here
         return;
     }
-    else if (node->GetName().StartsWith("attach_"))
+    else if(node->GetName().StartsWith("attach_"))
     {
         // Parse an attachment
 
@@ -406,10 +408,10 @@ void OspUniverse::part_node_recurse(Node* partRoot, Node* node)
         node->AddTag("Attachment");
     }
 
-    const Vector<SharedPtr<Node>>& children = node->GetChildren();
+    Urho3D::Vector<Urho3D::SharedPtr<Urho3D::Node>> const& children = node->GetChildren();
 
     // Recurse through all of this node's children
-    for (SharedPtr<Node> node : children)
+    for(SharedPtr<Node> const& node : children)
     {
         part_node_recurse(partRoot, node);
     }
@@ -433,8 +435,11 @@ void OspUniverse::make_craft(Node* node)
     PODVector<Machine*> yes;
     node->GetDerivedComponents<Machine>(yes, true);
 
-    for (Machine* mach : yes) {
+    for(Machine* mach : yes)
+    {
         mach->OnSceneSet(mach->GetScene());
     }
 
 }
+
+} // namespace osp

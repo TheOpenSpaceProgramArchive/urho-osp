@@ -10,12 +10,8 @@ using namespace osp;
 using namespace Urho3D;
 
 
-ActiveArea::ActiveArea(Context* context) : Satellite(context)
-{
-
-}
-
-ActiveArea::ActiveArea(Context* context, Scene* scn) : ActiveArea(context)
+ActiveArea::ActiveArea(Context* context, Scene* scn)
+ : ActiveArea(context)
 {
     m_name = "Untitled ActiveArea";
     m_activeNode = scn;
@@ -30,12 +26,6 @@ ActiveArea::ActiveArea(Context* context, Scene* scn) : ActiveArea(context)
     SubscribeToEvent(world, E_PHYSICSPRESTEP,
                      URHO3D_HANDLER(ActiveArea, physics_update));
 }
-
-ActiveArea::~ActiveArea()
-{
-    //Satellite::~Satellite();
-}
-
 
 void ActiveArea::physics_update(StringHash eventType, VariantMap& eventData)
 {
@@ -236,10 +226,7 @@ void ActiveArea::distance_check_then_load(Satellite* sat,
 Node* ActiveArea::load(ActiveArea* area, const Vector3& pos)
 {
     URHO3D_LOGINFOF("hey");
-}
-
-Node* ActiveArea::load_preview(ActiveArea *area)
-{
+    // TODO:
     return nullptr;
 }
 

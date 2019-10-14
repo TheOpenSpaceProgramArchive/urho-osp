@@ -5,11 +5,6 @@
 using namespace osp;
 using namespace Urho3D;
 
-Machine::Machine(Context* context) : Component(context)
-{
-
-}
-
 void Machine::OnSceneSet(Scene* scene)
 {
     if (scene)

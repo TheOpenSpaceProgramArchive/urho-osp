@@ -2,8 +2,8 @@
 
 #include "Satellite.h"
 
-
-namespace osp {
+namespace osp
+{
 
 /**
  * Keeps a SharedPtr of a Node, loaded as the active node when needed.
@@ -16,7 +16,7 @@ class NodeSat : public Satellite
 public:
 
     NodeSat(Context* context);
-    ~NodeSat() override;
+    ~NodeSat() = default;
 
     Node* get_node()
     {
@@ -34,10 +34,23 @@ public:
     void unload() override;
 
 protected:
-
     // Stored node that shouldn't deallocate
     SharedPtr<Node> m_node;
-
 };
 
+inline NodeSat::NodeSat(Context* context)
+ : Satellite(context)
+{
+    m_name = "Probably a rocket";
 }
+
+inline Node* NodeSat::load_preview(ActiveArea* area)
+{
+    // TODO:
+    return nullptr;
+}
+
+inline void NodeSat::unload()
+{ }
+
+} // namespace osp
