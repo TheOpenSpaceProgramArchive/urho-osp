@@ -7,6 +7,15 @@ namespace osp
 
 void IcoSphereTree::initialize()
 {
+
+    // Set preferences to some magic numbers
+    // TODO: implement a planet config file or something
+    m_maxDepth = 5;
+    m_minDepth = 0;
+
+    m_maxVertice = 1600000; // this number is probably ridiculously high
+    m_maxTriangles = 480000;
+
     // Pentagon stuff, from wolfram alpha
     // This part is kind of messy and should be revised
     // "X pointing" pentagon goes on the top
@@ -161,13 +170,30 @@ int IcoSphereTree::neighboor_index(SubTriangle& tri,
 void PlanetWrenderer::initialize(Urho3D::Context* context,
                                  Urho3D::Image* heightMap, double size)
 {
+
+    // Set preferences to some magic numbers
+    // TODO: implement a planet config file or something
+
+    m_subdivAreaThreshold = 0.02f;
+    m_chunkMaxVertShared = 10000;
+    m_maxChunks = 300;
+
+    m_chunkAreaThreshold = 0.04f;
+    m_chunkResolution = 31;
+
+    // Make the subdividable icosphere that acts like a skeleton for
+    // PlanetWrenderer to stitch chunks over
     m_icoTree = Urho3D::SharedPtr<IcoSphereTree>(new IcoSphereTree());
     m_icoTree->m_radius = size;
 
     m_model = new Urho3D::Model(context);
     m_model->SetNumGeometries(1);
-    m_model->SetBoundingBox(Urho3D::BoundingBox(Urho3D::Sphere(Urho3D::Vector3(0.0f, 0.0f, 0.0f),
-                                               float(size) * 2.0f)));
+
+    // Set bounding box to a sphere centered in the middle of the model with a
+    // diameter of (radius * 2)
+    m_model->SetBoundingBox(Urho3D::BoundingBox(
+                                Urho3D::Sphere(Urho3D::Vector3::ZERO,
+                                       float(size) * 2.0f)));
 
     m_icoTree->initialize();
 
@@ -196,8 +222,10 @@ void PlanetWrenderer::initialize(Urho3D::Context* context,
 
         // Say that each vertex has position, normal, and tangent data
         Urho3D::PODVector<Urho3D::VertexElement> elements;
-        elements.Push(Urho3D::VertexElement(Urho3D::TYPE_VECTOR3, Urho3D::SEM_POSITION));
-        elements.Push(Urho3D::VertexElement(Urho3D::TYPE_VECTOR3, Urho3D::SEM_NORMAL));
+        elements.Push(Urho3D::VertexElement(Urho3D::TYPE_VECTOR3,
+                                            Urho3D::SEM_POSITION));
+        elements.Push(Urho3D::VertexElement(Urho3D::TYPE_VECTOR3,
+                                            Urho3D::SEM_NORMAL));
         //elements.Push(VertexElement(TYPE_VECTOR3, SEM_TEXCOORD));
         //elements.Push(VertexElement(TYPE_VECTOR3, SEM_COLOR));
 
@@ -217,9 +245,9 @@ void PlanetWrenderer::initialize(Urho3D::Context* context,
         // Add geometry to model, urho3d specific
         m_model->SetGeometry(0, 0, m_geometryChunk);
 
-        // Calculate m_chunkSharedIndices;
-        // use:
+        // Calculate m_chunkSharedIndices;  use:
 
+        // Example of verticies in a chunk:
         // 0
         // 1  2
         // 3  4  5
@@ -231,9 +259,9 @@ void PlanetWrenderer::initialize(Urho3D::Context* context,
         // and are equally spaced in the buffer.
         // There are duplicates of the same index
 
-        // Vertices in the edges of a chunk are considered shared vertices,
+        // Vertices in the edges of a chunk are considered "shared vertices,"
         // shared with the edges of the chunk's neighboors.
-        // (in the example above: all of the vertices except for #4)
+        // (in the example above: all of the vertices except for #4 are shared)
         // Shared vertices are added and removed in an unspecified order.
         // Their reserved space in m_chunkVertBuf is [0 - m_chunkSharedCount]
 
@@ -409,12 +437,14 @@ void IcoSphereTree::subdivide_add(trindex t)
 
             // Technique taken from an urho3D example
             // Read vertex buffer data as Vector3
-            const Urho3D::Vector3& vertA = (*reinterpret_cast<const Urho3D::Vector3*>(
-                                        m_vertBuf.Buffer() + m_vertCompCount
-                                        * tri->m_corners[(i + 1) % 3]));
-            const Urho3D::Vector3& vertB = (*reinterpret_cast<const Urho3D::Vector3*>(
-                                        m_vertBuf.Buffer() + m_vertCompCount
-                                        * tri->m_corners[(i + 2) % 3]));
+            const Urho3D::Vector3& vertA =
+                    (*reinterpret_cast<const Urho3D::Vector3*>(
+                         m_vertBuf.Buffer()
+                            + m_vertCompCount * tri->m_corners[(i + 1) % 3]));
+            const Urho3D::Vector3& vertB =
+                    (*reinterpret_cast<const Urho3D::Vector3*>(
+                         m_vertBuf.Buffer()
+                            + m_vertCompCount * tri->m_corners[(i + 2) % 3]));
 
             Urho3D::Vector3 vertM[2];
             vertM[1] = ((vertA + vertB) / 2).Normalized();
@@ -480,7 +510,7 @@ void IcoSphereTree::subdivide_add(trindex t)
     tri->m_bitmask ^= gc_triangleMaskSubdivided;
 
     // subdivide if below minimum depth
-    if (tri->m_depth < m_previewDepth)
+    if (tri->m_depth < m_minDepth)
     {
         // Triangle vector might reallocate, so accessing tri after
         // subdivide_add will cause undefiend behaviour
@@ -506,7 +536,8 @@ void IcoSphereTree::subdivide_remove(trindex t)
     // unsubdiv children if subdivided, and hide if hidden
     for (trindex i = 0; i < 4; i ++)
     {
-        if (m_triangles[tri->m_children + i].m_bitmask & gc_triangleMaskSubdivided)
+        if (m_triangles[tri->m_children + i].m_bitmask
+                & gc_triangleMaskSubdivided)
         {
             subdivide_remove(tri->m_children + i);
         }
@@ -526,7 +557,8 @@ void IcoSphereTree::subdivide_remove(trindex t)
 
         // If the triangle on the other side is not subdivided
         // it means that the vertex will have no more users
-        if (!(triB->m_bitmask & gc_triangleMaskSubdivided) || triB->m_depth != tri->m_depth)
+        if (!(triB->m_bitmask & gc_triangleMaskSubdivided)
+                || triB->m_depth != tri->m_depth)
         {
             // Mark side vertex for replacement
             m_vertFree.Push(tri->m_midVerts[i]);
@@ -664,7 +696,7 @@ void PlanetWrenderer::sub_recurse(trindex t)
                 sub_recurse(childs + 3);
             }
         }
-        else if (tri->m_depth > m_icoTree->m_previewDepth)
+        else if (tri->m_depth > m_icoTree->m_minDepth)
         {
             m_icoTree->subdivide_remove(t);
         }
@@ -763,8 +795,10 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
                         + m_icoTree->m_vertCompCount * tri->m_corners[2]))
     };
 
-    const Urho3D::Vector3 dirRight = (verts[2] - verts[1]) / (m_chunkResolution - 1);
-    const Urho3D::Vector3 dirDown = (verts[1] - verts[0]) / (m_chunkResolution - 1);
+    const Urho3D::Vector3 dirRight = (verts[2] - verts[1])
+                                     / (m_chunkResolution - 1);
+    const Urho3D::Vector3 dirDown = (verts[1] - verts[0])
+                                    / (m_chunkResolution - 1);
 
     // Loop through neighbours and see which ones are already chunked to share
     // vertices with
