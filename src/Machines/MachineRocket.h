@@ -86,7 +86,9 @@ public:
     void update_active(StringHash eventType, VariantMap& eventData);
 
     void loaded_active() override;
-    void loaded_editor() override {}
+    void loaded_editor() override {} // TODO: implement this
+
+    void update_outputs() override {}; // TODO: implement this
 
     void load_json(const JSONObject& machine) override;
 

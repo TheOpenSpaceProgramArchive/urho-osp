@@ -18,6 +18,9 @@ MachineRocket::MachineRocket(Context* context) : Machine(context)
     //m_thrust.set_linear("throttle", 0, 65535);
 
     // TODO: on activate event
+
+
+
 }
 
 MachineRocket::~MachineRocket()

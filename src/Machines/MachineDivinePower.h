@@ -38,8 +38,11 @@ public:
 
     }
 
+    // TODO: implement these
     void loaded_active() override {}
     void loaded_editor() override {}
+
+    void update_outputs() override {}
 
     void load_json(const JSONObject& machine) override;
 

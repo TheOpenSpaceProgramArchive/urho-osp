@@ -8,18 +8,24 @@
 
 #include "../Resource/PerformanceCurves.h"
 #include "../Satellites/ActiveArea.h"
+#include "Wire.h"
 
 
 using namespace Urho3D;
 
 enum MachStates : int
 {
-    E_NOTLOADED = 0,
+    E_NOTLOADED  = 0,
     E_ACTIVE = 1,
     E_EDITOR = 2,
 };
 
-namespace osp {
+namespace osp
+{
+
+class Machine;
+class WireInput;
+class WireOutput;
 
 /**
  * Base class for Machines
@@ -30,6 +36,12 @@ class Machine : public Component
     URHO3D_OBJECT(Machine, Component)
 
 public:
+
+
+    static void RegisterObject(Context* context)
+    {
+        //context->RegisterFactory<Machine>();
+    }
 
     using Component::Component;
     ~Machine() = default;
@@ -53,6 +65,12 @@ public:
     //virtual void update_editor();
 
     /**
+     * Update all of the WireOutputs, if output depends on the inputs, then
+     * call update_outputs on the connected Machines
+     */
+    virtual void update_outputs() = 0;
+
+    /**
      * Called when being loaded into an ActiveArea
      */
     virtual void loaded_active() {}
@@ -67,9 +85,20 @@ public:
      */
     virtual void unload() {}
 
-    static void RegisterObject(Context* context)
+    /**
+     * @return Reference to list of available WireOutputs
+     */
+    PODVector< WireOutput* > const& get_wire_outputs()
     {
-        context->RegisterFactory<Machine>();
+        return m_wireOutputs;
+    }
+
+    /**
+     * @return Reference to list of available WireOutputs
+     */
+    PODVector< WireInput* > const& get_wire_inputss()
+    {
+        return m_wireInputs;
     }
 
     /**
@@ -91,6 +120,13 @@ protected:
 
     MachStates m_state;
     HashMap<StringHash, float> m_curveInputs;
+
+    // List of wire inputs and outputs only to be listed by other classes
+    // WireIn/Outputs should be member variables of the class
+    PODVector< WireInput* > m_wireInputs;
+    PODVector< WireOutput* > m_wireOutputs;
+
+    unsigned m_prevOutputUpdateFrame;
 
     //void resubscribe();
 };
