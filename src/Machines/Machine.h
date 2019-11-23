@@ -68,7 +68,7 @@ public:
      * Update all of the WireOutputs, if output depends on the inputs, then
      * call update_outputs on the connected Machines
      */
-    virtual void update_outputs() = 0;
+    virtual void update_outputs() {}
 
     /**
      * Called when being loaded into an ActiveArea
@@ -81,7 +81,7 @@ public:
     virtual void loaded_editor() {}
 
     /**
-     * Unloaded from either active or editor
+     * Unloaed from either active or editor
      */
     virtual void unload() {}
 
@@ -96,10 +96,20 @@ public:
     /**
      * @return Reference to list of available WireOutputs
      */
-    PODVector< WireInput* > const& get_wire_inputss()
+    PODVector< WireInput* > const& get_wire_inputs()
     {
         return m_wireInputs;
     }
+
+    /**
+     * @return First wire output that matches name
+     */
+    WireOutput* get_wire_output(String const& name);
+
+    /**
+     * @return First wire input that matches name
+     */
+    WireInput* get_wire_input(String const& name);
 
     /**
      * Called by Urho3D when the scene is canged

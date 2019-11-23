@@ -9,16 +9,21 @@
 
 namespace osp {
 
+// Add, Remove, and Rename a bunch of these
 enum WireType
 {
-    WIRE_INT,       //
-    WIRE_FLOAT,     //
-    WIRE_CLOCK,     //
-    WIRE_PERCENT,   // ie. Throttle control
-    WIRE_SATELLITE, // ie. Target a satellite?
-    WIRE_SERIAL,    // not sure what to use this for
-    WIRE_STRING,    // not sure what to use this for either
-    WIRE_VARIANT    // custom, get type by m_dataOut.GetType()
+    WIRE_NONE,       //
+    WIRE_INT,        //
+    WIRE_FLOAT,      //
+    WIRE_POWER,      // Combined On, Off, or Toggle. ie. Ignite, Shutdown
+    WIRE_ROT,        // A Quaternion in global space
+    WIRE_ROT_ATT,    // A Quaternion in planet space (attitude)
+    WIRE_ROT_ACTION, // Change in rotation in Eular ZXY (Roll, Pitch, Yaw)
+    WIRE_PERCENT,    // ie. Throttle control
+    //WIRE_SATELLITE,  // ie. Target a satellite?
+    WIRE_SERIAL,     // not sure what to use this for
+    WIRE_STRING,     // not sure what to use this for either
+    WIRE_VARIANT     // custom, get type by m_dataOut.GetType()
 };
 
 
@@ -30,38 +35,76 @@ class WireOutput;
  * Used as member variables of a machine to get controls and information from
  * a WireOutput
  */
-class WireInput : public Urho3D::Object
+class WireInput : public Urho3D::RefCounted
 {
-    URHO3D_OBJECT(WireInput, Urho3D::Object)
+
+    friend WireOutput;
 
 public:
 
-    using Urho3D::Object::Object;
+    WireInput(Machine* mach, Urho3D::String const& name);
     ~WireInput() = default;
+
+    // TODO: add some convinient functions;
+    float recieve_percentf();
+
+    void Connect(WireOutput* data);
+
+    inline Urho3D::String const get_name() const { return m_name; }
+    inline Urho3D::StringHash get_nameHash() const { return m_nameHash; }
 
 protected:
 
+    // this is a suggestion, this input can be connected to any type of output
+    WireType m_type;
+
+    Urho3D::String m_name;
+    Urho3D::StringHash m_nameHash;
+
     Urho3D::WeakPtr<Machine> m_machine; // Associated machine
     Urho3D::WeakPtr<WireOutput> m_dataIn;
+
+
     
     // put stuff here
     
 };
 
-/**
- * @brief The WireInput class
- */
-class WireOutput : public Urho3D::Object
+inline WireInput::WireInput(Machine* mach,
+                            Urho3D::String const& name):
+        Urho3D::RefCounted()
 {
-   URHO3D_OBJECT(WireOutput, Urho3D::Object)
+    m_machine = mach;
+    m_name = name;
+    m_nameHash = name;
+}
+
+/**
+ * Used to output information from a Machine, to feed into another Machine's
+ * WireInputs.
+ */
+class WireOutput : public Urho3D::RefCounted
+{
+
+    friend WireInput;
 
 public:
 
-   using Urho3D::Object::Object;
+   WireOutput(Machine* mach, Urho3D::String const& name);
    ~WireOutput()
    {
        // call destructor of whatever is in the union
    };
+
+   void send_percentf(float precent);
+
+   inline WireType get_wire_type()
+   {
+       return m_type;
+   }
+
+   inline Urho3D::String const get_name() const { return m_name; }
+   inline Urho3D::StringHash get_nameHash() const { return m_nameHash; }
 
 protected:
 
@@ -69,10 +112,13 @@ protected:
    Urho3D::WeakPtr<Machine> m_machine;
    WireType m_type;
 
+   Urho3D::String m_name;
+   Urho3D::StringHash m_nameHash;
+
    union
    {
        //PODVector<unsigned char> m_serialOut;
-       Urho3D::Variant m_dataOut;
+       Urho3D::Variant m_data;
 
        // OSP-specific outputs
    };
@@ -81,5 +127,14 @@ protected:
    // put stuff here
 };
 
+
+inline WireOutput::WireOutput(Machine* mach,
+                            Urho3D::String const& name) :
+        Urho3D::RefCounted()
+{
+    m_machine = mach;
+    m_name = name;
+    m_nameHash = name;
+}
 
 }

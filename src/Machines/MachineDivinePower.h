@@ -30,7 +30,10 @@ class MachineDivinePower : public Machine
 public:
     /* Forward base class constructor */
     using Machine::Machine;
-    ~MachineDivinePower() = default;
+    ~MachineDivinePower()
+    {
+
+    };
 
     static void RegisterObject(Context* context)
     {
@@ -41,7 +44,7 @@ public:
     // TODO: implement these
     void loaded_active() override {}
     void loaded_editor() override {}
-
+    void unload() override {};
     void update_outputs() override {}
 
     void load_json(const JSONObject& machine) override;

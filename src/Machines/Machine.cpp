@@ -46,6 +46,37 @@ void Machine::OnNodeSetEnabled(Node* node)
     URHO3D_LOGINFOF("NODE ENABLED");
 }
 
+WireInput* Machine::get_wire_input(const String &name)
+{
+    StringHash nameHash(name);
+
+    // Loop through all WireInputs and return the matching name
+    // maybe optimize this some day
+    for (int i = 0; i < m_wireInputs.Size(); i ++)
+    {
+        if (m_wireInputs[i]->get_nameHash() == nameHash)
+        {
+            return m_wireInputs[i];
+        }
+    }
+    return nullptr;
+}
+
+WireOutput* Machine::get_wire_output(const String &name)
+{
+    StringHash nameHash(name);
+    // Loop through all WireOutputs and return the matching name
+    // maybe optimize this some day
+    for (int i = 0; i < m_wireOutputs.Size(); i ++)
+    {
+        if (m_wireOutputs[i]->get_nameHash() == nameHash)
+        {
+            return m_wireOutputs[i];
+        }
+    }
+    return nullptr;
+}
+
 /*void Machine::resubscribe()
 {
     switch (m_state)

@@ -86,9 +86,11 @@ public:
     void update_active(StringHash eventType, VariantMap& eventData);
 
     void loaded_active() override;
-    void loaded_editor() override {} // TODO: implement this
 
-    void update_outputs() override {}; // TODO: implement this
+    // TODO: implement these
+    void loaded_editor() override {}
+    void unload() override {}
+    void update_outputs() override {}
 
     void load_json(const JSONObject& machine) override;
 
@@ -118,6 +120,9 @@ private:
 
     float m_baseThrust;
 
+    WireInput m_inIgnite;
+    WireInput m_inThrottle;
+    //WireInput m_gimbalIn;
 
     // efficiency
     // thrust

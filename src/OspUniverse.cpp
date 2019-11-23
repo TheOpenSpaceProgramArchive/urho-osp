@@ -12,6 +12,7 @@
 
 #include "Satellites/ActiveArea.h"
 #include "Satellites/AstronomicalBody.h"
+#include "Machines/MachineControl.h"
 #include "Machines/MachineRocket.h"
 #include "Satellites/NodeSat.h"
 #include "Terrain/PlanetTerrain.h"
@@ -287,6 +288,8 @@ void OspUniverse::register_parts(const GLTFFile* gltf)
                          GLTFFile::StringValue((*extras)["manufacturer"]));
             part->SetVar("name",
                          GLTFFile::StringValue((*extras)["name"]));
+            // TODO: check if massdry exists, or come up with a better way of
+            //       representing mass
             part->SetVar("massdry", (*extras)["massdry"]->GetFloat());
             part->SetVar("prototype", part.Get()); // stored as WeakPtr
 
@@ -419,26 +422,46 @@ void OspUniverse::part_node_recurse(Node* partRoot, Node* node)
 
 void OspUniverse::make_craft(Node* node)
 {
-    //node->CreateComponent<Entity>();
-    //PODVector<Node*> printthese =
-    //node->GetChildrenWithComponent("StaticModel", true);
 
-    //for (Node* n : printthese)
-    //{
-    //    Material* m = n->GetComponent<StaticModel>()->GetMaterial();
-    //    URHO3D_LOGINFOF("Material Scene: %p", m);
-    //    m->SetScene(GetSubsystem<Renderer>()->GetViewport(0)->GetScene());
-    //}
+    // Get list of Machines in the blueprint
+    PODVector<Machine*> machines;
+    node->GetDerivedComponents<Machine>(machines, true);
 
-    // messy workaround to call loaded_active() on machines:
-    // Trigger the scene changed event
-    PODVector<Machine*> yes;
-    node->GetDerivedComponents<Machine>(yes, true);
+    // For Auto-wiring
+    // Find the first MachineControl
+    MachineControl* controller = node->GetComponent<MachineControl>(true);
 
-    for(Machine* mach : yes)
+    for(Machine* mach : machines)
     {
+        // Auto-wiring
+        if (controller)
+        {
+            // Auto-wire Rockets
+            if (mach->GetType() == "MachineRocket")
+            {
+                MachineRocket* rocket = reinterpret_cast<MachineRocket*>(mach);
+                // Connect rocket thottle to control's throttle
+                mach->get_wire_input("Throttle")->Connect(
+                            controller->get_wire_output("Throttle"));
+
+            }
+            // Spam more if statements here
+        }
+
+
+        // Machines need to be moved into another scene to trigger a state
+        // change. Without this, they'll still think they're in the editor.
+
+        // This messy workaround to call loaded_active() on machines, to trigger
+        // the scene changed event without changing the scene. In the future, the
+        // editor scene and the in-game ActiveArea should be SEPARATE. This is only
+        // here to get things to work for now.
+
         mach->OnSceneSet(mach->GetScene());
     }
+
+
+
 
 }
 

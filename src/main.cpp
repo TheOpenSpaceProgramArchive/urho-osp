@@ -51,6 +51,7 @@
 #include "config.h"
 #include "Machines/Machine.h"
 #include "Machines/MachineRocket.h"
+#include "Machines/MachineControl.h"
 #include "OspUniverse.h"
 #include "Resource/GLTFFile.h"
 #include "Terrain/PlanetTerrain.h"
@@ -85,6 +86,7 @@ public:
         GLTFFile::RegisterObject(context);
         PlanetTerrain::RegisterObject(context);
 
+        MachineControl::RegisterObject(context);
         MachineRocket::RegisterObject(context);
         Machine::RegisterObject(context);
     }

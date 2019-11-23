@@ -6,21 +6,15 @@
 
 using namespace osp;
 
-MachineRocket::MachineRocket(Context* context) : Machine(context)
+MachineRocket::MachineRocket(Context* context)
+    : Machine(context),
+      m_inIgnite(this, "Ignition"),
+      m_inThrottle(this, "Throttle")
+
 {
-    //m_curveInputs = new HashMap<StringHash, float>();
-    //m_thrust(m_curveInputs, 0.0f, 10.0f);
-    //m_efficiency(m_curveInputs, 0.0f, 10.0f);
-
-    // Add throttle as a curve input from 0.0-100.0 linear
-    //m_curveInputs["throttle"] = 0.0f;
-    //m_thrust.add_factor("throttle", 100.0f, 0.0f);
-    //m_thrust.set_linear("throttle", 0, 65535);
-
-    // TODO: on activate event
-
-
-
+    // List wire inputs
+    m_wireInputs.Push(&m_inIgnite);
+    m_wireInputs.Push(&m_inThrottle);
 }
 
 MachineRocket::~MachineRocket()
@@ -110,10 +104,7 @@ void MachineRocket::update_active(StringHash eventType, VariantMap& eventData)
     //printf("COM: %s\n", rb->GetCenterOfMass().ToString().CString());
 
     Input* i = GetSubsystem<Input>();
-    m_curveInputs["throttle"] = Clamp(m_curveInputs["throttle"]
-            + (int(i->GetKeyDown(KEY_F))
-               - i->GetKeyDown(KEY_G)) * 1.0f,
-            0.0f, 100.0f);
+    m_curveInputs["throttle"] = m_inThrottle.recieve_percentf() * 100.0f;
 
     // Set rocket plume
     PODVector<ParticleEmitter*> plumes;

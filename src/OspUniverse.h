@@ -67,8 +67,12 @@ public:
     void register_parts(const GLTFFile* gltf);
 
     /**
-     * This function shouldn't exist
-     * @param node Yes
+     * Partially converts an editor "Craft Blueprint" into a Physical craft
+     * This function shouldn't exist, mostly for debugging purposes. It gets
+     * called when SPACE is pressed in the editor. Some functionality is split
+     * between this function and AngelScript, when converting the craft.
+     * It also automatically connects a few Machines
+     * @param node The Craft Blueprint to be converted.
      */
     void make_craft(Node* node);
     
