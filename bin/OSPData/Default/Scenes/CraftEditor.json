@@ -8,8 +8,8 @@
 		"Elapsed Time": 3.175529956817627,
 		"Next Replicated Node ID": 20,
 		"Next Replicated Component ID": 44,
-		"Next Local Node ID": 16777269,
-		"Next Local Component ID": 16777852,
+		"Next Local Node ID": 16777270,
+		"Next Local Component ID": 16777864,
 		"Variables": {},
 		"Variable Names": "RemoveDistance"
 	},
@@ -48,7 +48,7 @@
 				"Type": "Music",
 				"Frequency": 44100.0,
 				"Is Playing": true,
-				"Play Position": -530896
+				"Play Position": 3036624
 			}
 		},
 		{
@@ -118,7 +118,7 @@
 					"attributes": {
 						"Light Type": "Directional",
 						"Brightness Multiplier": 700.0,
-						"Temperature": 5000.0,
+						"Temperature": 6000.0,
 						"Use Physical Values": true,
 						"Radius": 10.0,
 						"Range": 20.0,
@@ -176,7 +176,7 @@
 					"id": 18,
 					"attributes": {
 						"Model": "Model;Models/Icosphere.mdl",
-						"Material": "Material;",
+						"Material": "Material;Materials/Floor0.json",
 						"Cast Shadows": true
 					}
 				},
@@ -291,7 +291,7 @@
 					"id": 38,
 					"attributes": {
 						"Model": "Model;Models/Icosphere.mdl",
-						"Material": "Material;",
+						"Material": "Material;Materials/Floor0.json",
 						"Cast Shadows": true
 					}
 				},
