@@ -144,7 +144,8 @@ public:
      * @param [in] lookingFor Index of triangle to search for
      * @return Neighbour index (0 - 2), or bottom, left, or right
      */
-    static int neighboor_index(SubTriangle& tri, trindex lookingFor);
+    static int neighbour_side(const SubTriangle& tri,
+                              const trindex lookingFor);
 
 
     /**
@@ -209,7 +210,7 @@ class PlanetWrenderer
 
     Urho3D::PODVector<trindex> m_chunkIndDomain; // Maps chunks to triangles
     // Spots in the index buffer that want to die
-    Urho3D::PODVector<chindex> m_chunkIndDeleteMe;
+    //Urho3D::PODVector<chindex> m_chunkIndDeleteMe;
     // List of deleted chunk data to overwrite
     Urho3D::PODVector<buindex> m_chunkVertFree;
     // same as above but for individual shared verticies
@@ -228,7 +229,7 @@ class PlanetWrenderer
     Urho3D::Geometry* m_geometryChunk; // Geometry for chunks
 
 
-    buindex m_chunkVertCountShared; // Current of shared vertices (chunk edges)
+    buindex m_chunkVertCountShared; // Current number of shared vertices
 
     float m_cameraDist;
     float m_threshold;
@@ -239,12 +240,13 @@ class PlanetWrenderer
     // Preferred total size of chunk vertex buffer (m_chunkVertBuf)
     buindex m_chunkMaxVert;
     // How much is reserved for shared vertices
-    buindex m_chunkMaxVertShared = 10000;
-    chindex m_maxChunks = 300; // Max number of chunks
+    buindex m_chunkMaxVertShared;
+    chindex m_maxChunks; // Max number of chunks
 
     // How much screen area a triangle can take before it should be chunked
     float m_chunkAreaThreshold = 0.04f;
     unsigned m_chunkResolution = 31; // How many vertices wide each chunk is
+    unsigned m_chunkVertsPerSide; // = m_chunkResolution - 1
     unsigned m_chunkSharedCount; // How many shared verticies per chunk
     unsigned m_chunkSize; // How many vertices there are in each chunk
     unsigned m_chunkSizeInd; // How many triangles in each chunk
@@ -289,6 +291,12 @@ public:
      * @param camera [in] Position of camera center
      */
     void update(Urho3D::Vector3 const& camera);
+
+
+    /**
+     * Print out information on vertice count, chunk count, etc...
+     */
+    void log_stats() const;
 
     Urho3D::Model* get_model() { return m_model; }
 
@@ -337,9 +345,9 @@ protected:
      * makes a border around the triangle
      *
      * 6
-     * 5  7
-     * 4  9  8
-     * 3  2  1  0
+     * 7  5
+     * 8  9  4
+     * 0  1  2  3
      * x = right, y = down
      *
      * 0, 1, 2, 3, 4, 5, 6, 7, 8 makes a ring
@@ -348,7 +356,10 @@ protected:
      * @param y [in]
      * @return
      */
-    unsigned get_index_ringed(int x, int y) const;
+    unsigned get_index_ringed(unsigned x, unsigned y) const;
+
+    buindex get_shared_from_tri(const SubTriangle& tri, unsigned side,
+                                float pos);
 
     /**
      * Add up memory usages from most variables associated with this instance.

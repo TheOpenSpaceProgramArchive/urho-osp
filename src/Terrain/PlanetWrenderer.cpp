@@ -13,8 +13,8 @@ void IcoSphereTree::initialize()
     m_maxDepth = 5;
     m_minDepth = 0;
 
-    m_maxVertice = 1600000; // this number is probably ridiculously high
-    m_maxTriangles = 480000;
+    m_maxVertice = 512;
+    m_maxTriangles = 256;
 
     // Pentagon stuff, from wolfram alpha
     // This part is kind of messy and should be revised
@@ -153,8 +153,8 @@ void IcoSphereTree::set_verts(SubTriangle& tri, trindex top,
     tri.m_corners[2] = rte;
 }
 
-int IcoSphereTree::neighboor_index(SubTriangle& tri,
-                                   trindex lookingFor)
+int IcoSphereTree::neighbour_side(const SubTriangle& tri,
+                                   const trindex lookingFor)
 {
     // Loop through neighbours on the edges. child 4 (center) is not considered
     // as all it's neighbours are its siblings
@@ -180,6 +180,7 @@ void PlanetWrenderer::initialize(Urho3D::Context* context,
 
     m_chunkAreaThreshold = 0.04f;
     m_chunkResolution = 31;
+    m_chunkVertsPerSide = m_chunkResolution - 1;
 
     // Make the subdividable icosphere that acts like a skeleton for
     // PlanetWrenderer to stitch chunks over
@@ -204,8 +205,8 @@ void PlanetWrenderer::initialize(Urho3D::Context* context,
         m_chunkSize = m_chunkResolution * (m_chunkResolution + 1) / 2;
 
         // This is how many triangles is in a chunk
-        m_chunkSizeInd = Urho3D::Pow(m_chunkResolution - 1, 2u);
-        m_chunkSharedCount = (m_chunkResolution - 1) * 3;
+        m_chunkSizeInd = Urho3D::Pow(m_chunkVertsPerSide, 2u);
+        m_chunkSharedCount = m_chunkVertsPerSide * 3;
 
 
         m_chunkMaxVert = m_chunkMaxVertShared
@@ -284,7 +285,7 @@ void PlanetWrenderer::initialize(Urho3D::Context* context,
         m_chunkSharedIndices.Resize(m_chunkSharedCount);
 
         int i = 0;
-        for (int y = 0; y < int(m_chunkResolution - 1); y ++)
+        for (int y = 0; y < int(m_chunkVertsPerSide); y ++)
         {
             for (int x = 0; x < y * 2 + 1; x ++)
             {
@@ -457,7 +458,7 @@ void IcoSphereTree::subdivide_add(trindex t)
         else
         {
             // Which side tri is on triB
-            int sideB = neighboor_index(*triB, t);
+            int sideB = neighbour_side(*triB, t);
             //printf("Vertex is being shared\n");
 
             // Instead of creating a new vertex, use the one from triB since
@@ -569,7 +570,7 @@ void IcoSphereTree::subdivide_remove(trindex t)
         // Set neighbours, so that they don't reference deleted triangles
         if (triB->m_depth == tri->m_depth)
         {
-            int sideB = neighboor_index(triB[0], t);
+            int sideB = neighbour_side(triB[0], t);
             set_side_recurse(triB[0], sideB, t);
         }
     }
@@ -724,23 +725,23 @@ void PlanetWrenderer::sub_recurse(trindex t)
     }
 }
 
-unsigned PlanetWrenderer::get_index_ringed(int x, int y) const
+unsigned PlanetWrenderer::get_index_ringed(unsigned x, unsigned y) const
 {
     // || (x == y) ||
-    if (y == int(m_chunkResolution - 1))
+    if (y == m_chunkVertsPerSide)
     {
         // Bottom edge
-        return m_chunkResolution - unsigned(x) - 1;
+        return x;
     }
     else if (x == 0)
     {
         // Left edge
-        return (m_chunkResolution - 1) * 2 - unsigned(y);
+        return m_chunkVertsPerSide * 2 + y;
     }
     else if (x == y)
     {
         // Right edge
-        return (m_chunkResolution - 1) * 2 + unsigned(y);
+        return m_chunkVertsPerSide * 2 - y;
     }
     else
     {
@@ -785,7 +786,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
     unsigned char* vertDataChunk = m_chunkVertBuf->GetShadowData();
     unsigned vertSizeChunk = m_chunkVertBuf->GetVertexSize();
 
-    // top, left, right
+    // top, left, and right vertices of triangle from IcoSphereTree
     const Urho3D::Vector3 verts[3] = {
         (*reinterpret_cast<const Urho3D::Vector3*>(vertData
                         + m_icoTree->m_vertCompCount * tri->m_corners[0])),
@@ -796,31 +797,35 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
     };
 
     const Urho3D::Vector3 dirRight = (verts[2] - verts[1])
-                                     / (m_chunkResolution - 1);
+                                     / m_chunkVertsPerSide;
     const Urho3D::Vector3 dirDown = (verts[1] - verts[0])
-                                    / (m_chunkResolution - 1);
+                                    / m_chunkVertsPerSide;
 
     // Loop through neighbours and see which ones are already chunked to share
     // vertices with
 
-    bool chunkedNeighbours[3];
+    //uint8_t neighbourDepths[3];
+    SubTriangle* neighbours[3];
+    trindex neighbourSide[3]; // Side of tri relative to neighbour's
 
     for (int i = 0; i < 3; i ++)
     {
-        SubTriangle* triB = m_icoTree->get_triangle(tri->m_neighbours[i]);
-        chunkedNeighbours[i] = (triB->m_bitmask & gc_triangleMaskChunked);
+        neighbours[i] = m_icoTree->get_triangle(tri->m_neighbours[i]);
+        neighbourSide[i] = m_icoTree->neighbour_side(*neighbours[i], t);
+        //neighbourDepths[i] = (triB->m_bitmask & gc_triangleMaskChunked);
     }
 
-    //URHO3D_LOGINFOF("DirDown: %f %f %f", dirDown.x_, dirDown.y_, dirDown.z_);
-
+    // Take the space at the end of the chunk buffer
     tri->m_chunk = m_chunkCount;
 
     if (m_chunkVertFree.Size() == 0) {
+        //
         tri->m_chunkVerts = m_chunkMaxVertShared + m_chunkCount
                             * (m_chunkSize - m_chunkSharedCount);
     }
     else
     {
+        // Use empty space available in the chunk vertex buffer
         tri->m_chunkVerts = m_chunkVertFree.Back();
         m_chunkVertFree.Pop();
     }
@@ -844,21 +849,17 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
             if (localIndex < m_chunkSharedCount)
             {
                 shared = true;
-                if (chunkedNeighbours[0])
-                {
-                    // Bottom can be shared
-                    //URHO3D_LOGINFO("Bottom is chunked");
-                }
-                else if (chunkedNeighbours[1])
-                {
-                    // Left can be shared
-                    //URHO3D_LOGINFO("Left is chunked");
-                }
-                else if (chunkedNeighbours[2])
-                {
-                    // Right can be shared
-                    //URHO3D_LOGINFO("Right is chunked");
-                }
+
+                // Both of these should get optimized into a single div op
+                unsigned side = localIndex / m_chunkVertsPerSide;
+                unsigned sideInd = localIndex % m_chunkVertsPerSide;
+                // side 0: Bottom
+                // side 1: Right
+                // side 2: Left
+
+                // Get shared vertex from neighbour, on corresponding side
+                //m_chunkSharedIndices[];
+
             }
 
             //URHO3D_LOGINFOF("X:%i Y:%i I:%i", x, y, i);
@@ -942,11 +943,12 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
     }
 
     // The data that will be pushed directly into the chunk index buffer
+    // * 3 because there are 3 indices in a triangle
     Urho3D::PODVector<unsigned> chunkIndData(m_chunkSizeInd * 3);
 
     i = 0;
     // indices array is now populated, connect the dots!
-    for (int y = 0; y < int(m_chunkResolution - 1); y ++)
+    for (int y = 0; y < int(m_chunkVertsPerSide); y ++)
     {
         for (int x = 0; x < y * 2 + 1; x ++)
         {
@@ -1103,6 +1105,23 @@ uint64_t PlanetWrenderer::get_memory_usage() const
         total += m_chunkVertFreeShared.Capacity() * sizeof(buindex);
     }
     return total;
+}
+
+void PlanetWrenderer::log_stats() const
+{
+    // Spaghetti print some useful information into the console
+    URHO3D_LOGINFOF("\nIcoSphereTree Info:\n"
+            " - Vertices:     [%u/%u, %u free]\n"
+            " - Triangles:    [%u/%u, %u free]\n"
+            "Chunk Info\n"
+            " - Chunks:       [%u/%u, %u free]\n"
+            " - Shared Vert:  [%u/%u, %u free]\n"
+            " - Total Vert:   [%u/%u]",
+            m_icoTree->m_vertCount, m_icoTree->m_maxVertice, m_icoTree->m_vertFree.Size(),
+            m_icoTree->m_triangles.Size(), m_icoTree->m_maxTriangles, m_icoTree->m_trianglesFree.Size(),
+            m_chunkCount, m_maxChunks, m_chunkVertFree.Size(),
+            m_chunkVertCountShared, m_chunkMaxVertShared, m_chunkVertFreeShared.Size(),
+            m_chunkVertCountShared + m_chunkCount * m_chunkSize, m_chunkMaxVert);
 }
 
 } // namespace osp
