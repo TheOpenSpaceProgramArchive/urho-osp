@@ -222,7 +222,9 @@ class PlanetWrenderer
 
     // Count how many times each shared chunk vertex is being used
     Urho3D::PODVector<uint8_t> m_chunkVertUsers;
-    // Indicies that point to shared vertices.
+
+    // Maps shared vertex indices to the index buffer, so that shared vertices
+    // can be obtained from a chunk
     Urho3D::PODVector<buindex> m_chunkSharedIndices;
 
     Urho3D::Model* m_model;
@@ -358,8 +360,17 @@ protected:
      */
     unsigned get_index_ringed(unsigned x, unsigned y) const;
 
-    buindex get_shared_from_tri(const SubTriangle& tri, unsigned side,
-                                float pos);
+    /**
+     * Grab a shared vertex from the side of a triangle.
+     * @param sharedIndex [out] Set to index to shared vertex when successful
+     * @param tri [in] Triangle to grab a
+     * @param side [in] 0: bottom, 1: right, 2: left
+     * @param pos [in] float from (usually) 0.0-1.0, position of vertex to grab
+     * @return true when a shared vertex can be taken from tri
+     */
+    bool get_shared_from_tri(buindex* sharedIndex, const SubTriangle& tri,
+                             unsigned side, float pos) const;
+
 
     /**
      * Add up memory usages from most variables associated with this instance.

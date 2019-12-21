@@ -30,7 +30,7 @@ void MachineControl::update_outputs()
 
     m_outThrottle.send_percentf(0.0f + 1.0f * i->GetKeyDown(KEY_F));
 
-    printf("throttle:%f\n", 0.0f + 1.0f * i->GetKeyDown(KEY_F));
+    //printf("throttle:%f\n", 0.0f + 1.0f * i->GetKeyDown(KEY_F));
 }
 
 void MachineControl::load_json(const JSONObject& machine)

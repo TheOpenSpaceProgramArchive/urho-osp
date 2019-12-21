@@ -340,16 +340,21 @@ void PlanetWrenderer::initialize(Urho3D::Context* context,
     m_ready = true;
 
     // don't mind this debug code
-    m_icoTree->subdivide_add(0);
+    // this part just chunks all the initial triangles
+
+    //m_icoTree->subdivide_add(0);
     //chunk_add(0);
 
-    for (trindex i = 1; i < 24; i ++)
+    for (trindex i = 0; i < 20; i ++)
     {
         chunk_add(i);
     }
+
+    log_stats();
 }
 
 void IcoSphereTree::subdivide_add(trindex t)
+
 {
     // if bottom triangle is deeper, use that vertex
     // same with left and right
@@ -751,6 +756,52 @@ unsigned PlanetWrenderer::get_index_ringed(unsigned x, unsigned y) const
 
 }
 
+bool PlanetWrenderer::get_shared_from_tri(buindex* sharedIndex,
+                                          const SubTriangle& tri,
+                                          unsigned side, float pos) const
+{
+
+    if (tri.m_bitmask & gc_triangleMaskChunked)
+    {
+        // Index buffer data of tri
+        unsigned* triIndData = reinterpret_cast<unsigned*>(
+                                m_indBufChunk->GetShadowData())
+                                + tri.m_chunkIndex;
+
+        // m_chunkSharedIndices is a previously calculated array that maps
+        // indices local of a triangle, to indices in the index buffer that
+        // point to its shared vertices
+        //
+        //            6
+        // [side 2]   7  5     [side 1]
+        //            8  9  4
+        //            0  1  2  3
+        //             [side 0]
+        //            <-------->
+        // if resolution is 4 (4 vertices per edge), then localIndex is
+        // a number from 0 to 8
+
+        buindex localIndex = side * m_chunkVertsPerSide
+                                + int(pos * float(m_chunkResolution));
+
+        // Loop around when value gets too high, because it's a triangle
+        localIndex %= m_chunkSharedCount;
+
+        *sharedIndex =  *(triIndData + m_chunkSharedIndices[localIndex]);
+        return true;
+    }
+    else if (tri.m_bitmask & gc_triangleMaskSubdivided)
+    {
+        // Children might be chunked, recurse into child
+        *sharedIndex = 0;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+};
+
 void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
                                 UpdateRange* gpuVertInd)
 {
@@ -806,7 +857,7 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
 
     //uint8_t neighbourDepths[3];
     SubTriangle* neighbours[3];
-    trindex neighbourSide[3]; // Side of tri relative to neighbour's
+    int neighbourSide[3]; // Side of tri relative to neighbour's
 
     for (int i = 0; i < 3; i ++)
     {
@@ -843,12 +894,9 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
         {
             unsigned vertIndex;
             unsigned localIndex = get_index_ringed(x, y);
-            bool shared = false;
 
-            // Check if on edge
             if (localIndex < m_chunkSharedCount)
             {
-                shared = true;
 
                 // Both of these should get optimized into a single div op
                 unsigned side = localIndex / m_chunkVertsPerSide;
@@ -857,28 +905,18 @@ void PlanetWrenderer::chunk_add(trindex t, UpdateRange* gpuVertChunk,
                 // side 1: Right
                 // side 2: Left
 
-                // Get shared vertex from neighbour, on corresponding side
-                //m_chunkSharedIndices[];
+                float pos = 1.0f - float(sideInd + 1) / float(m_chunkResolution);
 
-            }
-
-            //URHO3D_LOGINFOF("X:%i Y:%i I:%i", x, y, i);
-
-            if (shared)
-            {
-
-                if (false)
+                // Take a vertex from a neighbour, if possible
+                if (get_shared_from_tri(&vertIndex, *neighbours[side],
+                                        neighbourSide[side], pos))
                 {
-                    // TODO: Take a vertex from a neighbour
+                    // increment number of users and stuff
 
-                    // Get edge that localIndex is on
-                    // Get corresponding neighbour's edge
-                    // Set vertIndex to neighbour's shared vertex
-                    // Increase user count for that vertex
                 }
                 else
                 {
-                    // Make a new shared vertex
+                    // If not, Make a new shared vertex
 
                     // Indices from 0 to m_chunkMaxVertShared
                     if (m_chunkVertCountShared + 1 >= m_chunkMaxVertShared)
