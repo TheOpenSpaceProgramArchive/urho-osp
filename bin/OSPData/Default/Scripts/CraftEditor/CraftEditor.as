@@ -174,12 +174,17 @@ class CraftEditor : UIController
      * @param distance [in] threshold in physical meters for how far apart
                             attachments can physically be, before counting as a
                             snap
+     * @param angleLimit [in] Max angle pair of attachments can vary
      */
     void CalculatePossibleSnaps(Array<AttachmentPair>& pairs,
-                                float screenDistance, float distance)
+                                float screenDistance, float distance,
+                                float angleLimit)
     {
         // TODO: add any sort of filtering for different kinds of attachments
-        // TODO: optimize all of this
+        // TODO: optimize all of this, it isn't expected to perform that well
+        
+        float screenDistSqr = screenDistance * screenDistance;
+        float angleCos = Cos(angleLimit);
         
         // Get a list of non-selected parts
         Array<Node@> nonSelected;
@@ -194,40 +199,74 @@ class CraftEditor : UIController
         
         //Print("not selected " + nonSelected.length);
         
-        // Loop through all selected parts
-        // Maybe find a way to optimize this
-        
         Variant[]@ attachmentsA;
         Variant[]@ attachmentsB;
         
+        // Loop through all selected parts
         for (int i = 0; i < m_selection.length; i ++)
         {
             @attachmentsA = m_selection[i].vars["Attachments"]
                                 .GetVariantVector();
             
+            // Loop through all attachments of i'th selected part
             for (int j = 0; j < attachmentsA.length; j ++)
             {
                 
                 Node@ attachA = cast<Node@>(attachmentsA[j].GetPtr());
                 
+                Vector2 screenPosA = m_cameraComponent.WorldToScreenPoint(
+                                                        attachA.worldPosition);
+                screenPosA.x *= graphics.width;
+                screenPosA.y *= graphics.height;
+                
+                // Loop through all non-selected parts
                 for (int k = 0; k < nonSelected.length; k ++)
                 {
                     @attachmentsB = nonSelected[k].vars["Attachments"]
                                         .GetVariantVector();
+
+                    // Loop through attachments of k'th non-selected part
                     for (int l = 0; l < attachmentsB.length; l ++)
                     {
                     
                         Node@ attachB = cast<Node@>(attachmentsB[l].GetPtr());
                         
-                        bool snapped = false;
-                    
-                        float testDistance = (attachA.worldPosition
-                                              - attachB.worldPosition).length;
+                        Vector2 screenPosB = m_cameraComponent
+                                                .WorldToScreenPoint(
+                                                        attachB.worldPosition);
+                        screenPosB.x *= graphics.width;
+                        screenPosB.y *= graphics.height;
                         
-                        if (testDistance < distance)
+                        bool snapped = false;
+  
+                        // Check distance
+                        if ((attachA.worldPosition
+                             - attachB.worldPosition).length < distance)
                         {
+                            // maybe do something else in here
                             snapped = true;
-                            // do more stuff here later
+                        }
+                        // Check on-screen distance
+                        else if ((screenPosB - screenPosA)
+                                            .lengthSquared < screenDistSqr)
+                        {
+                            // maybe do other stuff in here
+                            snapped = true;
+                        }
+                        
+                        // Limit angle
+                        if (snapped)
+                        {
+                            // Use dot product
+                            // One is negative, since the two attachment nodes
+                            // face each other
+                            float dot = attachA.worldDirection.DotProduct(
+                                            -attachB.worldDirection);
+                            
+                            if (dot < angleCos)
+                            {
+                                snapped = false;
+                            }
                         }
                         
                         if (snapped)
@@ -309,11 +348,13 @@ class CraftEditor : UIController
 
         // Load the construction workspace. (Toolbars and blank panels)
         // Note: workspaces are an arrangement of empty panels
-        UIElement@ wkConstruction = ui.LoadLayout(cache.GetResource("XMLFile", "Default/UI/WorkspaceConstruction.xml"));
+        UIElement@ wkConstruction = ui.LoadLayout(cache.GetResource("XMLFile",
+                                    "Default/UI/WorkspaceConstruction.xml"));
         wkConstruction.vars["Scene"] = node;
         
         // Load the parts list panel (Just the parts list)
-        UIElement@ panelPartsList = ui.LoadLayout(cache.GetResource("XMLFile", "Default/UI/PanelPartsList.xml")); 
+        UIElement@ panelPartsList = ui.LoadLayout(cache.GetResource("XMLFile",
+                                            "Default/UI/PanelPartsList.xml")); 
 
         // Make the parts list stretch to the size of its parent
         SetUIAnchors(panelPartsList);
@@ -322,7 +363,8 @@ class CraftEditor : UIController
         PartsList::SetupPartsList(this, panelPartsList);
         
         // Add the parts list
-        wkConstruction.GetChild("ToolbarLeft").GetChild("Panel0").AddChild(panelPartsList);
+        wkConstruction.GetChild("ToolbarLeft").GetChild("Panel0")
+                                                    .AddChild(panelPartsList);
 
         // Add the construction UI to the list of workspaces.
         // This does nothing right now, but exists for future use where there
@@ -753,7 +795,9 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
             Vector3 cursorPrevious = Vector3(feature.m_data["CursorPrevious"]);
 
             // Calculate new cursor position and delta
-            Vector3 cursorPosition = editor.ScreenPosToRay(editor.m_cursor) * cameraDepth + editor.m_camera.worldPosition;
+            Vector3 cursorPosition = editor.ScreenPosToRay(editor.m_cursor)
+                                        * cameraDepth
+                                        + editor.m_camera.worldPosition;
             Vector3 cursorDelta = cursorPosition - cursorPrevious;
 
             // Add to all positions
@@ -764,9 +808,10 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
             
             // Calculate possible snapping points
             // TODO: somehow let the player decide which attachment to connect to
-            AttachmentPair[]@ pairs = cast<AttachmentPair[]@>(feature.m_data["AttachmentPairs"]);
+            AttachmentPair[]@ pairs = cast<AttachmentPair[]@>(
+                                            feature.m_data["AttachmentPairs"]);
             pairs.Clear();
-            editor.CalculatePossibleSnaps(pairs, 10, 0.1f);
+            editor.CalculatePossibleSnaps(pairs, 10, 0.1f, 10.0f);
 
             //for (int i = 0; i < pairs.length; i ++)
             //{
@@ -797,22 +842,25 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
         {
             
             
-            AttachmentPair[]@ pairs = cast<AttachmentPair[]@>(feature.m_data["AttachmentPairs"]);
+            AttachmentPair[]@ pairs = cast<AttachmentPair[]@>(
+                                            feature.m_data["AttachmentPairs"]);
             if (pairs.length != 0) 
             {
                 // there is a snap!
                 
-                // TODO: actually record what is connected to what and do some topology stuff
+                // TODO: record attachments instead of just moving stuff
                 
                 // assume the player chooses the first possible snap
                 AttachmentPair@ pair = pairs[0];
                 
                 // Used to revert all parts to their original positions
-                //Matrix3x4[]@ originalTransforms = cast<Matrix3x4[]@>(feature.m_data["OriginalTransforms"]);
+                //Matrix3x4[]@ originalTransforms=
+                //cast<Matrix3x4[]@>(feature.m_data["OriginalTransforms"]);
                 
                 // Don't do any complicated vector math just yet
-                // just add the difference between the two attachments to all tha parts
-                Vector3 displacement = pair.m_target.worldPosition - pair.m_selected.worldPosition;
+                // just add the difference between the two attachments
+                Vector3 displacement = pair.m_target.worldPosition
+                                        - pair.m_selected.worldPosition;
                 
                 for (int i = 0; i < editor.m_selection.length; i ++)
                 {
@@ -824,7 +872,8 @@ int MoveFree(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
                 
                 
                 // Play annoying metal hit sound
-                Sound@ hit = cache.GetResource("Sound", "Default/Sfx/MetalHit.ogg");
+                Sound@ hit = cache.GetResource("Sound",
+                                               "Default/Sfx/MetalHit.ogg");
                 editor.m_sfx.Play(hit);
                 editor.m_sfx.frequency = hit.frequency * Random(0.9f, 1.1f);
             }
@@ -877,7 +926,8 @@ int LunchTime(CraftEditor@ editor, EditorFeature@ feature, VariantMap& args)
     
     // Add the FlightUI
     Node@ sceneA = editor.GetNode();
-    sceneA.CreateScriptObject("Default/Scripts/FlightUI/FlightUI.as", "FlightUI");
+    sceneA.CreateScriptObject("Default/Scripts/FlightUI/FlightUI.as",
+                              "FlightUI");
     
     return 0;
 }
