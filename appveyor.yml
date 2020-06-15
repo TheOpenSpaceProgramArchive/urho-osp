@@ -1,0 +1,57 @@
+version: 1.0.{build}
+image:
+  - Visual Studio 2019
+  - Ubuntu1804
+
+environment:
+  CLICOLOR_FORCE: 1
+  CHERE_INVOKING: 1 # Tell Bash to inherit the current working directory
+  matrix:
+    - MSYSTEM: MSVC
+    - MSYSTEM: LINUX
+
+matrix:
+  exclude:
+    - image: Visual Studio 2019
+      MSYSTEM: LINUX
+    - image: Ubuntu1804
+      MSYSTEM: MSVC
+
+for:
+  - matrix:
+      only:
+        - MSYSTEM: MSVC
+    build_script:
+    - cmd: >-
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+
+        git clone https://github.com/urho3d/Urho3D
+
+        cd Urho3D
+
+        cmake . -DURHO3D_SAMPLES=OFF
+
+        dir
+
+        cmake --build . --target ALL_BUILD --parallel
+
+        cd ../
+
+        cmake . -DURHO3D_SRC=Urho3D -DURHO3D_HOME=Urho3D
+
+        cmake --build . --target ALL_BUILD --parallel
+       
+  - matrix:
+      only:
+        - image: Ubuntu1804
+    install: sudo apt install -y libgl1-mesa-dev
+    build_script:
+      - git clone https://github.com/urho3d/Urho3D
+      - cd Urho3D
+      - cmake . -DURHO3D_SAMPLES=OFF
+      - cmake --build . --target all --parallel
+      - cd ../
+      - cmake . -DURHO3D_SRC=${CWD}/Urho3D -DURHO3D_HOME=${CWD}/Urho3D
+      - cmake --build . --target all --parallel
+
+test: off

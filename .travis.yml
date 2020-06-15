@@ -1,0 +1,23 @@
+matrix:
+  include:
+    - os: linux
+      dist: bionic
+      compiler: gcc
+      addons: &mesa-dev
+        apt:
+          packages:
+            - libgl1-mesa-dev
+    - os: linux
+      dist: bionic
+      compiler: clang
+      addons: *mesa-dev
+sudo: false
+language: cpp
+script:
+ - git clone https://github.com/urho3d/Urho3D
+ - cd Urho3D
+ - cmake . -DURHO3D_SAMPLES=OFF
+ - cmake --build . --target all
+ - cd ../
+ - cmake . -DURHO3D_SRC=${CWD}/Urho3D -DURHO3D_HOME=${CWD}/Urho3D
+ - cmake --build . --target all
