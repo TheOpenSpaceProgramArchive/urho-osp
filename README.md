@@ -1,3 +1,9 @@
+**This repo is very likely abandoned in favor of osp-magnum**
+
+**osp-magnum:** https://github.com/TheOpenSpaceProgram/osp-magnum
+
+osp-magnum is based on many of the lessons learned from this repo, so really nothing much gone to waste.
+
 # Urho3D Open Space Program
 Another Open Space Program project, but made with Urho3D.
 
